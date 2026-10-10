@@ -99,8 +99,9 @@ function buildPrompt(turns) {
   return head + '\n\n――――\n【ここまでの会話】\n' + log + '\n\n――――\n上の会話の続きとして、アシスタントの次の返答だけを書いてください。';
 }
 
-function runClaude({ prompt, model, effort }, onDelta, onClose) {
-  const args = ['-p', '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
+function runClaude({ prompt, model, effort, images }, onDelta, onClose) {
+  const withImages = images && images.length > 0;
+  const args = ['-p', ...(withImages ? ['--input-format', 'stream-json'] : []), '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
     '--tools', '', '--no-session-persistence', '--setting-sources', '', '--disable-slash-commands',
     '--system-prompt', SYSTEM, '--model', model];
   if (effort) args.push('--effort', effort);
@@ -132,7 +133,11 @@ function runClaude({ prompt, model, effort }, onDelta, onClose) {
     else done({ ok: true, model: usedModel, truncated, got });
   });
   child.stdin.on('error', () => {});
-  child.stdin.end(prompt, 'utf8');
+  if (withImages) {
+    const content = images.map(im => ({ type: 'image', source: { type: 'base64', media_type: im.t, data: im.d } }));
+    content.push({ type: 'text', text: prompt });
+    child.stdin.end(JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n', 'utf8');
+  } else child.stdin.end(prompt, 'utf8');
   return child;
 }
 
@@ -165,6 +170,8 @@ const server = http.createServer(async (req, res) => {
     let body;
     try { body = JSON.parse(await readBody(req)); } catch (e) { return json(res, 400, { error: 'bad_request' }); }
     const prompt = buildPrompt(body.turns);
+    const images = (Array.isArray(body.images) ? body.images : []).slice(0, 6)
+      .filter(im => im && /^image\/(jpeg|png|webp|gif)$/.test(im.t) && typeof im.d === 'string' && /^[A-Za-z0-9+/=]+$/.test(im.d));
     if (!prompt.trim()) return json(res, 400, { error: 'empty' });
     const alias = aliasOf(body.model, body.tier);
     const effort = ['low', 'medium', 'high', 'xhigh', 'max'].includes(body.effort) ? body.effort : null;
@@ -177,7 +184,7 @@ const server = http.createServer(async (req, res) => {
     res.on('close', () => { if (child && !closed) child.kill(); finish(); });
 
     const attempt = (eff, retry) => {
-      child = runClaude({ prompt, model: alias, effort: eff }, t => send({ type: 'delta', text: t }), r => {
+      child = runClaude({ prompt, model: alias, effort: eff, images },t => send({ type: 'delta', text: t }), r => {
         if (!r.ok && !r.got && retry) return attempt(null, false);
         if (r.ok) send({ type: 'done', model: r.model, truncated: r.truncated });
         else send({ type: 'error', message: r.error });

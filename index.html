@@ -616,6 +616,19 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 .lv-camlab { position: absolute; left: 8px; top: 8px; padding: 3px 9px; border-radius: 999px; background: rgba(0,0,0,.5); color: #fff; font-size: 11.5px; pointer-events: none; }
 .lv-cam .lv-flip { width: 40px; height: 40px; }
 .lv-cam .lv-flip .ic { width: 20px; height: 20px; }
+.lv-cam .lv-tool { position: absolute; background: rgba(0,0,0,.5); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.lv-cam .lv-hide { right: 42px; top: 8px; width: 28px; height: 28px; border-radius: 50%; }
+.lv-cam .lv-hide .ic { width: 15px; height: 15px; }
+.lv-cam .lv-both { left: 8px; top: 36px; height: 26px; padding: 0 10px 0 8px; border-radius: 999px; font-size: 11.5px; }
+.lv-cam .lv-both .ic { width: 14px; height: 14px; }
+.lv-cam .lv-both.on { background: var(--accent, #3ec9a7); color: #04201a; }
+.lv-cam.dual { width: min(64vw, 340px); aspect-ratio: 3 / 2; display: grid; grid-template-columns: 1fr 1fr; }
+.lv-cam.dual video:not([hidden]) { min-width: 0; }
+.lv-cam.dual #lvVideo2 { border-left: 2px solid rgba(255,255,255,.6); }
+.lv-cam .lv-veil { position: absolute; inset: 0; background: #0b0f0e; color: #cfeee6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; font-size: 12.5px; cursor: pointer; z-index: 1; }
+.lv-cam .lv-veil[hidden] { display: none; }
+.lv-cam .lv-veil small { opacity: .7; font-size: 11px; }
+.lv-cam .lv-camx, .lv-cam .lv-flip, .lv-cam .lv-show, .lv-cam .lv-camlab, .lv-cam .lv-tool { z-index: 2; }
 .price-list { display: grid; gap: 8px; }
 .price-list > div { display: grid; gap: 2px; padding: 9px 12px; border: 1px solid var(--line, rgba(128,128,128,.25)); border-radius: 12px; }
 .price-list b { font-size: .92em; } .price-list span { font-size: .85em; opacity: .8; line-height: 1.55; }
@@ -1569,10 +1582,12 @@ async function relayPing(timeout = 4000) {
 }
 async function relaySample(input, opts = {}) {
   const turns = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
+  const images = [];
+  for (const b of (opts.images || []).slice(0, 4)) { const d = await blobToB64(b); if (d) images.push({ t: /^image\/(jpeg|png|webp|gif)$/.test(b.type) ? b.type : 'image/jpeg', d }); }
   let res;
   try {
     res = await fetch(relayBase() + '/ask', { method: 'POST', signal: opts.signal, headers: relayHeaders(),
-      body: JSON.stringify({ turns, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
+      body: JSON.stringify({ turns, images, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
   } catch (e) { if (e && e.name === 'AbortError') throw { code: 'cancelled' }; throw { code: 'relay_down' }; }
   if (!res.ok) {
     let j = null; try { j = await res.json(); } catch (e) {}
@@ -1613,7 +1628,7 @@ async function initEngine() {
     try { Engine.perms = await win.claude.use('permissions'); if (Engine.perms && Engine.sample && (await Engine.perms.state('sample')) === 'denied') Engine.denied = true; } catch (e) {}
   }
   Engine.relay = false;
-  if (Engine.kind !== 'sample' && !HAS_CLAUDE && await relayPing()) { Engine.sample = relaySample; Engine.kind = 'sample'; Engine.relay = true; Engine.imgMax = 0; Engine.denied = false; }
+  if (Engine.kind !== 'sample' && !HAS_CLAUDE && await relayPing()) { Engine.sample = relaySample; Engine.kind = 'sample'; Engine.relay = true; Engine.imgMax = 4; Engine.denied = false; }
   if (Engine.kind !== 'sample' && SET.apiKey) Engine.kind = 'api';
   Engine.checked = true;
   renderBanner(); renderComposer();
@@ -1849,7 +1864,7 @@ async function generate(chat, am, alt, o = {}) {
       const imgs = [];
       for (const a of conv.imgs) { const b = await imageBlob(a); if (b) imgs.push(b); }
       imgs.push(...extraImgs);
-      const note = imageNote(conv, extraImgs.length, live ? 'いまカメラに映っている映像' : '今回の追加画像');
+      const note = imageNote(conv, extraImgs.length, live ? (extraImgs.length > 1 ? 'いま2つのカメラ（内カメラと外カメラ）に映っている映像' : 'いまカメラに映っている映像') : '今回の追加画像');
       const callEff = EFF_RANK[eff] > 2 ? 'high' : eff;
       const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText });
       const fin = r => { alt.applied = r.applied; alt.tier = r.tier; alt.trunc = r.trunc; };
@@ -2993,7 +3008,7 @@ const Orb = {
 };
 
 const Live = {
-  on: false, built: false, st: 'idle', typeMode: false, camOn: false, camMode: '', facing: 'environment', stream: null, photo: null, photoURL: '',
+  on: false, built: false, st: 'idle', typeMode: false, camOn: false, camMode: '', facing: 'environment', stream: null, stream2: null, dual: false, veil: false, photo: null, photoURL: '',
   spoken: 0, done: true, tags: new Set(), idleTries: 0, sttErr: '', autoT: 0, wake: null, prevTTS: null, cutting: false, composing: false, lastKey: 0, baseHint: '',
   html() {
     return `<div class="lv-top">
@@ -3006,9 +3021,13 @@ const Live = {
       <img class="lv-sprite px-only" id="lvSprite" alt="" data-lv="orb">
       <div class="lv-cam" id="lvCam" hidden>
         <video id="lvVideo" data-lv="flip" playsinline muted autoplay hidden></video>
+        <video id="lvVideo2" data-lv="flip" playsinline muted autoplay hidden></video>
         <img id="lvSnap" data-lv="flip" alt="カメラで撮った写真" hidden>
         <span class="lv-camlab" id="lvCamLab"></span>
+        <div class="lv-veil" id="lvVeil" data-lv="veil" hidden>カメラは動いています<small>タップで映像を表示</small></div>
         <button class="lv-camx" data-lv="cam-off" aria-label="カメラを閉じる">${ic('x')}</button>
+        <button class="lv-tool lv-hide" id="lvHide" data-lv="veil" aria-label="映像を隠す">${ic('eye')}</button>
+        <button class="lv-tool lv-both" id="lvBoth" data-lv="both" aria-label="内カメラと外カメラを同時に使う">${ic('camera')}<span>両方</span></button>
         <button class="lv-flip" id="lvFlip" data-lv="flip" aria-label="前後のカメラを切り替える" hidden>${ic('flip')}</button>
         <button class="lv-show" id="lvShow" data-lv="show"></button>
       </div>
@@ -3036,6 +3055,8 @@ const Live = {
       else if (a === 'cam') this.camToggle();
       else if (a === 'cam-off') this.camOff();
       else if (a === 'flip') this.flip();
+      else if (a === 'both') this.dualToggle();
+      else if (a === 'veil') { this.veil = !this.veil; this.renderCam(); }
       else if (a === 'cost') toast(CV.active() ? `今回の声の使用料の目安：${fmtMoney(Usage.ttsUSD(Usage.sess))}（${CV_INFO[SET.ttsEngine].name}）` : '', { ms: 3500 });
       else if (a === 'show') { if (this.camMode === 'video') this.send('', { camOnly: true }); else this.pickPhoto(); }
       else if (a === 'photo') this.pickPhoto();
@@ -3216,9 +3237,11 @@ const Live = {
     let pend = [], images = [], cam = false;
     if (this.camOn && (o.camOnly || (SET.liveCam && this.camMode === 'video'))) {
       const shot = await this.shot();
+      const shot2 = this.dual && this.stream2 ? await this.shot('#lvVideo2') : null;
       if (shot) {
-        if (o.camOnly) { try { pend = [await imagePending(shot, 'カメラ.jpg')]; } catch (e) {} }
-        else { images = [shot]; cam = true; }
+        const all = shot2 ? [shot, shot2] : [shot];
+        if (o.camOnly) { try { pend = await Promise.all(all.map((s, i) => imagePending(s, all.length > 1 ? `カメラ${i + 1}.jpg` : 'カメラ.jpg'))); } catch (e) {} }
+        else { images = all; cam = true; }
       }
     }
     if (!this.on) return;
@@ -3324,12 +3347,39 @@ const Live = {
       const v = $('#lvVideo'); v.srcObject = st; v.hidden = false; $('#lvSnap').hidden = true; v.classList.toggle('mirror', this.facing === 'user');
       try { await v.play(); } catch (e) {}
       this.camMode = 'video'; this.camOn = true; this.renderCam();
+      if (this.dual) await this.cam2Start();
     } catch (e) {
       toast('カメラを使えませんでした。写真を撮って見せることができます', { action: '写真を撮る', onAction: () => this.pickPhoto(), ms: 7000 });
     }
   },
-  stopStream() { if (this.stream) { this.stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); this.stream = null; } const v = $('#lvVideo'); if (v) { v.srcObject = null; } },
+  stopStream() { this.stopStream2(); if (this.stream) { this.stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); this.stream = null; } const v = $('#lvVideo'); if (v) { v.srcObject = null; } },
+  stopStream2() { if (this.stream2) { this.stream2.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); this.stream2 = null; } const v = $('#lvVideo2'); if (v) { v.srcObject = null; v.hidden = true; } },
+  /* 内カメラと外カメラを同時に映す。端末が2つ同時に開けないときは1つに戻す */
+  async cam2Start() {
+    const other = this.facing === 'user' ? 'environment' : 'user';
+    try {
+      const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: other }, width: { ideal: 960 }, height: { ideal: 720 } }, audio: false });
+      if (!this.on || !this.camOn || !this.dual) { st.getTracks().forEach(t => t.stop()); return; }
+      this.stopStream2(); this.stream2 = st;
+      const v2 = $('#lvVideo2'); v2.srcObject = st; v2.hidden = false; v2.classList.toggle('mirror', other === 'user');
+      try { await v2.play(); } catch (e) {}
+      await sleep(500);
+      const t1 = this.stream && this.stream.getVideoTracks()[0];
+      if (!t1 || t1.readyState === 'ended') throw new Error('first camera stopped');
+      this.renderCam();
+    } catch (e) {
+      this.dual = false; this.stopStream2(); this.renderCam();
+      toast('この端末では、2つのカメラを同時には使えませんでした', { ms: 4200 });
+      if (this.stream && this.stream.getVideoTracks()[0] && this.stream.getVideoTracks()[0].readyState === 'ended') this.camStart();
+    }
+  },
+  async dualToggle() {
+    if (this.camMode !== 'video') { toast('カメラを映像で使っているときだけ使えます', { ms: 2600 }); return; }
+    this.dual = !this.dual;
+    if (this.dual) { this.renderCam(); await this.cam2Start(); } else { this.stopStream2(); this.renderCam(); }
+  },
   camOff() {
+    this.dual = false; this.veil = false;
     this.stopStream();
     if (this.photoURL) { URL.revokeObjectURL(this.photoURL); this.photoURL = ''; }
     this.photo = null; this.camOn = false; this.camMode = '';
@@ -3337,6 +3387,14 @@ const Live = {
     this.renderCam();
   },
   flip() {
+    if (this.veil) { this.veil = false; this.renderCam(); return; }
+    if (this.dual && this.stream && this.stream2) {
+      const a = this.stream; this.stream = this.stream2; this.stream2 = a;
+      const v = $('#lvVideo'), v2 = $('#lvVideo2'); v.srcObject = this.stream; v2.srcObject = this.stream2;
+      this.facing = this.facing === 'user' ? 'environment' : 'user';
+      v.classList.toggle('mirror', this.facing === 'user'); v2.classList.toggle('mirror', this.facing !== 'user');
+      toast('左右のカメラを入れ替えました', { ms: 1600 }); this.renderCam(); return;
+    }
     this.facing = this.facing === 'user' ? 'environment' : 'user';
     toast(this.facing === 'user' ? '内カメラ（自分側）にしました' : '外カメラ（まわり側）にしました', { ms: 1800 });
     this.renderCam();
@@ -3346,13 +3404,17 @@ const Live = {
     const box = $('#lvCam'); if (!box) return;
     box.hidden = !this.camOn;
     $('#lvCamBtn').classList.toggle('on', this.camOn); $('#lvCamBtn').setAttribute('aria-pressed', String(this.camOn));
-    $('#lvFlip').hidden = !this.camOn; const lab = $('#lvCamLab'); if (lab) lab.textContent = this.facing === 'user' ? '内カメラ' : '外カメラ';
+    const dual = this.dual && !!this.stream2;
+    box.classList.toggle('dual', dual); box.classList.toggle('veiled', this.veil);
+    $('#lvVeil').hidden = !this.veil; $('#lvHide').hidden = !this.camOn || this.veil;
+    const bb = $('#lvBoth'); bb.hidden = this.camMode !== 'video'; bb.classList.toggle('on', this.dual);
+    $('#lvFlip').hidden = !this.camOn; const lab = $('#lvCamLab'); if (lab) lab.textContent = dual ? (this.facing === 'user' ? '内カメラ｜外カメラ' : '外カメラ｜内カメラ') : (this.facing === 'user' ? '内カメラ' : '外カメラ');
     $('#lvShow').innerHTML = this.camMode === 'video' ? `${ic('eye')}<span>見せる</span>` : `${ic('camera')}<span>撮り直す</span>`;
   },
-  async shot() {
+  async shot(sel = '#lvVideo') {
     if (!this.camOn) return null;
     if (this.camMode === 'photo') return this.photo;
-    const v = $('#lvVideo'); if (!v || !v.videoWidth) return null;
+    const v = $(sel); if (!v || !v.videoWidth) return null;
     const s = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
     const c = doc.createElement('canvas'); c.width = Math.round(v.videoWidth * s); c.height = Math.round(v.videoHeight * s);
     c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
@@ -3504,7 +3566,7 @@ const SET_TAB = {
     }
     const relayHtml = `<div class="sg"><div class="sg-h">このPCのClaudeにつなぐ（APIキー不要）</div>
       <p class="stat-line" id="relayStat">${relayStatHtml()}</p>
-      <p class="help-p">Claude Code にログインしているPCで中継サーバー（<b>start-relay.bat</b>、外からも使うなら <b>start-relay-tunnel.bat</b>）を起動したまま、ここで「接続を試す」を押してください。使った分は、あなたのClaudeの使用量に数えられます。画像は送れません。</p>
+      <p class="help-p">Claude Code にログインしているPCで中継サーバー（<b>start-relay.bat</b>、外からも使うなら <b>start-relay-tunnel.bat</b>）を起動したまま、ここで「接続を試す」を押してください。使った分は、あなたのClaudeの使用量に数えられます。画像は1回に4枚まで送れます。</p>
       <label class="field"><span>中継サーバーの住所（外からは https://….trycloudflare.com）</span><input type="text" id="relayUrlIn" value="${esc(SET.relayUrl)}" placeholder="http://127.0.0.1:8787" autocomplete="off" spellcheck="false"></label>
       <label class="field"><span>合言葉（外から使うときだけ必要）</span><input type="password" id="relayKeyIn" value="${esc(SET.relayKey)}" placeholder="PCに設定した合言葉" autocomplete="off" spellcheck="false"></label>
       <div class="btn-row"><button type="button" class="btn sm primary" data-do="relay-test">接続を試す</button></div>
