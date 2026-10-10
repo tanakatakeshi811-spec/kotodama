@@ -985,10 +985,10 @@ const DEFAULTS = {
   persona: 'std', instr: '', memory: '', autoTitle: true, personas: [],
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
-  apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', side: true, pxSoundsAsked: false,
+  apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
   ttsEngine: 'system', ttsKeep: false, ttsOpenaiKey: '', ttsOpenaiModel: 'gpt-4o-mini-tts', ttsOpenaiVoice: 'coral', ttsElKey: '', ttsElModel: 'eleven_flash_v2_5', ttsElVoice: '21m00Tcm4TlvDq8ikWAM', ttsGKey: '', ttsGVoice: 'ja-JP-Chirp3-HD-Aoede', ttsVvUrl: 'http://127.0.0.1:50021', ttsVvSpeaker: '1',
 };
-const LOCAL_KEYS = new Set(['sysVoice', 'apiKey', 'apiKeep', 'relayUrl', 'sttLang', 'side', 'ttsEngine', 'ttsKeep', 'ttsOpenaiKey', 'ttsOpenaiModel', 'ttsOpenaiVoice', 'ttsElKey', 'ttsElModel', 'ttsElVoice', 'ttsGKey', 'ttsGVoice', 'ttsVvUrl', 'ttsVvSpeaker']);
+const LOCAL_KEYS = new Set(['sysVoice', 'apiKey', 'apiKeep', 'relayUrl', 'relayKey', 'sttLang', 'side', 'ttsEngine', 'ttsKeep', 'ttsOpenaiKey', 'ttsOpenaiModel', 'ttsOpenaiVoice', 'ttsElKey', 'ttsElModel', 'ttsElVoice', 'ttsGKey', 'ttsGVoice', 'ttsVvUrl', 'ttsVvSpeaker']);
 function stripSecrets(o) { if (!o.apiKeep) o.apiKey = ''; if (!o.ttsKeep) { o.ttsOpenaiKey = ''; o.ttsElKey = ''; o.ttsGKey = ''; } return o; }
 const SET = Object.assign({}, DEFAULTS, LS.get('settings', {}));
 
@@ -1553,19 +1553,32 @@ const Engine = { kind: 'none', sample: null, imgMax: 0, checked: false, denied: 
 
 /* ---- PCの中継サーバー（relay/server.mjs）経由でClaudeを使う ---- */
 const relayBase = () => String(SET.relayUrl || 'http://127.0.0.1:8787').trim().replace(/\/+$/, '');
-async function relayPing(timeout = 1800) {
+const RELAY_WHY_JA = { bad: '合言葉がちがいます', no_key: '合言葉を入れてください', locked: 'まちがいが続いたため一時的に止められています（15分ほど待ってください）', unset: 'PC側に合言葉が設定されていません（passphrase.txt）' };
+const relayStatHtml = () => Engine.relay ? `${ic('check')}<span>中継サーバーにつながっています</span>` : `${ic('alert')}<span>${RELAY_WHY_JA[Engine.relayWhy] || '中継サーバーが見つかりません'}</span>`;
+const relayHeaders = () => { const h = { 'content-type': 'application/json' }; if (SET.relayKey) h['x-relay-key'] = SET.relayKey; return h; };
+async function relayPing(timeout = 4000) {
   const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), timeout);
-  try { const r = await fetch(relayBase() + '/ping', { signal: ctl.signal, cache: 'no-store' }); const j = await r.json(); return !!(j && j.ok && j.name === 'kotodama-relay'); }
-  catch (e) { return false; } finally { clearTimeout(to); }
+  Engine.relayWhy = 'down';
+  try {
+    const r = await fetch(relayBase() + '/ping', { signal: ctl.signal, cache: 'no-store', headers: SET.relayKey ? { 'x-relay-key': SET.relayKey } : {} });
+    const j = await r.json();
+    if (!(j && j.ok && j.name === 'kotodama-relay')) return false;
+    Engine.relayWhy = j.auth ? '' : (j.why || 'bad');
+    return !!j.auth;
+  } catch (e) { return false; } finally { clearTimeout(to); }
 }
 async function relaySample(input, opts = {}) {
   const turns = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
   let res;
   try {
-    res = await fetch(relayBase() + '/ask', { method: 'POST', signal: opts.signal, headers: { 'content-type': 'application/json' },
+    res = await fetch(relayBase() + '/ask', { method: 'POST', signal: opts.signal, headers: relayHeaders(),
       body: JSON.stringify({ turns, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
   } catch (e) { if (e && e.name === 'AbortError') throw { code: 'cancelled' }; throw { code: 'relay_down' }; }
-  if (!res.ok) throw { code: res.status === 429 ? 'rate_limited' : 'relay_down' };
+  if (!res.ok) {
+    let j = null; try { j = await res.json(); } catch (e) {}
+    const er = j && j.error;
+    throw { code: er === 'auth_locked' ? 'relay_locked' : (er && er.startsWith('auth_')) ? 'relay_key' : res.status === 429 ? 'rate_limited' : 'relay_down' };
+  }
   const reader = res.body.getReader(), dec = new TextDecoder();
   let buf = '', text = '', fin = null, err = null;
   const handle = line => {
@@ -1627,6 +1640,8 @@ const ERR_JA = {
   network: 'ネットワークに接続できませんでした。',
   no_engine: 'AIにつながっていません。画面上の案内を確認してください。',
   relay_down: 'PCの中継サーバーにつながりません。起動しているか（start-relay.bat）確かめてください。',
+  relay_key: '合言葉が違います。設定 → 接続 で入れ直してください。',
+  relay_locked: '合言葉のまちがいが続いたため、中継サーバーが一時的に止められています。15分ほど待ってください。',
 };
 const FATAL = new Set(['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed']);
 const errText = e => { const c = e && e.code; if (ERR_JA[c]) return ERR_JA[c]; if (c === 'api_error' && e.message) return 'APIエラー：' + e.message; if (c === 'relay_error') return '中継サーバーのエラー：' + String(e.message || '').slice(0, 200); return ERR_JA.upstream_error; };
@@ -2289,6 +2304,7 @@ function renderBanner() {
   if (Engine.checked && !engineReady()) {
     if (Engine.kind === 'sample' && Engine.denied) h = `<div class="banner-in warn"><p>AIの利用が許可されていません。許可すると会話できます。</p><button class="btn sm primary" data-act="perm">AIの利用を許可</button></div>`;
     else if (HAS_CLAUDE) h = `<div class="banner-in warn"><p>この画面ではAIにつながっていません。Claudeにログインしているか確かめてから、開き直してください。</p></div>`;
+    else if (RELAY_WHY_JA[Engine.relayWhy]) h = `<div class="banner-in warn"><p>PCの中継サーバーには届きましたが、${RELAY_WHY_JA[Engine.relayWhy]}。</p><button class="btn sm primary" data-act="settings-api">${ic('key')}合言葉を入れる</button></div>`;
     else h = `<div class="banner-in"><p>AIにつながっていません。このPCで「中継サーバー」を起動すると、APIキーなしで、ログイン中のClaudeと話せます（Claudeアプリで開く／APIキーを使う方法もあります）。</p><button class="btn sm primary" data-act="settings-api">${ic('key')}つなぎ方を見る</button></div>`;
   }
   b.innerHTML = h; b.hidden = !h;
@@ -3487,11 +3503,12 @@ const SET_TAB = {
       <div class="sg"><div class="sg-h">ブラウザで直接開くとき</div><p class="help-p">このアプリのHTMLファイルをブラウザで直接開くと、AnthropicのAPIキーで動かせます。その場合はマイクとカメラの映像もそのまま使えます。</p></div>`;
     }
     const relayHtml = `<div class="sg"><div class="sg-h">このPCのClaudeにつなぐ（APIキー不要）</div>
-      <p class="stat-line" id="relayStat">${Engine.relay ? `${ic('check')}<span>PCの中継サーバーにつながっています</span>` : `${ic('alert')}<span>中継サーバーが見つかりません</span>`}</p>
-      <p class="help-p">Claude Code にログインしているPCで、リポジトリの <b>relay/start-relay.bat</b> をダブルクリックすると中継サーバーが立ち上がります（Node.js が必要）。起動したまま、ここで「接続を試す」を押してください。使った分は、あなたのClaudeの使用量に数えられます。このPCのブラウザでしか使えません。画像は送れません。</p>
-      <label class="field"><span>中継サーバーの住所</span><input type="text" id="relayUrlIn" value="${esc(SET.relayUrl)}" placeholder="http://127.0.0.1:8787" autocomplete="off" spellcheck="false"></label>
+      <p class="stat-line" id="relayStat">${relayStatHtml()}</p>
+      <p class="help-p">Claude Code にログインしているPCで中継サーバー（<b>start-relay.bat</b>、外からも使うなら <b>start-relay-tunnel.bat</b>）を起動したまま、ここで「接続を試す」を押してください。使った分は、あなたのClaudeの使用量に数えられます。画像は送れません。</p>
+      <label class="field"><span>中継サーバーの住所（外からは https://….trycloudflare.com）</span><input type="text" id="relayUrlIn" value="${esc(SET.relayUrl)}" placeholder="http://127.0.0.1:8787" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>合言葉（外から使うときだけ必要）</span><input type="password" id="relayKeyIn" value="${esc(SET.relayKey)}" placeholder="PCに設定した合言葉" autocomplete="off" spellcheck="false"></label>
       <div class="btn-row"><button type="button" class="btn sm primary" data-do="relay-test">接続を試す</button></div>
-      <p class="help-p">Chromeで「ローカルネットワークへのアクセス」を聞かれたら、許可してください。</p>
+      <p class="help-p">このPCのブラウザで使うときは、住所はそのまま・合言葉は空で大丈夫です。Chromeで「ローカルネットワークへのアクセス」を聞かれたら、許可してください。外から使うときは、PCに表示されるリンクを開くと住所が自動で入ります。</p>
     </div>`;
     return relayHtml + `<div class="sg"><div class="sg-h">APIキー</div>
       <p class="help-p">このファイルはブラウザで直接開かれています。AnthropicのAPIキー（sk-ant- で始まる文字列）を入れると、AIと話せます。キーは api.anthropic.com への送信にだけ使い、ほかには送りません。料金はAPIの利用料として請求されます。</p>
@@ -3602,10 +3619,10 @@ async function settingsDo(act, n, redraw) {
   if (act === 'relay-test') {
     const v = (($('#relayUrlIn', n) || {}).value || '').trim();
     if (!/^https?:\/\/[^\s]+$/.test(v)) { toast('住所は http://127.0.0.1:8787 のように入れてください', { err: true }); return; }
-    Settings.set({ relayUrl: v });
+    Settings.set({ relayUrl: v, relayKey: (($('#relayKeyIn', n) || {}).value || '').trim() });
     const stat = $('#relayStat', n); if (stat) stat.innerHTML = `<span class="dots"><i></i><i></i><i></i></span><span>確かめています…</span>`;
     await initEngine(); redraw();
-    toast(Engine.relay ? 'PCのClaudeにつながりました' : 'つながりません。start-relay.bat を起動しているか確かめてください', { err: !Engine.relay });
+    toast(Engine.relay ? 'PCのClaudeにつながりました' : (RELAY_WHY_JA[Engine.relayWhy] || 'つながりません。中継サーバーを起動しているか確かめてください'), { err: !Engine.relay });
     return;
   }
   if (act === 'api-save' || act === 'api-test') {
@@ -3627,10 +3644,19 @@ async function settingsDo(act, n, redraw) {
 
 /* ---- relay watch ---- */
 if (!HAS_CLAUDE) {
+  /* PCに表示されるリンク（#relay=住所）を開いたら、住所を自動で入れる。信頼できる住所だけ受け付ける */
+  const hm = location.hash.match(/[#&]relay=([^&]+)/);
+  if (hm) {
+    let u = ''; try { u = decodeURIComponent(hm[1]).trim().replace(/\/+$/, ''); } catch (e) {}
+    if (/^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(u)) {
+      Settings.set({ relayUrl: u });
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    }
+  }
   let relayCheck = 0;
   const relayWatch = async () => {
     if (document.hidden || S.busy || Date.now() - relayCheck < 4000) return; relayCheck = Date.now();
-    const up = await relayPing(1200);
+    const up = await relayPing(3000);
     if (up !== Engine.relay && !S.busy) { await initEngine(); if (Engine.relay) toast('PCのClaudeにつながりました'); }
   };
   window.addEventListener('focus', relayWatch);
