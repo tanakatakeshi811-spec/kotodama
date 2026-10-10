@@ -629,6 +629,23 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 .lv-cam .lv-veil[hidden] { display: none; }
 .lv-cam .lv-veil small { opacity: .7; font-size: 11px; }
 .lv-cam .lv-camx, .lv-cam .lv-flip, .lv-cam .lv-show, .lv-cam .lv-camlab, .lv-cam .lv-tool { z-index: 2; }
+/* 画像・動画の生成 */
+.gen-img, .gen-vid { margin: 10px 0; border: 1px solid var(--line, rgba(255,255,255,.14)); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.03); }
+.gen-img.wait, .gen-vid.wait { display: flex; align-items: center; gap: 10px; padding: 18px 16px; color: var(--ink-3, #9bb); font-size: 13.5px; }
+.gen-img img { display: block; width: min(100%, 480px); height: auto; margin: 0 auto; background: #fff; }
+.gen-vid iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
+.gen-img figcaption, .gen-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
+.gen-ind { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; background: color-mix(in srgb, var(--accent, #3ec9a7) 22%, transparent); color: var(--accent, #3ec9a7); white-space: nowrap; }
+.gen-ind[hidden] { display: none; }
+/* 画面共有 */
+.lv-scr { position: absolute; top: 10px; left: 14px; width: min(40vw, 260px); aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 8px 30px rgba(0,0,0,.45); z-index: 2; }
+.lv-scr[hidden] { display: none; }
+.lv-scr video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+.lv-scr .lv-camlab { z-index: 2; }
+.lv-scr .lv-camx { position: absolute; right: 8px; top: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; display: grid; place-items: center; z-index: 2; }
+.lv-scr .lv-camx .ic { width: 15px; height: 15px; }
+.lv-scr .lv-show { position: absolute; left: 8px; bottom: 8px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; z-index: 2; }
+.lv-scr .lv-show .ic { width: 15px; height: 15px; }
 .price-list { display: grid; gap: 8px; }
 .price-list > div { display: grid; gap: 2px; padding: 9px 12px; border: 1px solid var(--line, rgba(128,128,128,.25)); border-radius: 12px; }
 .price-list b { font-size: .92em; } .price-list span { font-size: .85em; opacity: .8; line-height: 1.55; }
@@ -688,10 +705,11 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
         <textarea id="input" rows="1" placeholder="メッセージを入力（/ でコマンド）" enterkeyhint="send"></textarea>
         <div class="bar">
           <div class="bar-l">
-            <button type="button" class="icon-btn" data-act="attach" aria-label="ファイルや画像を添付"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button type="button" class="icon-btn" data-act="attach" aria-label="追加メニュー（添付・画像生成・動画生成）" aria-haspopup="menu"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
             <button type="button" class="icon-btn" data-act="camera" aria-label="写真を撮って添付"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>
             <button type="button" class="icon-btn mic" id="micBtn" data-act="dictate" aria-label="音声で入力"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg></button>
             <button type="button" class="model-chip" id="modelChip" data-act="model" aria-label="モデルと考える深さ"><span class="mc-n">Sonnet 5.5</span><span class="mc-e">高</span><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            <span class="gen-ind" id="genInd" hidden></span>
           </div>
           <div class="bar-r">
             <span class="meter" id="meter"></span>
@@ -771,7 +789,9 @@ const S = { mode: 'local', index: {}, chats: new Map(), view: null, busy: null, 
 
 /* icons (injected by the build from one shared map) */
 const ICONS = {"x": "<path d=\"M18 6 6 18M6 6l12 12\"/>", "plus": "<path d=\"M12 5v14M5 12h14\"/>", "check": "<path d=\"m5 12.5 4.5 4.5L19 7.5\"/>", "chevD": "<path d=\"m6 9 6 6 6-6\"/>", "chevL": "<path d=\"m15 6-6 6 6 6\"/>", "chevR": "<path d=\"m9 6 6 6-6 6\"/>", "menu": "<path d=\"M4 7h16M4 12h16M4 17h10\"/>", "panel": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><path d=\"M9.5 4.5v15\"/>", "compose": "<path d=\"M12 4.5H7A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-5\"/><path d=\"M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7L12.7 14.2 9.5 15l.8-3.2z\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m20 20-4.2-4.2\"/>", "sliders": "<path d=\"M4 7h9M17 7h3M4 17h3M11 17h9\"/><circle cx=\"15\" cy=\"7\" r=\"2\"/><circle cx=\"9\" cy=\"17\" r=\"2\"/>", "cloud": "<path d=\"M7.5 18.5h9.5a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7 9.6a4.5 4.5 0 0 0 .5 8.9z\"/>", "device": "<rect x=\"6\" y=\"3\" width=\"12\" height=\"18\" rx=\"2.5\"/><path d=\"M11 17.5h2\"/>", "wave": "<path d=\"M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2\"/>", "more": "<circle cx=\"5.5\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"18.5\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/>", "camera": "<path d=\"M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z\"/><circle cx=\"12\" cy=\"12.5\" r=\"3.5\"/>", "file": "<path d=\"M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3.5V8h4.5M9 13h6M9 16.5h4\"/>", "sparkle": "<path d=\"M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5z\"/><path d=\"M19 15.5c.25 1.6 1 2.35 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.15 2.25-.9 2.5-2.5z\"/>", "mic": "<rect x=\"9\" y=\"3.5\" width=\"6\" height=\"11\" rx=\"3\"/><path d=\"M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5\"/>", "send": "<path d=\"M12 19V5M6 11l6-6 6 6\"/>", "stop": "<rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>", "copy": "<rect x=\"8.5\" y=\"8.5\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2\"/>", "edit": "<path d=\"M15.2 5.3a2 2 0 0 1 2.8 2.8L8.5 17.6 5 18.5l.9-3.5z\"/><path d=\"m13.5 7 3 3\"/>", "refresh": "<path d=\"M19.5 12a7.5 7.5 0 1 1-2.2-5.3\"/><path d=\"M19.5 4.5V9H15\"/>", "trash": "<path d=\"M4.5 7h15M10 4h4M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5\"/>", "pin": "<path d=\"M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5z\"/><path d=\"M12 12v8.5\"/>", "persona": "<circle cx=\"12\" cy=\"8.5\" r=\"3.8\"/><path d=\"M4.5 20a7.5 7.5 0 0 1 15 0\"/>", "download": "<path d=\"M12 4v11M7 10.5l5 5 5-5M5 19.5h14\"/>", "upload": "<path d=\"M12 15.5v-11M7 9l5-5 5 5M5 19.5h14\"/>", "branch": "<circle cx=\"6.5\" cy=\"5.5\" r=\"2\"/><circle cx=\"6.5\" cy=\"18.5\" r=\"2\"/><circle cx=\"17.5\" cy=\"8.5\" r=\"2\"/><path d=\"M6.5 7.5v9M17.5 10.5c0 4-5 3-9.5 6.5\"/>", "speaker": "<path d=\"M4.5 9.5h3l4.5-4v13l-4.5-4h-3z\"/><path d=\"M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11\"/>", "volumeOff": "<path d=\"M4.5 9.5h3l4.5-4v13l-4.5-4h-3z\"/><path d=\"m16 9.5 5 5M21 9.5l-5 5\"/>", "bulb": "<path d=\"M9.5 17.5h5M10.5 20.5h3\"/><path d=\"M12 3.5a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2v1h5v-1c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3.5z\"/>", "alert": "<path d=\"M12 4 3 19.5h18z\"/><path d=\"M12 10v4.5M12 17.2v.3\"/>", "key": "<circle cx=\"8\" cy=\"15.5\" r=\"3.5\"/><path d=\"m10.5 13 9-9M16 7.5l2.5 2.5M14 9.5l2 2\"/>", "help": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M9.6 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2-2.4 3.5M12 16.8v.3\"/>", "flip": "<path d=\"M4.5 12a7.5 7.5 0 0 1 13.2-4.9M19.5 12a7.5 7.5 0 0 1-13.2 4.9\"/><path d=\"M18.5 3.5v4h-4M5.5 20.5v-4h4\"/>", "cc": "<rect x=\"3.5\" y=\"5.5\" width=\"17\" height=\"13\" rx=\"2.5\"/><path d=\"M10.6 10.2a2.2 2.2 0 1 0 0 3.6M16.6 10.2a2.2 2.2 0 1 0 0 3.6\"/>", "keyboard": "<rect x=\"2.5\" y=\"6\" width=\"19\" height=\"12\" rx=\"2.5\"/><path d=\"M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9\"/>", "image": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><circle cx=\"9\" cy=\"10\" r=\"1.8\"/><path d=\"m20.5 16-5-5-9 8.5\"/>", "db": "<ellipse cx=\"12\" cy=\"6\" rx=\"7\" ry=\"2.8\"/><path d=\"M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8\"/>", "play": "<path d=\"M8 5.5v13l10-6.5z\"/>", "eye": "<path d=\"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 11v5M12 7.8v.3\"/>"};
-const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+ICONS.screen = '<rect x="3.5" y="5" width="17" height="11.5" rx="1.8"/><path d="M9 20h6M12 16.5V20"/>';
+const SCREEN_OK = !HAS_CLAUDE && !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+const ic = (n, cls = '') =>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 const MAGA = "<path fill-rule=\"evenodd\" d=\"M72 40C72 70 56 88 26 94C40 84 44 76 42 70A30 30 0 1 1 72 40ZM47 36a7 7 0 1 0-14 0a7 7 0 1 0 14 0Z\"/><ellipse class=\"mg-hl\" cx=\"28\" cy=\"26\" rx=\"7\" ry=\"4\" transform=\"rotate(-38 28 26)\"/>";
 const MAGA_D = "M72 40C72 70 56 88 26 94C40 84 44 76 42 70A30 30 0 1 1 72 40Z";
 let SPRITE_URL = '';
@@ -995,7 +1015,7 @@ const SLASH = [
 const DEFAULTS = {
   theme: 'auto', accent: 'hisui', fs: 'm', enterSend: !COARSE, sounds: false, pixel: false, crt: false,
   model: 'claude-sonnet-5-5', effort: 'high', think: true, thinkOpen: false, length: 'normal', tone: 'auto',
-  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [],
+  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], genImage: false, genVideo: false,
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
@@ -1266,7 +1286,30 @@ const MD = (() => {
     const l = lines[i];
     return FENCE.test(l) || /^#{1,6}\s/.test(l) || /^\s*>/.test(l) || LIST.test(l) || /^\s*([-*_])(\s*\1){2,}\s*$/.test(l) || (l.includes('|') && i + 1 < lines.length && TSEP.test(lines[i + 1]));
   }
+  /* AIが描いたSVGイラスト／コードで動くアニメーション（どちらもAI自身が書いたコード。外には何も送らない） */
+  function cleanSvg(src) {
+    const a = String(src || '').indexOf('<svg'), b = String(src || '').lastIndexOf('</svg>');
+    if (a < 0 || b < a) return '';
+    let s = src.slice(a, b + 6);
+    s = s.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi, '').replace(/<image\b[^>]*>/gi, '');
+    if (!/<svg[^>]*\sxmlns=/i.test(s)) s = s.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+    return s;
+  }
+  function genImageHTML(src, open) {
+    if (open) return `<div class="gen-img wait"><span class="dots"><i></i><i></i><i></i></span><span>画像を描いています…</span></div>`;
+    const svg = cleanSvg(src); if (!svg) return '';
+    return `<figure class="gen-img"><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}" alt="AIが描いた画像"><figcaption><button type="button" class="btn sm" data-act="gen-save-png">${ic('download')}PNGで保存</button><button type="button" class="btn sm" data-act="gen-save-svg">SVGで保存</button><button type="button" class="btn sm" data-act="gen-zoom">${ic('image')}大きく見る</button></figcaption></figure>`;
+  }
+  const VID_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:"><style>html,body{margin:0;height:100%;overflow:hidden}</style>`;
+  function genVideoHTML(src, open) {
+    if (open) return `<div class="gen-vid wait"><span class="dots"><i></i><i></i><i></i></span><span>アニメーションを作っています…</span></div>`;
+    if (!/<\w/.test(src)) return '';
+    const doc2 = '<!doctype html>' + VID_CSP + String(src).replace(/<!doctype[^>]*>/i, '');
+    return `<div class="gen-vid"><iframe sandbox="allow-scripts" referrerpolicy="no-referrer" loading="lazy" title="AIが作ったアニメーション" srcdoc="${esc(doc2)}"></iframe><div class="gen-bar"><button type="button" class="btn sm" data-act="vid-restart">${ic('refresh')}最初から</button><button type="button" class="btn sm" data-act="vid-full">${ic('play')}大きく見る</button><button type="button" class="btn sm" data-act="vid-save">${ic('download')}HTMLで保存</button></div></div>`;
+  }
   function code(src, lang, open) {
+    const gl = (lang || '').toLowerCase();
+    if (gl === 'gen-image' || gl === 'gen-video') { const g = gl === 'gen-image' ? genImageHTML(src, open) : genVideoHTML(src, open); if (g) return g; }
     const l = (lang || '').toLowerCase().replace(/[^\w+#.-]/g, '');
     return `<div class="code${open ? ' open' : ''}"><div class="code-h"><span>${esc(LANG[l] || l || 'コード')}</span><button class="code-copy" data-act="copy-code">${ic('copy')}<span>コピー</span></button></div><pre><code${l ? ` class="language-${esc(l)}"` : ''}>${esc(src)}</code></pre></div>`;
   }
@@ -1562,7 +1605,7 @@ async function pdfExtract(buf) {
 
 /* ---- 50_engine.js ---- */
 /* ========== AI engine: Claude via the artifact's sample capability, or the Claude API with the viewer's own key ========== */
-const Engine = { kind: 'none', sample: null, imgMax: 0, checked: false, denied: false, perms: null, relay: false };
+const Engine = { kind: 'none', sample: null, imgMax: 0, checked: false, denied: false, perms: null, relay: false, limits: null };
 
 /* ---- PCの中継サーバー（relay/server.mjs）経由でClaudeを使う ---- */
 const relayBase = () => String(SET.relayUrl || 'http://127.0.0.1:8787').trim().replace(/\/+$/, '');
@@ -1577,6 +1620,7 @@ async function relayPing(timeout = 4000) {
     const j = await r.json();
     if (!(j && j.ok && j.name === 'kotodama-relay')) return false;
     Engine.relayWhy = j.auth ? '' : (j.why || 'bad');
+    if (j.auth && j.limits) Engine.limits = j.limits;
     return !!j.auth;
   } catch (e) { return false; } finally { clearTimeout(to); }
 }
@@ -1599,7 +1643,8 @@ async function relaySample(input, opts = {}) {
   const handle = line => {
     if (!line.trim()) return; let ev; try { ev = JSON.parse(line); } catch (e) { return; }
     if (ev.type === 'delta') { text += ev.text; opts.onText && opts.onText({ text, delta: ev.text }); }
-    else if (ev.type === 'done') fin = ev; else if (ev.type === 'error') err = ev;
+    else if (ev.type === 'limits' && ev.info) Engine.limits = ev.info;
+    else if (ev.type === 'done') { fin = ev; if (ev.limits) Engine.limits = ev.limits; if (ev.usage) Usage.addChat(ev.usage.i, ev.usage.o); } else if (ev.type === 'error') err = ev;
   };
   try {
     for (;;) {
@@ -1675,6 +1720,8 @@ function systemText(chat, o = {}) {
   if (SET.instr.trim()) L.push('', '【ユーザーからの指示（いつも守ること）】', SET.instr.trim());
   const mem = SET.memory.split('\n').map(x => x.trim()).filter(Boolean);
   if (mem.length) L.push('', '【ユーザーについて覚えておくこと】', ...mem.map(x => '・' + x));
+  if (!o.live && SET.genImage) L.push('', '【画像の生成（オン）】', 'ユーザーが画像・イラスト・図・ロゴ・アイコンを作ってほしいと頼んだときは、SVGで描いて見せられます。次の形で、言語名を gen-image にしたコードブロックに、完全なSVG（<svg ...> から </svg> まで）を1つだけ書いてください。\n```gen-image\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">…</svg>\n```\nルール：viewBox を必ず付ける／外部ファイル・外部URL・scriptタグ・imageタグは使わない（図形・パス・グラデーション・文字だけで描く）／文字は font-family="sans-serif" を使う／背景は自分で塗る。コードブロックの前後に、何を描いたかを短く日本語で書く。写真のような絵は描けないので、頼まれたときはベクターのイラストになると最初に一言伝える。複数案を頼まれたら最大3つまで、別々のコードブロックで。');
+  if (!o.live && SET.genVideo) L.push('', '【動画（アニメーション）の生成（オン）】', 'ユーザーが動画・アニメーション・動く映像を作ってほしいと頼んだときは、コードで動くアニメーションを作れます。言語名を gen-video にしたコードブロックに、完全に自己完結した1つのHTML文書を書いてください。\n```gen-video\n<!doctype html><html><body>…</body></html>\n```\nルール：外部ファイル・外部URL・ネット通信・音は使わない／canvas（requestAnimationFrame）かCSS／SVGのアニメーションで描く／5〜15秒でループする／背景色を必ず指定し、画面いっぱい（16:9を想定、canvasは window.innerWidth と innerHeight に合わせる）に描く／マウス操作や入力は必要にしない。コードブロックの前後に、何を作ったかを短く日本語で書く。実写のような映像は作れないので、頼まれたときは「コードで描くアニメーション」になると最初に一言伝える。');
   if (o.think) L.push('', '【考えの過程の書き方】', '回答の前に、どう考えたかを <thinking> と </thinking> の間に日本語で書いてください。この部分はユーザーが「思考」として読めます。簡単な質問なら短くてかまいません。</thinking> のあとに、ユーザーへの回答本文だけを書いてください。');
   if (o.live) L.push('', '【音声会話のルール】', 'これは音声での会話です。あなたの返答はそのまま読み上げられます。', '・話し言葉で、短く（ふだんは1〜3文、長くても5文まで）。', '・記号、箇条書き、表、コード、URL、絵文字は使わない。', '・数字や単位は読み上げやすく書く。', '・カメラの画像が添付されているときは、それを見ながら答える。ユーザーが何も言わずに写真やカメラを見せたときは、写っているものが何かを短く説明し、ひとこと質問を返す。', '・ユーザーが話す速さや声の変更を頼んだら、返答の最後に [[速さ:1.3]] や [[声:元気]] のように書く（この記号は読み上げられない）。速さは0.5〜2.0。声は 標準・やさしい・元気・落ち着いた・低い声・子ども・ロボット・ピコピコ から選ぶ。');
   return L.join('\n');
@@ -1771,6 +1818,7 @@ async function callSample({ turns, images, model, effort, signal, onText }) {
   if (effort) opts.effort = effort;
   if (images && images.length && Engine.imgMax) opts.images = images.slice(0, Engine.imgMax);
   const r = await Engine.sample(turns, opts);
+  if (!Engine.relay) Usage.addChat(0, 0);
   return { text: r.text || '', trunc: !!r.truncated, tier: r.modelTierApplied || m.tier, applied: r.modelApplied || null };
 }
 function apiModel(id) { const m = modelOf(id); return m.auto ? modelOf(TIER_API[m.tier]) : m; }
@@ -1864,7 +1912,7 @@ async function generate(chat, am, alt, o = {}) {
       const imgs = [];
       for (const a of conv.imgs) { const b = await imageBlob(a); if (b) imgs.push(b); }
       imgs.push(...extraImgs);
-      const note = imageNote(conv, extraImgs.length, live ? (extraImgs.length > 1 ? 'いま2つのカメラ（内カメラと外カメラ）に映っている映像' : 'いまカメラに映っている映像') : '今回の追加画像');
+      const note = imageNote(conv, extraImgs.length, live ? (Live.imgLabel || (extraImgs.length > 1 ? 'いま2つのカメラ（内カメラと外カメラ）に映っている映像' : 'いまカメラに映っている映像')) : '今回の追加画像');
       const callEff = EFF_RANK[eff] > 2 ? 'high' : eff;
       const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText });
       const fin = r => { alt.applied = r.applied; alt.tier = r.tier; alt.trunc = r.trunc; };
@@ -2517,6 +2565,7 @@ function renderComposer() {
   const c = S.view && !S.view.sample ? S.view : null;
   const model = c ? c.model : SET.model, eff = c ? c.effort : SET.effort, think = c ? c.think : SET.think;
   $('#modelChip').innerHTML = `<span class="mc-n">${esc(modelShort(model))}</span><span class="mc-e">${esc(effName(eff))}</span>${think ? `<span class="mc-t" title="思考を表示">${ic('bulb')}</span>` : ''}${ic('chevD')}`;
+  const gi = $('#genInd'); if (gi) { const on = [SET.genImage && '画像', SET.genVideo && '動画'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + '生成オン'; }
   const send = $('#sendBtn');
   const here = !!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live;
   if (here) { send.classList.add('stop'); send.innerHTML = ic('stop'); send.setAttribute('aria-label', '生成を止める'); send.disabled = false; }
@@ -2696,6 +2745,23 @@ function msgMenu(btn, ctx) {
   menu(btn, items, { align: m.role === 'user' ? 'right' : 'left' });
 }
 
+/* ---------- ＋メニュー（添付・画像生成・動画生成） ---------- */
+const genSvgOf = img => { try { return decodeURIComponent(String(img.src).replace(/^data:[^,]*,/, '')); } catch (e) { return ''; } };
+function toggleGen(key) {
+  const on = !SET[key]; Settings.set({ [key]: on }); renderComposer();
+  const name = key === 'genImage' ? '画像生成' : '動画生成';
+  toast(on ? `${name}をオンにしました。${key === 'genImage' ? '「〇〇の絵を描いて」と頼むと、AIがSVGのイラストを描きます' : '「〇〇のアニメーションを作って」と頼むと、AIがコードで動く映像を作ります'}` : `${name}をオフにしました`, { ms: on ? 5200 : 2200 });
+}
+function openPlusMenu(btn) {
+  menu(btn, [
+    { head: '追加する' },
+    { icon: 'upload', label: 'ファイルや画像を添付', run: () => pickFiles() },
+    '-', { head: 'AIにさせること（オン／オフ）' },
+    { icon: 'image', label: '画像生成', sub: 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
+    { icon: 'play', label: '動画生成', sub: 'AIがコードで動くアニメーションを作る', on: !!SET.genVideo, run: () => toggleGen('genVideo') },
+  ]);
+}
+
 /* ---------- sheets ---------- */
 function openModelSheet() {
   const c = S.view && !S.view.sample ? S.view : null;
@@ -2707,13 +2773,40 @@ function openModelSheet() {
     <details class="ms-more"${MODELS.find(m => m.id === cur().model && !m.latest) ? ' open' : ''}><summary>${ic('chevD', 'sm')}以前のモデル・おまかせ</summary><div class="ms-list">${MODELS.filter(m => !m.latest).map(card).join('')}</div></details></div>
     <div class="ms-sec"><div class="ms-h">考える深さ（エフォート）</div><div class="seg" role="radiogroup">${EFFORTS.map(e => `<button data-eff="${e.id}" class="${cur().effort === e.id ? 'on' : ''}${EFF_RANK[e.id] > 2 ? ' hot' : ''}" role="radio" aria-checked="${cur().effort === e.id}">${e.name}</button>`).join('')}</div><p class="ms-desc">${esc(api ? EFF_BY_ID[cur().effort].a : EFF_BY_ID[cur().effort].s)}</p></div>
     <div class="ms-sec"><div class="row-set"><span class="rl"><b>考えの過程を表示</b><small>回答の上に「思考」が出て、中身を読めます</small></span><label class="sw"><input type="checkbox" id="msThink"${cur().think ? ' checked' : ''}><span></span></label></div></div>
+    ${usageNowHTML()}
     <p class="ms-note">${api ? 'APIキーで直接呼び出しています。思考の中身はモデル自身の思考の要約です。料金はAnthropicのAPI利用料として請求されます。' : 'あなたのClaudeアカウントで、使えるモデルから答えます。使えないモデルを選んだときは、近いモデルが自動で答えます（回答の下に表示）。「思考」はAIが書き出した考えの過程です。'}</p>`;
   return dialog({ title: 'モデルと考える深さ', body: body(), actions: [{ label: '閉じる', value: null, primary: true }], onOpen: n => {
     const apply = patch => { if (c) { Object.assign(c, patch); persistChat(c, { touch: false }); } Settings.set(patch); renderComposer(); const b = $('.dlg-b', n); const st = b.scrollTop; b.innerHTML = body(); b.scrollTop = st; };
     n.addEventListener('click', e => { const mm = e.target.closest('[data-model]'); if (mm) { apply({ model: mm.dataset.model }); SFX.play('click'); } const ef = e.target.closest('[data-eff]'); if (ef) { apply({ effort: ef.dataset.eff }); SFX.play('click'); } });
     n.addEventListener('change', e => { if (e.target.id === 'msThink') apply({ think: e.target.checked }); });
+    if (Engine.relay) relayPing(2500).then(() => { if (!n.isConnected) return; const b = $('.dlg-b', n); const st = b.scrollTop; b.innerHTML = body(); b.scrollTop = st; });
   } });
 }
+/* 現在の使用状況（AIとのやりとりの回数・トークン・Claudeの使用制限） */
+function usageNowHTML() {
+  const pad = x => String(x).padStart(2, '0');
+  const src = Engine.relay ? 'このPCのClaude（中継サーバー）' : Engine.kind === 'sample' ? 'Claudeアプリの中' : Engine.kind === 'api' ? 'APIキー' : 'つながっていません';
+  const tok = t => (t.chat.i || t.chat.o) ? `入力 ${fmtN(t.chat.i)} ＋ 出力 ${fmtN(t.chat.o)} トークン` : (t.chat.n ? 'トークン数はわかりません' : '');
+  const line = (t, label) => `<div class="use-r"><b>${label}</b><span>${t.chat.n ? `${fmtN(t.chat.n)}回のやりとり${tok(t) ? '・' + tok(t) : ''}` : 'まだありません'}</span></div>`;
+  let lim = '';
+  if (Engine.relay) {
+    const L = Engine.limits;
+    if (!L) lim = `<div class="use-r"><b>Claudeの使用制限</b><span>まだ確認できていません（1回会話すると表示されます）</span></div>`;
+    else {
+      const TYPE = { five_hour: '5時間ごとの枠', seven_day: '7日間の枠', seven_day_opus: '7日間の枠（Opus）', seven_day_sonnet: '7日間の枠（Sonnet）', overage: '追加利用の枠' };
+      const ST = { allowed: '使えます', allowed_warning: '上限が近づいています', rejected: '上限に達しています' };
+      const d = L.resetsAt ? new Date(L.resetsAt * 1000) : null, now = new Date();
+      const when = d ? `${d.toDateString() === now.toDateString() ? '' : `${d.getMonth() + 1}/${d.getDate()} `}${d.getHours()}:${pad(d.getMinutes())} にリセット` : '';
+      const util = typeof L.utilization === 'number' ? `${Math.round(L.utilization <= 1 ? L.utilization * 100 : L.utilization)}%使用` : '';
+      lim = `<div class="use-r"><b>Claudeの使用制限（${esc(TYPE[L.rateLimitType] || '利用枠')}）</b><span>${esc([ST[L.status] || L.status || '', util, when].filter(Boolean).join('・'))}</span><em>${L.seenAt ? fmtHM2(L.seenAt) + ' 時点' : ''}</em></div>`;
+    }
+  }
+  return `<div class="ms-sec"><div class="ms-h">現在の使用状況</div>
+    <div class="use-r"><b>つながり先</b><span>${esc(src)}</span></div>
+    ${line(Usage.sess, 'このページを開いてから')}${line(Usage.total, 'これまでの合計')}${lim}
+    <p class="ms-note" style="margin-top:6px">使った分は、あなたのClaudeの使用量に数えられます。トークン数は、AIとの会話ごとの入力・出力の合計です。</p></div>`;
+}
+const fmtHM2 = ms => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
 function openPersonaSheet() {
   const c = S.view && !S.view.sample ? S.view : null;
   const body = () => { const cur = c ? c.persona : SET.persona; return `<p class="help-p" style="margin-bottom:12px">AIの話し方や役割を選びます。${c ? 'このチャットと、次の新しいチャットで使います。' : ''}</p><div class="per-list">${allPersonas().map(p => `<div class="per${p.id === cur ? ' on' : ''}"><button class="per-b" data-pid="${esc(p.id)}"><b>${esc(p.name)}</b><small>${esc(p.desc || '')}</small></button>${p.id.startsWith('u_') ? `<span class="per-a"><button class="t-btn" data-pe="${esc(p.id)}" aria-label="編集">${ic('edit')}</button><button class="t-btn" data-pd="${esc(p.id)}" aria-label="削除">${ic('trash')}</button></span>` : ''}</div>`).join('')}</div><button class="btn" style="margin-top:12px" data-pnew>${ic('plus')}キャラクターを作る</button>`; };
@@ -3008,7 +3101,7 @@ const Orb = {
 };
 
 const Live = {
-  on: false, built: false, st: 'idle', typeMode: false, camOn: false, camMode: '', facing: 'environment', stream: null, stream2: null, dual: false, veil: false, photo: null, photoURL: '',
+  on: false, built: false, st: 'idle', typeMode: false, camOn: false, camMode: '', facing: 'environment', stream: null, stream2: null, dual: false, veil: false, screen: null, screenOn: false, imgLabel: '', photo: null, photoURL: '',
   spoken: 0, done: true, tags: new Set(), idleTries: 0, sttErr: '', autoT: 0, wake: null, prevTTS: null, cutting: false, composing: false, lastKey: 0, baseHint: '',
   html() {
     return `<div class="lv-top">
@@ -3031,6 +3124,12 @@ const Live = {
         <button class="lv-flip" id="lvFlip" data-lv="flip" aria-label="前後のカメラを切り替える" hidden>${ic('flip')}</button>
         <button class="lv-show" id="lvShow" data-lv="show"></button>
       </div>
+      <div class="lv-scr" id="lvScr" hidden>
+        <video id="lvScrVideo" playsinline muted autoplay></video>
+        <span class="lv-camlab">画面共有中</span>
+        <button class="lv-camx" data-lv="scr-off" aria-label="画面共有を止める">${ic('x')}</button>
+        <button class="lv-show" data-lv="scr-show">${ic('eye')}<span>見せる</span></button>
+      </div>
     </div>
     <div class="lv-state" id="lvState" aria-live="polite"></div>
     <div class="lv-cap" id="lvCap"><div class="lv-you" id="lvYou"></div><div class="lv-ai" id="lvAi"></div></div>
@@ -3038,6 +3137,7 @@ const Live = {
     <p class="lv-hint" id="lvHint" hidden></p>
     <div class="lv-ctrl">
       <button class="lv-c" id="lvCamBtn" data-lv="cam"><i>${ic('camera')}</i><span>カメラ</span></button>
+      ${SCREEN_OK ? `<button class="lv-c" id="lvScrBtn" data-lv="scr" aria-pressed="false"><i>${ic('screen')}</i><span>画面共有</span></button>` : ''}
       <button class="lv-c main" id="lvMic" data-lv="mic"><i>${ic('mic')}</i><span>話す</span></button>
       <button class="lv-c" id="lvCaps" data-lv="caps" aria-label="字幕"><i>${ic('cc')}</i><span>字幕</span></button>
       <div class="lv-speed"><div><button data-lv="slower" aria-label="ゆっくり話す">−</button><output id="lvRate">1.0x</output><button data-lv="faster" aria-label="はやく話す">＋</button></div><span>話す速さ</span></div>
@@ -3056,9 +3156,12 @@ const Live = {
       else if (a === 'cam-off') this.camOff();
       else if (a === 'flip') this.flip();
       else if (a === 'both') this.dualToggle();
+      else if (a === 'scr') this.scrToggle();
+      else if (a === 'scr-off') this.scrOff();
+      else if (a === 'scr-show') this.send('', { camOnly: true, only: 'screen' });
       else if (a === 'veil') { this.veil = !this.veil; this.renderCam(); }
       else if (a === 'cost') toast(CV.active() ? `今回の声の使用料の目安：${fmtMoney(Usage.ttsUSD(Usage.sess))}（${CV_INFO[SET.ttsEngine].name}）` : '', { ms: 3500 });
-      else if (a === 'show') { if (this.camMode === 'video') this.send('', { camOnly: true }); else this.pickPhoto(); }
+      else if (a === 'show') { if (this.camMode === 'video') this.send('', { camOnly: true, only: 'camera' }); else this.pickPhoto(); }
       else if (a === 'photo') this.pickPhoto();
       else if (a === 'caps') { Settings.set({ liveCaps: !SET.liveCaps }); this.renderPills(); this.caption(this.lastAI || ''); }
       else if (a === 'slower') this.setRate(SET.rate - 0.1);
@@ -3113,7 +3216,7 @@ const Live = {
     STT.stop(true); clearTimeout(this.autoT);
     TTS.onPulse = null; TTS.onState = this.prevTTS || null; this.cutting = true; TTS.cancel(); this.cutting = false;
     if (S.busy && S.busy.live) S.busy.ctl.abort();
-    this.camOff(); Orb.stop();
+    this.camOff(); this.scrOff(); Orb.stop();
     $('#live').hidden = true; doc.body.classList.remove('live-on');
     try { if (this.wake) this.wake.release(); } catch (e) {} this.wake = null;
     renderHeader(); renderThread(); renderComposer(); renderSidebar();
@@ -3235,15 +3338,22 @@ const Live = {
     if (S.busy) { S.busy.ctl.abort(); for (let i = 0; i < 60 && S.busy; i++) await sleep(50); if (S.busy) return; }
     STT.stop(true); this.cutting = true; TTS.cancel(); this.cutting = false;
     let pend = [], images = [], cam = false;
-    if (this.camOn && (o.camOnly || (SET.liveCam && this.camMode === 'video'))) {
+    const frames = [], names = [];
+    const facingName = f => f === 'user' ? '内カメラ' : '外カメラ';
+    if (this.camOn && o.only !== 'screen' && (o.camOnly || (SET.liveCam && this.camMode === 'video'))) {
       const shot = await this.shot();
       const shot2 = this.dual && this.stream2 ? await this.shot('#lvVideo2') : null;
       if (shot) {
-        const all = shot2 ? [shot, shot2] : [shot];
-        if (o.camOnly) { try { pend = await Promise.all(all.map((s, i) => imagePending(s, all.length > 1 ? `カメラ${i + 1}.jpg` : 'カメラ.jpg'))); } catch (e) {} }
-        else { images = all; cam = true; }
+        frames.push(shot); names.push(facingName(this.facing));
+        if (shot2) { frames.push(shot2); names.push(facingName(this.facing === 'user' ? 'environment' : 'user')); }
       }
     }
+    if (this.screenOn && o.only !== 'camera') { const sh = await this.shotScreen(); if (sh) { frames.push(sh); names.push('共有中の画面'); } }
+    if (frames.length) {
+      if (o.camOnly) { try { pend = await Promise.all(frames.map((s, i) => imagePending(s, names[i] + '.jpg'))); } catch (e) {} }
+      else { images = frames; cam = true; }
+    }
+    this.imgLabel = names.length ? `いま映っている映像（${names.join('・')} の順）` : '';
     if (!this.on) return;
     if (!text && !pend.length && !images.length) { this.setState('idle'); return; }
     if ((pend.length || images.length) && Engine.kind === 'sample' && !Engine.imgMax) toast('この画面では画像をAIに送れないため、カメラの映像は届きません', { ms: 4200 });
@@ -3420,6 +3530,38 @@ const Live = {
     c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
     const box = $('#lvCam'); box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 60);
     return canvasBlob(c, 'image/jpeg', 0.85);
+  },
+  /* ---------- 画面共有（getDisplayMedia に対応した機種だけ） ---------- */
+  async scrToggle() {
+    if (this.screenOn) { this.scrOff(); return; }
+    try {
+      const st = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 5 } }, audio: false });
+      if (!this.on) { st.getTracks().forEach(t => t.stop()); return; }
+      this.scrOff(); this.screen = st;
+      const tr = st.getVideoTracks()[0]; if (tr) tr.addEventListener('ended', () => { if (this.screen === st) this.scrOff(); });
+      const v = $('#lvScrVideo'); v.srcObject = st; try { await v.play(); } catch (e) {}
+      this.screenOn = true; this.renderScr();
+      toast('画面共有を始めました。話しかけるたびに、いまの画面がAIに届きます', { ms: 4200 });
+    } catch (e) {
+      if (!(e && (e.name === 'NotAllowedError' || e.name === 'AbortError'))) toast('この端末・ブラウザでは画面共有を使えませんでした', { err: true });
+    }
+  },
+  scrOff() {
+    if (this.screen) { this.screen.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); this.screen = null; }
+    const v = $('#lvScrVideo'); if (v) v.srcObject = null;
+    this.screenOn = false; this.renderScr();
+  },
+  renderScr() {
+    const b = $('#lvScr'); if (b) b.hidden = !this.screenOn;
+    const c = $('#lvScrBtn'); if (c) { c.classList.toggle('on', this.screenOn); c.setAttribute('aria-pressed', String(this.screenOn)); }
+  },
+  async shotScreen() {
+    const v = $('#lvScrVideo'); if (!this.screenOn || !v || !v.videoWidth) return null;
+    const s = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
+    const c = doc.createElement('canvas'); c.width = Math.round(v.videoWidth * s); c.height = Math.round(v.videoHeight * s);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    const box = $('#lvScr'); if (box) { box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 60); }
+    return canvasBlob(c, 'image/jpeg', 0.85);
   }
 };
 
@@ -3464,7 +3606,7 @@ function usageHTML() {
   const chat = t => (t.chat.n ? `${fmtN(t.chat.i)} + ${fmtN(t.chat.o)} トークン（入力＋出力）` : '');
   return `<div class="sg"><div class="sg-h">使用量の目安</div>
     ${row(Usage.sess, 'このページを開いてから')}${row(Usage.total, 'これまでの合計')}
-    ${Usage.total.chat.n ? `<div class="use-r"><b>AIとの会話（APIキー）</b><span>${chat(Usage.sess) || '今回はまだありません'} ／ 合計 ${chat(Usage.total)}</span><em>料金はAnthropicの料金表で確かめてください</em></div>` : ''}
+    ${Usage.total.chat.n ? `<div class="use-r"><b>AIとの会話</b><span>${chat(Usage.sess) || '今回はまだありません'} ／ 合計 ${chat(Usage.total)}</span><em>料金はAnthropicの料金表で確かめてください</em></div>` : ''}
     <p class="help-p">金額は公開されているAPI料金から数えた目安です（1ドル＝${YEN_PER_USD}円で計算）。実際の請求は、契約しているプランや無料枠で変わります。端末の声とVOICEVOXは無料です。${HAS_CLAUDE ? 'Claudeアプリで使うAIは、Claudeの使用量に数えられます。' : ''}</p>
     <div><button type="button" class="btn sm" data-do="usage-reset">数え直す</button></div></div>`;
 }
@@ -3788,7 +3930,19 @@ const ACT = {
   'sg-text': b => { input.value = b.dataset.text || ''; autosize(); renderComposer(); saveDraft(); input.focus(); },
   'pick-persona': b => pickPersona(b.dataset.pid),
   'to-bottom': () => { S.stick = true; thread.scrollTo({ top: thread.scrollHeight, behavior: reduced() ? 'auto' : 'smooth' }); },
-  'attach': () => pickFiles(),
+  'attach': b => openPlusMenu(b),
+  'gen-save-svg': b => { const img = $('img', b.closest('.gen-img')); if (img) saveOut('イラスト.svg', new Blob([genSvgOf(img)], { type: 'image/svg+xml' })); },
+  'gen-save-png': async b => {
+    const img = $('img', b.closest('.gen-img')); if (!img) return;
+    const w0 = img.naturalWidth || 800, h0 = img.naturalHeight || 600, k = Math.min(2, 1600 / Math.max(w0, h0));
+    const c = doc.createElement('canvas'); c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    try { g.drawImage(img, 0, 0, c.width, c.height); const bl = await canvasBlob(c, 'image/png'); if (bl) saveOut('イラスト.png', bl); } catch (e) { toast('PNGにできませんでした。SVGで保存してください', { err: true }); }
+  },
+  'gen-zoom': b => { const img = $('img', b.closest('.gen-img')); if (img) lightbox(img); },
+  'vid-restart': b => { const f = $('iframe', b.closest('.gen-vid')); if (!f) return; const s = f.srcdoc; f.srcdoc = ''; setTimeout(() => { f.srcdoc = s; }, 30); },
+  'vid-full': b => { const f = $('iframe', b.closest('.gen-vid')); if (!f) return; const r = f.requestFullscreen || f.webkitRequestFullscreen; if (r) r.call(f); else toast('この端末では全画面にできません'); },
+  'vid-save': b => { const f = $('iframe', b.closest('.gen-vid')); if (f) saveOut('アニメーション.html', new Blob([f.srcdoc], { type: 'text/html' })); },
   'camera': () => pickCamera(),
   'dictate': () => toggleDictation(),
   'model': () => openModelSheet(),

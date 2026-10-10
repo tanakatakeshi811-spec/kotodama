@@ -99,14 +99,17 @@ function buildPrompt(turns) {
   return head + '\n\n――――\n【ここまでの会話】\n' + log + '\n\n――――\n上の会話の続きとして、アシスタントの次の返答だけを書いてください。';
 }
 
-function runClaude({ prompt, model, effort, images }, onDelta, onClose) {
+// Claude Code が教えてくれる「使用制限の状態」（5時間の枠など）。最後に見たものを覚えておく
+let lastLimits = null;
+
+function runClaude({ prompt, model, effort, images }, onDelta, onClose, onLimits) {
   const withImages = images && images.length > 0;
   const args = ['-p', ...(withImages ? ['--input-format', 'stream-json'] : []), '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
     '--tools', '', '--no-session-persistence', '--setting-sources', '', '--disable-slash-commands',
     '--system-prompt', SYSTEM, '--model', model];
   if (effort) args.push('--effort', effort);
   const child = spawn(CLAUDE, args, { cwd: WORK, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
-  let buf = '', err = '', got = false, usedModel = null, truncated = false, resultErr = null, finished = false;
+  let buf = '', err = '', got = false, usedModel = null, truncated = false, resultErr = null, finished = false, uIn = 0, uOut = 0;
   const done = r => { if (finished) return; finished = true; clearTimeout(timer); onClose(r); };
   const timer = setTimeout(() => child.kill(), TIMEOUT_MS);
   child.stdout.on('data', d => {
@@ -117,9 +120,18 @@ function runClaude({ prompt, model, effort, images }, onDelta, onClose) {
       let ev; try { ev = JSON.parse(line); } catch (e) { continue; }
       if (ev.type === 'stream_event' && ev.event) {
         const e = ev.event;
-        if (e.type === 'message_start' && e.message) usedModel = e.message.model || usedModel;
+        if (e.type === 'message_start' && e.message) {
+          usedModel = e.message.model || usedModel;
+          const u = e.message.usage || {}; uIn += (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+        }
         else if (e.type === 'content_block_delta' && e.delta && e.delta.type === 'text_delta') { got = true; onDelta(e.delta.text); }
-        else if (e.type === 'message_delta' && e.delta && e.delta.stop_reason === 'max_tokens') truncated = true;
+        else if (e.type === 'message_delta') {
+          if (e.delta && e.delta.stop_reason === 'max_tokens') truncated = true;
+          if (e.usage && e.usage.output_tokens != null) uOut += e.usage.output_tokens;
+        }
+      } else if (ev.type === 'rate_limit_event' && ev.rate_limit_info) {
+        lastLimits = { ...ev.rate_limit_info, seenAt: Date.now() };
+        onLimits && onLimits(lastLimits);
       } else if (ev.type === 'result') {
         if (ev.is_error) resultErr = String(ev.result || ev.subtype || 'error');
         else if (!got && ev.result) { got = true; onDelta(String(ev.result)); }
@@ -130,7 +142,7 @@ function runClaude({ prompt, model, effort, images }, onDelta, onClose) {
   child.on('error', e => done({ ok: false, error: 'spawn: ' + e.message, got }));
   child.on('close', code => {
     if (resultErr || (code !== 0 && !got)) done({ ok: false, error: resultErr || err.trim().slice(-400) || 'exit ' + code, got });
-    else done({ ok: true, model: usedModel, truncated, got });
+    else done({ ok: true, model: usedModel, truncated, got, usage: { i: uIn, o: uOut } });
   });
   child.stdin.on('error', () => {});
   if (withImages) {
@@ -160,7 +172,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url === '/ping') {
     const a = checkAuth(req);
-    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 2, auth: a === 'ok', why: a === 'ok' ? '' : a });
+    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 3, auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
   }
 
   if (req.method === 'POST' && url === '/ask') {
@@ -186,10 +198,10 @@ const server = http.createServer(async (req, res) => {
     const attempt = (eff, retry) => {
       child = runClaude({ prompt, model: alias, effort: eff, images },t => send({ type: 'delta', text: t }), r => {
         if (!r.ok && !r.got && retry) return attempt(null, false);
-        if (r.ok) send({ type: 'done', model: r.model, truncated: r.truncated });
+        if (r.ok) send({ type: 'done', model: r.model, truncated: r.truncated, usage: r.usage, limits: lastLimits });
         else send({ type: 'error', message: r.error });
         finish(); res.end();
-      });
+      }, lim => send({ type: 'limits', info: lim }));
     };
     attempt(effort, !!effort);
     return;
