@@ -1135,11 +1135,11 @@ const DEFAULTS = {
   model: 'claude-sonnet-5-5', effort: 'high', think: true, thinkOpen: false, length: 'normal', tone: 'auto',
   persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', genImage: false, genVideo: false, webSearch: false, research: false, researchMin: 30,
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
-  liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
+  liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 1.2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
-  ttsEngine: 'system', ttsKeep: false, ttsOpenaiKey: '', ttsOpenaiModel: 'gpt-4o-mini-tts', ttsOpenaiVoice: 'coral', ttsElKey: '', ttsElModel: 'eleven_flash_v2_5', ttsElVoice: '21m00Tcm4TlvDq8ikWAM', ttsGKey: '', ttsGVoice: 'ja-JP-Chirp3-HD-Aoede', ttsVvUrl: 'http://127.0.0.1:50021', ttsVvSpeaker: '1',
+  ttsEngine: 'auto', ttsVvMood: true, ttsKeep: false, ttsOpenaiKey: '', ttsOpenaiModel: 'gpt-4o-mini-tts', ttsOpenaiVoice: 'coral', ttsElKey: '', ttsElModel: 'eleven_flash_v2_5', ttsElVoice: '21m00Tcm4TlvDq8ikWAM', ttsGKey: '', ttsGVoice: 'ja-JP-Chirp3-HD-Aoede', ttsVvUrl: 'http://127.0.0.1:50021', ttsVvSpeaker: '1',
 };
-const LOCAL_KEYS = new Set(['sysVoice', 'apiKey', 'apiKeep', 'relayUrl', 'relayKey', 'sttLang', 'side', 'ttsEngine', 'ttsKeep', 'ttsOpenaiKey', 'ttsOpenaiModel', 'ttsOpenaiVoice', 'ttsElKey', 'ttsElModel', 'ttsElVoice', 'ttsGKey', 'ttsGVoice', 'ttsVvUrl', 'ttsVvSpeaker']);
+const LOCAL_KEYS = new Set(['sysVoice', 'apiKey', 'apiKeep', 'relayUrl', 'relayKey', 'sttLang', 'side', 'ttsEngine', 'ttsVvMood', 'ttsKeep', 'ttsOpenaiKey', 'ttsOpenaiModel', 'ttsOpenaiVoice', 'ttsElKey', 'ttsElModel', 'ttsElVoice', 'ttsGKey', 'ttsGVoice', 'ttsVvUrl', 'ttsVvSpeaker']);
 function stripSecrets(o) { if (!o.apiKeep) o.apiKey = ''; if (!o.ttsKeep) { o.ttsOpenaiKey = ''; o.ttsElKey = ''; o.ttsGKey = ''; } return o; }
 const SET = Object.assign({}, DEFAULTS, LS.get('settings', {}));
 
@@ -1786,13 +1786,20 @@ async function relayResearch(turns, opts) {
 async function relaySample(input, opts = {}) {
   const turns = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
   if (opts.research) return relayResearch(turns, opts);
+  /* 見張り: 中継サーバーから75秒なにも届かなければ、つながりが切れたとみなして打ち切る（サーバーは10秒ごとに生存信号を送る） */
+  const W = { last: Date.now(), dead: false, id: 0, ctl: new AbortController() };
+  if (opts.signal) { if (opts.signal.aborted) W.ctl.abort(); else opts.signal.addEventListener('abort', () => W.ctl.abort(), { once: true }); }
+  W.id = setInterval(() => { if (Date.now() - W.last > 75000) { W.dead = true; W.ctl.abort(); } }, 5000);
+  try { return await relayAsk(turns, opts, W); } finally { clearInterval(W.id); }
+}
+async function relayAsk(turns, opts, W) {
   const images = [];
   for (const b of (opts.images || []).slice(0, 4)) { const d = await blobToB64(b); if (d) images.push({ t: /^image\/(jpeg|png|webp|gif)$/.test(b.type) ? b.type : 'image/jpeg', d }); }
   let res;
   try {
-    res = await fetch(relayBase() + '/ask', { method: 'POST', signal: opts.signal, headers: relayHeaders(),
+    res = await fetch(relayBase() + '/ask', { method: 'POST', signal: W.ctl.signal, headers: relayHeaders(),
       body: JSON.stringify({ turns, images, search: !!opts.search, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
-  } catch (e) { if (e && e.name === 'AbortError') throw { code: 'cancelled' }; throw { code: 'relay_down' }; }
+  } catch (e) { if (e && e.name === 'AbortError') throw { code: W.dead ? 'relay_down' : 'cancelled' }; throw { code: 'relay_down' }; }
   if (!res.ok) {
     let j = null; try { j = await res.json(); } catch (e) {}
     const er = j && j.error;
@@ -1810,11 +1817,12 @@ async function relaySample(input, opts = {}) {
   try {
     for (;;) {
       const { value, done } = await reader.read(); if (done) break;
+      W.last = Date.now();
       buf += dec.decode(value, { stream: true }); let i;
       while ((i = buf.indexOf('\n')) >= 0) { handle(buf.slice(0, i)); buf = buf.slice(i + 1); }
     }
     handle(buf);
-  } catch (e) { if (e && e.name === 'AbortError') throw { code: 'cancelled', text }; throw { code: 'relay_down', text }; }
+  } catch (e) { if (e && e.name === 'AbortError' && !W.dead) throw { code: 'cancelled', text }; throw { code: 'relay_down', text }; }
   if (err && !text) throw { code: 'relay_error', message: err.message };
   if (!fin && !text) throw { code: 'relay_down' };
   return { text, truncated: !!(fin && fin.truncated), modelApplied: (fin && fin.model) || null, modelTierApplied: opts.modelTier || 'default' };
@@ -2335,7 +2343,27 @@ const CV_INFO = {
   eleven: { name: 'ElevenLabs', short: 'ElevenLabs', price: '1000文字あたり Flash/Turbo が$0.05、Multilingual が$0.10。月1万文字までの無料プランがあります。声の数が多く、ほかの人の声も選べます。', link: 'elevenlabs.io で APIキーを作ります' },
   google: { name: 'Google Cloud', short: 'Google', price: '100万文字あたり Chirp 3 HD が$30、Neural2 が$16、WaveNet が$4。毎月の無料枠は Chirp 3 HD と Neural2 が100万文字、WaveNet が400万文字です。', link: 'Google Cloud で Text-to-Speech API を有効にしてAPIキーを作ります' },
   voicevox: { name: 'VOICEVOX', short: 'VOICEVOX', price: '無料です。パソコンで VOICEVOX を起動しておくと、ずんだもんなど日本のキャラクターの声で話せます。', link: '起動して「--cors_policy_mode all」を付けると、ブラウザから使えます' },
+  auto: { name: 'VOICEVOX（おまかせ）', short: 'おまかせ', price: '無料です。キャラクターごとに声を自動で選びます（天和＝猫使ビィ／シアン＝離途／ドット絵モード＝満別花丸のボーイ／ふだん＝猫使アル）。', link: '中継サーバー（start-relay.bat）を起動しておくと、スマホからでもこのPCのVOICEVOXの声で話せます' },
 };
+
+/* ---- VOICEVOX「おまかせ」: いまのキャラで声を選び、文の様子で声色を切り替える ---- */
+const VV_CAST = { tenwa: '猫使ビィ', cyan: '離途', pixel: '満別花丸', std: '猫使アル' };
+const VV_STYLE = { /* 様子 → 声色（左から順に、入っている声色を使う） */
+  '猫使アル': { serious: ['おちつき'], calm: ['おちつき'], happy: ['うきうき'], strong: ['つよつよ'], tired: ['へろへろ'] },
+  '猫使ビィ': { serious: ['おちつき'], calm: ['おちつき'], tired: ['おちつき'], shy: ['人見知り'], strong: ['つよつよ'] },
+  '離途': { serious: ['シリアス'], strong: ['シリアス'] },
+  '満別花丸': { _all: ['ボーイ'] },
+};
+const MOOD_RE = [
+  ['serious', /重要|注意|警告|危険|リスク|問題(?!ありません|ない|なし|なく)|エラー|失敗|障害|深刻|緊急|禁止|違反|責任|重大|事故|被害|亡くな|病気|できません|不可能|残念|申し訳|すみません|ごめん|悲し|つらい|辛い|苦し|心配|不安|結論|慎重|断定できません|計算外/],
+  ['strong', /許せ|ダメだ|だめだ|やめろ|いい加減|怒|ふざけ|負けない|勝つ|行くぞ|がんばれ|頑張れ|絶対に/],
+  ['shy', /照れ|恥ずかし|はずかし|えっと|ええと|あの……|その……|もじもじ|てへへ|どうしよう/],
+  ['tired', /疲れ|つかれ|眠い|ねむい|だるい|しんど|はぁ|ふぅ|もう無理|めんどう|面倒/],
+  ['happy', /！|!|嬉し|うれし|楽し|たのし|やった|すごい|すばらしい|素晴らしい|最高|おめでとう|ありがとう|わーい|ワクワク|わくわく|いいね|大好き|さすが|完璧|成功|よかった|良かった|♪|♡|✨/],
+  ['calm', /ゆっくり|落ち着|大丈夫|安心|休んで|静か|おやすみ|穏やか/],
+];
+const moodOf = t => { const s = String(t || ''); for (const [k, re] of MOOD_RE) if (re.test(s)) return k; return 'normal'; };
+const castKey = () => (SET.angel ? 'tenwa' : SET.cyan ? 'cyan' : SET.pixel ? 'pixel' : 'std');
 function priceUSD(engine, model, voice, chars, secs) {
   if (engine === 'openai') return model === 'tts-1' ? chars * 15 / 1e6 : model === 'tts-1-hd' ? chars * 30 / 1e6 : secs * 0.015 / 60;
   if (engine === 'eleven') return chars * (model === 'eleven_multilingual_v2' ? 0.10 : 0.05) / 1000;
@@ -2364,10 +2392,32 @@ const CV = {
   available() { return !HAS_CLAUDE && SET.ttsEngine !== 'system' && !!CV_INFO[SET.ttsEngine]; },
   configured() {
     const e = SET.ttsEngine;
-    return e === 'openai' ? !!SET.ttsOpenaiKey : e === 'eleven' ? !!(SET.ttsElKey && SET.ttsElVoice) : e === 'google' ? !!SET.ttsGKey : e === 'voicevox' ? !!SET.ttsVvUrl : false;
+    return e === 'auto' ? true : e === 'openai' ? !!SET.ttsOpenaiKey : e === 'eleven' ? !!(SET.ttsElKey && SET.ttsElVoice) : e === 'google' ? !!SET.ttsGKey : e === 'voicevox' ? !!SET.ttsVvUrl : false;
   },
   active() { return this.available() && this.configured(); },
-  cfgKey(text) { const e = SET.ttsEngine; return [e, e === 'openai' ? SET.ttsOpenaiModel + SET.ttsOpenaiVoice : e === 'eleven' ? SET.ttsElModel + SET.ttsElVoice : e === 'google' ? SET.ttsGVoice : SET.ttsVvUrl + SET.ttsVvSpeaker, text].join('|'); },
+  /* ---- おまかせ（VOICEVOX）: 中継サーバーがあればそこ経由（スマホでもOK）、なければこのPCのVOICEVOXに直接 ---- */
+  vvDownUntil: 0, vvSpk: null, warnedAuto: false,
+  vvBase() { return Engine.relay ? { relay: true, base: relayBase() + '/vv', key: 'r' } : { relay: false, base: String(SET.ttsVvUrl || 'http://127.0.0.1:50021').replace(/\/+$/, ''), key: 'd' }; },
+  async vvSpeakers() {
+    const b = this.vvBase(), k = b.base;
+    if (this.vvSpk && this.vvSpk.k === k && Date.now() - this.vvSpk.at < 600000) return this.vvSpk.map;
+    const r = await fetch(b.base + '/speakers', { headers: b.relay ? relayHeaders() : {}, signal: this.ctl ? this.ctl.signal : undefined });
+    if (!r.ok) { const err = new Error('http'); err.status = r.status; throw err; }
+    const map = new Map();
+    for (const sp of await r.json()) { const st = {}; for (const s of sp.styles || []) st[s.name] = s.id; map.set(sp.name, { name: sp.name, styles: st }); }
+    this.vvSpk = { k, at: Date.now(), map }; return map;
+  },
+  castName() { return VV_CAST[castKey()]; },
+  async vvPick(text) {
+    const map = await this.vvSpeakers(); const want = this.castName();
+    const ch = map.get(want) || map.get('猫使アル') || map.values().next().value;
+    if (!ch) throw new Error('no speakers');
+    const tbl = VV_STYLE[ch.name] || {};
+    const mood = SET.ttsVvMood === false ? 'normal' : moodOf(text);
+    for (const s of [...(tbl._all || tbl[mood] || []), 'ノーマル']) if (ch.styles[s] != null) return ch.styles[s];
+    return Object.values(ch.styles)[0];
+  },
+  cfgKey(text) { const e = SET.ttsEngine; if (e === 'auto') return [e, this.vvBase().base, castKey(), SET.ttsVvMood === false ? '-' : moodOf(text), text].join('|'); return [e, e === 'openai' ? SET.ttsOpenaiModel + SET.ttsOpenaiVoice : e === 'eleven' ? SET.ttsElModel + SET.ttsElVoice : e === 'google' ? SET.ttsGVoice : SET.ttsVvUrl + SET.ttsVvSpeaker, text].join('|'); },
   async fetchAudio(text, signal) {
     const e = SET.ttsEngine; const chk = async r => { if (!r.ok) { let m = ''; try { m = (await r.text()).slice(0, 200); } catch (x) {} const err = new Error('http'); err.status = r.status; err.body = m; throw err; } return r; };
     if (e === 'openai') {
@@ -2384,6 +2434,12 @@ const CV = {
       const r = await chk(await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + encodeURIComponent(SET.ttsGKey), { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ input: { text }, voice: { languageCode: 'ja-JP', name: SET.ttsGVoice }, audioConfig: { audioEncoding: 'MP3' } }) }));
       const j = await r.json(); const bin = atob(j.audioContent || ''); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
       return new Blob([u], { type: 'audio/mpeg' });
+    }
+    if (e === 'auto') {
+      const id = await this.vvPick(text), b = this.vvBase();
+      if (b.relay) return (await chk(await fetch(b.base + '/speak', { method: 'POST', signal, headers: relayHeaders(), body: JSON.stringify({ text, speaker: id }) }))).blob();
+      const q = await chk(await fetch(`${b.base}/audio_query?text=${encodeURIComponent(text)}&speaker=${id}`, { method: 'POST', signal }));
+      return (await chk(await fetch(`${b.base}/synthesis?speaker=${id}`, { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(await q.json()) }))).blob();
     }
     if (e === 'voicevox') {
       const base = String(SET.ttsVvUrl).replace(/\/+$/, ''); const sp = encodeURIComponent(SET.ttsVvSpeaker || '1');
@@ -2411,7 +2467,17 @@ const CV = {
   /* resolves true when played, false when it failed (caller falls back to the device voice) */
   async say(text, rate, my) {
     if (!this.ctl) this.ctl = new AbortController();
-    let blob; try { blob = await this.get(text); } catch (e) { const m = this.errText(e); if (m && Date.now() - this.warned > 8000) { this.warned = Date.now(); toast(m, { err: true, ms: 6000 }); } return false; }
+    if (SET.ttsEngine === 'auto' && Date.now() < this.vvDownUntil) return false;
+    let blob; try { blob = await this.get(text); } catch (e) {
+      if (SET.ttsEngine === 'auto') {
+        if (e && e.name === 'AbortError') return false;
+        this.vvDownUntil = Date.now() + 30000; this.vvSpk = null;
+        if (!this.warnedAuto) { this.warnedAuto = true; toast('VOICEVOXの声につながらないので、いまは端末の声で読み上げます（PCで中継サーバーかVOICEVOXを起動すると、キャラの声になります）', { ms: 7000 }); }
+        return false;
+      }
+      const m = this.errText(e); if (m && Date.now() - this.warned > 8000) { this.warned = Date.now(); toast(m, { err: true, ms: 6000 }); } return false;
+    }
+    this.warnedAuto = false;
     if (my !== TTS.gen) return true;
     return new Promise(res => {
       const url = URL.createObjectURL(blob); const a = new Audio(url); this.audio = a; a.playbackRate = clamp(rate, 0.5, 2); a.preservesPitch = true;
@@ -3454,7 +3520,7 @@ const Live = {
       const dictated = it === 'insertFromDictation' || (!e.isComposing && !this.composing && it.startsWith('insert') && it !== 'insertFromPaste' && performance.now() - this.lastKey > 800);
       clearTimeout(this.autoT);
       if (dictated && ta.value.trim()) {
-        const d = clamp(+SET.liveDelay || 2, 1, 5);
+        const d = clamp(+SET.liveDelay || 1.2, 0.5, 5);
         this.hint(`話し終えたら ${d} 秒後に送信します（キーを押すと取り消し）`);
         this.autoT = setTimeout(() => this.submitType(), d * 1000);
       }
@@ -3464,7 +3530,10 @@ const Live = {
   open() {
     if (this.on) return;
     if (!engineReady()) { showEngineHelp(); return; }
-    if (S.busy && !S.busy.live) { toast('回答が終わってからLIVEを始めてください'); return; }
+    if (S.busy && !S.busy.live) {
+      if (/調査/.test((S.busy.alt && S.busy.alt.stage) || '')) { toast('リサーチが終わってからLIVEを始めてください（チャットの停止ボタンで止められます）', { ms: 4200 }); return; }
+      S.busy.ctl.abort(); toast('チャットの回答を止めました', { ms: 1800 });
+    }
     closeSideMobile(); while (Layer.top()) Layer.close();
     if (!this.built) this.build();
     this.on = true; TTS.unlock(); Audio8.get();
@@ -3528,8 +3597,8 @@ const Live = {
     const lm = SET.liveModel === 'same' ? (S.view && !S.view.sample ? S.view.model : SET.model) : SET.liveModel;
     $('#lvModel').innerHTML = `${ic('sparkle')}<span>${esc(modelShort(lm))}</span>`;
     const cloud = CV.active();
-    $('#lvVoice').innerHTML = `${ic('speaker')}<span>${esc(cloud ? CV_INFO[SET.ttsEngine].short : voicePreset(SET.voice).name)}</span>`;
-    const cb = $('#lvCost'); if (cb) { cb.hidden = !cloud; if (cloud) cb.innerHTML = `<span>${SET.ttsEngine === 'voicevox' ? '無料' : esc(fmtUSD(Usage.ttsUSD(Usage.sess)))}</span>`; }
+    $('#lvVoice').innerHTML = `${ic('speaker')}<span>${esc(cloud ? (SET.ttsEngine === 'auto' ? CV.castName() : CV_INFO[SET.ttsEngine].short) : voicePreset(SET.voice).name)}</span>`;
+    const cb = $('#lvCost'); if (cb) { cb.hidden = !cloud; if (cloud) cb.innerHTML = `<span>${SET.ttsEngine === 'voicevox' || SET.ttsEngine === 'auto' ? '無料' : esc(fmtUSD(Usage.ttsUSD(Usage.sess)))}</span>`; }
     $('#lvCaps').classList.toggle('on', !!SET.liveCaps); $('#lvCaps').setAttribute('aria-pressed', String(!!SET.liveCaps));
   },
   hint(t) { const h = $('#lvHint'); if (!h) return; h.textContent = t || this.baseHint; h.hidden = !(t || this.baseHint); },
@@ -3620,8 +3689,15 @@ const Live = {
   async send(text, o = {}) {
     if (!this.on) return;
     text = String(text || '').trim();
-    if (S.busy && !S.busy.live) { toast('ほかのチャットで回答中です'); return; }
-    if (!engineReady()) { showEngineHelp(); return; }
+    if (S.busy && !S.busy.live) {
+      if (/調査/.test((S.busy.alt && S.busy.alt.stage) || '')) { this.caption('リサーチ中なので、LIVEではまだ返事できません。終わるまで待つか、チャット画面の停止ボタンで止めてください。'); this.setState('idle'); return; }
+      S.busy.ctl.abort(); toast('チャットの回答を止めて、LIVEで答えます', { ms: 2200 });
+    }
+    if (!engineReady()) await initEngine();
+    if (!engineReady()) {
+      this.caption(Engine.relayWhy && RELAY_WHY_JA[Engine.relayWhy] ? `PCの中継サーバーには届きましたが、${RELAY_WHY_JA[Engine.relayWhy]}。` : 'AIにつながっていません。PCで中継サーバー（start-relay-tunnel.bat）が動いているか、スマホならPCに表示されたリンクを開き直したかを確かめてください。');
+      SFX.play('err'); this.setState('idle'); showEngineHelp(); return;
+    }
     if (S.busy) { S.busy.ctl.abort(); for (let i = 0; i < 60 && S.busy; i++) await sleep(50); if (S.busy) return; }
     STT.stop(true); this.cutting = true; TTS.cancel(); this.cutting = false;
     let pend = [], images = [], cam = false;
@@ -3644,7 +3720,7 @@ const Live = {
     if (!this.on) return;
     if (!text && !pend.length && !images.length) { this.setState('idle'); return; }
     if ((pend.length || images.length) && Engine.kind === 'sample' && !Engine.imgMax) toast('この画面では画像をAIに送れないため、カメラの映像は届きません', { ms: 4200 });
-    this.spoken = 0; this.done = false; this.tags = new Set(); this.idleTries = 0; this.moodTag = false;
+    this.spoken = 0; this.done = false; this.tags = new Set(); this.idleTries = 0; this.moodTag = false; this.firstChunk = false;
     $('#lvYou').textContent = text || '（カメラを見せました）'; this.caption('');
     this.setState('thinking');
     try { await sendMessage(text, pend, { live: true, cam, images, onUpdate: a => this.onUpd(a), onDone: a => this.onDone(a) }); }
@@ -3659,6 +3735,11 @@ const Live = {
     this.caption(shown);
     if (shown && this.st === 'thinking') this.setState('speaking');
     const body = this.speakBody(raw);
+    /* 声の合成に時間がかかるので、最初の一言だけは読点（、）まででいったん区切って、早く声を出し始める */
+    if (this.spoken === 0 && !this.firstChunk && SET.ttsEngine === 'auto' && CV.active()) {
+      const m = body.match(/^\s*([^。！？!?\n]{4,26}?[、，,])/);
+      if (m) { this.firstChunk = true; TTS.enqueue(m[1]); if (this.angel && !this.moodTag) this.C.guess(m[1]); this.spoken = m[0].length; }
+    }
     if (body.length > this.spoken) {
       const { parts, used } = splitSentences(body.slice(this.spoken), false);
       for (const p of parts) { TTS.enqueue(p); if (this.angel && !this.moodTag) this.C.guess(p); }
@@ -5543,12 +5624,15 @@ function cloudVoiceHTML() {
   if (e === 'openai') body = txtRow('ttsOpenaiKey', 'APIキー', 'sk-...', 'password') + selRow('ttsOpenaiModel', 'モデル', OAI_MODELS, SET.ttsOpenaiModel) + selRow('ttsOpenaiVoice', '声', OAI_VOICES.map(v => [v, v]), SET.ttsOpenaiVoice);
   else if (e === 'eleven') body = txtRow('ttsElKey', 'APIキー', 'xi-api-key', 'password') + selRow('ttsElModel', 'モデル', EL_MODELS, SET.ttsElModel) + (CV.elList ? selRow('ttsElVoice', '声', CV.elList, SET.ttsElVoice) : txtRow('ttsElVoice', '声のID', '21m00Tcm4TlvDq8ikWAM')) + `<div><button type="button" class="btn sm" data-do="tts-list">声の一覧を取得</button></div>`;
   else if (e === 'google') body = txtRow('ttsGKey', 'APIキー', 'AIza...', 'password') + selRow('ttsGVoice', '声', G_VOICES, SET.ttsGVoice);
+  else if (e === 'auto') body = `<div class="help-box"><p class="help-p"><b>いまの声：</b>${esc(CV.castName())}（${SET.angel ? '天和' : SET.cyan ? 'シアン' : SET.pixel ? 'ドット絵モード' : 'ふだん'}）<br>天和＝猫使ビィ ／ シアン＝離途 ／ ドット絵モード＝満別花丸（ボーイ） ／ ふだん＝猫使アル</p></div>`
+    + swRow('ttsVvMood', '文の様子で声色を変える', 'まじめな話はシリアス・おちつき、うれしい話はうきうき、つかれた話はへろへろ、のように切り替えます')
+    + txtRow('ttsVvUrl', 'VOICEVOXの場所（中継サーバーがないときだけ使います）', 'http://127.0.0.1:50021');
   else if (e === 'voicevox') body = txtRow('ttsVvUrl', 'VOICEVOXの場所', 'http://127.0.0.1:50021') + (CV.vvList ? selRow('ttsVvSpeaker', '声', CV.vvList, SET.ttsVvSpeaker) : txtRow('ttsVvSpeaker', '声の番号', '1')) + `<div><button type="button" class="btn sm" data-do="tts-list">声の一覧を取得</button></div>`;
   return `<div class="sg"><div class="sg-h">高品質ボイス（外部サービス）</div>
     <p class="help-p">より自然な声で話したいときに、外部サービスの声を使えます。話した文字数や時間から、使用料の目安を数えます。</p>
-    ${segRow('ttsEngine', '使うサービス', '', [['system', '端末の声'], ['openai', 'OpenAI'], ['eleven', 'ElevenLabs'], ['google', 'Google'], ['voicevox', 'VOICEVOX']])}
+    ${segRow('ttsEngine', '使うサービス', '', [['auto', 'おまかせ'], ['system', '端末の声'], ['openai', 'OpenAI'], ['eleven', 'ElevenLabs'], ['google', 'Google'], ['voicevox', 'VOICEVOX（手動）']])}
     ${info ? `<div class="help-box"><p class="help-p"><b>料金の目安：</b>${esc(info.price)}</p><p class="help-p">${esc(info.link)}。</p></div>${body}
-    ${e !== 'voicevox' ? swRow('ttsKeep', 'キーをこのブラウザに保存する', 'オフのときは、ページを閉じると消えます。キーは選んだサービスにだけ送ります') : ''}
+    ${e !== 'voicevox' && e !== 'auto' ? swRow('ttsKeep', 'キーをこのブラウザに保存する', 'オフのときは、ページを閉じると消えます。キーは選んだサービスにだけ送ります') : ''}
     <p class="stat-line">${CV.configured() ? `${ic('check')}<span>設定できました。「声を試す」で確かめてください</span>` : `${ic('alert')}<span>${e === 'voicevox' ? '場所を入れてください' : 'APIキーを入れると使えます'}</span>`}</p>` : ''}
   </div>`;
 }
@@ -5627,7 +5711,7 @@ const SET_TAB = {
       ${swRow('liveBarge', 'AIが話している途中でも割り込める', 'スピーカーの音を拾ってしまうときはオフにしてください')}
       ${swRow('liveCam', 'カメラの映像を毎回いっしょに見せる', 'オフのときは「見せる」を押したときだけ見せます')}
       ${swRow('liveCaps', '字幕を表示', '')}
-      ${rngRow('liveDelay', '音声入力の自動送信までの時間', '端末の音声入力を使うとき、話し終えてから送るまでの秒数', 1, 5, 0.5)}
+      ${rngRow('liveDelay', '音声入力の自動送信までの時間', '端末の音声入力を使うとき、話し終えてから送るまでの秒数（短いほど返事が早い）', 0.5, 5, 0.1)}
     </div>
     <div class="sg"><div class="sg-h">音声入力</div>
       <label class="field"><span>聞き取る言語</span><select data-set="sttLang">${LANGS.map(([v, l]) => `<option value="${v}"${SET.sttLang === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -5820,6 +5904,11 @@ async function settingsDo(act, n, redraw) {
 }
 
 /* ---- relay watch ---- */
+if (/[?&]debug\b/.test(location.search)) win.__kd = { CV, moodOf, Settings, SET, Engine, Live };
+/* 初回だけ：それまで「端末の声」だった人を、VOICEVOXのおまかせ（キャラ別の声）に切り替える。あとから自分で選び直せる */
+if (!HAS_CLAUDE && !LS.get('vvmig', false)) { LS.set('vvmig', true); if (SET.ttsEngine === 'system') Settings.set({ ttsEngine: 'auto' }); }
+/* 初回だけ：LIVEの「自動送信までの時間」が昔の初期値（2秒）のままなら、早い初期値（1.2秒）にする */
+if (!LS.get('ldmig', false)) { LS.set('ldmig', true); if (+SET.liveDelay === 2) Settings.set({ liveDelay: 1.2 }); }
 if (!HAS_CLAUDE) {
   /* PCに表示されるリンク（#relay=住所）を開いたら、住所を自動で入れる。信頼できる住所だけ受け付ける */
   const hm = location.hash.match(/[#&]relay=([^&]+)/);

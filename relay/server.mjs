@@ -105,14 +105,42 @@ let lastLimits = null;
 const SEARCH_ADD = ' When the question needs facts, recent information or verification, use the WebSearch and WebFetch tools before answering, then answer in the language of the user and cite the source URLs. Do not use any other tool.';
 const describeTool = b => b.name === 'WebSearch' ? '検索: ' + String((b.input && b.input.query) || '') : b.name === 'WebFetch' ? '読み込み: ' + String((b.input && b.input.url) || '') : String(b.name || '');
 
+/* ---- 速さのための工夫 ----
+   ・思考（thinking）は、effort が low / medium / 未指定のときは切る（最初の文字まで約2秒短くなる）
+   ・Claude Code の起動に時間がかかるので、よく使う設定（モデル・effort・検索の有無）の分は、起動済みで入力待ちの
+     プロセスを1つ用意しておき、リクエストが来たらそれを使う（使ったらすぐ次の1つを用意する） */
+const fastMode = (effort, search) => !search && (!effort || effort === 'low' || effort === 'medium');
+const buildArgs = ({ model, effort, search }) => ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
+  ...(search ? ['--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch,WebFetch'] : ['--tools', '']),
+  '--no-session-persistence', '--setting-sources', '', '--disable-slash-commands',
+  '--system-prompt', search ? SYSTEM + SEARCH_ADD : SYSTEM, '--model', model, ...(effort ? ['--effort', effort] : [])];
+const startChild = o => spawn(CLAUDE, buildArgs(o), { cwd: WORK, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: fastMode(o.effort, o.search) ? { ...process.env, MAX_THINKING_TOKENS: '0' } : process.env });
+const MAX_WARM = 3, WARM_TTL = 8 * 60000, HOT_MS = 20 * 60000;
+const warmPool = new Map(), hotKeys = new Map();
+const warmKey = o => [o.model, o.effort || '', o.search ? 's' : 'n'].join('|');
+function replenish(o) {
+  const k = warmKey(o);
+  if (warmPool.has(k) || warmPool.size >= MAX_WARM || Date.now() - (hotKeys.get(k) || 0) > HOT_MS) return;
+  const child = startChild({ model: o.model, effort: o.effort, search: o.search });
+  child.on('error', () => {}); child.stdin.on('error', () => {});
+  const ent = { child, born: Date.now() }; warmPool.set(k, ent);
+  const drop = () => { if (warmPool.get(k) === ent) warmPool.delete(k); };
+  child.on('close', drop);
+  setTimeout(() => { if (warmPool.get(k) === ent) { drop(); try { child.kill(); } catch (e) {} } }, WARM_TTL).unref();
+}
+function takeChild(o) {
+  const k = warmKey(o); hotKeys.set(k, Date.now());
+  const ent = warmPool.get(k); warmPool.delete(k);
+  let child = null;
+  if (ent && ent.child.exitCode === null && !ent.child.killed && Date.now() - ent.born < WARM_TTL) child = ent.child;
+  else { if (ent) try { ent.child.kill(); } catch (e) {} child = startChild(o); }
+  setTimeout(() => replenish(o), 400);
+  return child;
+}
+
 function runClaude({ prompt, model, effort, images, search }, onDelta, onClose, onLimits, onStatus) {
   const withImages = images && images.length > 0;
-  const args = ['-p', ...(withImages ? ['--input-format', 'stream-json'] : []), '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
-    ...(search ? ['--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch,WebFetch'] : ['--tools', '']),
-    '--no-session-persistence', '--setting-sources', '', '--disable-slash-commands',
-    '--system-prompt', search ? SYSTEM + SEARCH_ADD : SYSTEM, '--model', model];
-  if (effort) args.push('--effort', effort);
-  const child = spawn(CLAUDE, args, { cwd: WORK, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+  const child = takeChild({ model, effort, search });
   let buf = '', err = '', got = false, usedModel = null, truncated = false, resultErr = null, finished = false, uIn = 0, uOut = 0, resultText = '';
   const seenTools = new Set(); let msgCount = 0;
   const done = r => { if (finished) return; finished = true; clearTimeout(timer); onClose(r); };
@@ -153,11 +181,9 @@ function runClaude({ prompt, model, effort, images, search }, onDelta, onClose, 
     else done({ ok: true, model: usedModel, truncated, got, result: resultText, usage: { i: uIn, o: uOut } });
   });
   child.stdin.on('error', () => {});
-  if (withImages) {
-    const content = images.map(im => ({ type: 'image', source: { type: 'base64', media_type: im.t, data: im.d } }));
-    content.push({ type: 'text', text: prompt });
-    child.stdin.end(JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n', 'utf8');
-  } else child.stdin.end(prompt, 'utf8');
+  const content = withImages ? images.map(im => ({ type: 'image', source: { type: 'base64', media_type: im.t, data: im.d } })) : [];
+  content.push({ type: 'text', text: prompt });
+  child.stdin.end(JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n', 'utf8');
   return child;
 }
 
@@ -171,6 +197,53 @@ function readBody(req, limit = 12 * 1024 * 1024) {
 }
 
 const json = (res, code, o) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+
+/* ================= VOICEVOX の中継（スマホなど外からも、このPCのVOICEVOXの声で話せるように） =================
+   VOICEVOX のエンジンを必要なら自動で起動し、/vv/speak で「文字 → 声（wav）」を返す。声の一覧は /vv/speakers */
+const VV = 'http://127.0.0.1:' + (process.env.VOICEVOX_PORT || 50021);
+const VV_EXE = process.env.VOICEVOX_ENGINE || path.join(process.env.LOCALAPPDATA || '', 'Programs', 'VOICEVOX', 'vv-engine', 'run.exe');
+let vvStarting = null, vvChild = null;
+const vvAlive = async () => { try { const r = await fetch(VV + '/version', { signal: AbortSignal.timeout(1500) }); return r.ok; } catch (e) { return false; } };
+function ensureVV() {
+  if (vvStarting) return vvStarting;
+  vvStarting = (async () => {
+    if (await vvAlive()) return true;
+    if (!fs.existsSync(VV_EXE)) return false;
+    // 標準はCPU。GPU（DirectML）は、声ごとの最初の読み込みに40秒以上かかるので、VOICEVOX_GPU=1 のときだけ使う
+    for (const gpu of process.env.VOICEVOX_GPU === '1' ? [true, false] : [false]) {
+      console.log('[VOICEVOX] エンジンを起動します…' + (gpu ? '（GPU）' : '（CPU）'));
+      const child = spawn(VV_EXE, ['--host', '127.0.0.1', '--port', new URL(VV).port, ...(gpu ? ['--use_gpu'] : [])], { stdio: 'ignore', windowsHide: true });
+      vvChild = child; child.on('error', () => {}); child.on('close', () => { if (vvChild === child) vvChild = null; });
+      for (let i = 0; i < 60; i++) { await sleep(1000); if (await vvAlive()) { console.log('[VOICEVOX] 使えます'); return true; } if (child.exitCode !== null) break; }
+      try { child.kill(); } catch (e) {}
+    }
+    return false;
+  })().finally(() => setTimeout(() => { vvStarting = null; }, 4000));
+  return vvStarting;
+}
+process.on('exit', () => { try { vvChild && vvChild.kill(); } catch (e) {} });
+// 声ごとの最初の合成は、モデルの読み込みで数十秒かかる。使うキャラの声を、起動後に先に1回ずつ読み込ませておく
+let vvWarmed = false;
+async function vvWarm() {
+  if (vvWarmed) return; vvWarmed = true;
+  try {
+    const sp = await (await fetch(VV + '/speakers', { signal: AbortSignal.timeout(20000) })).json();
+    const ids = [];
+    const main = { '猫使アル': ['ノーマル', 'おちつき', 'うきうき'], '満別花丸': ['ボーイ'], '猫使ビィ': ['ノーマル', 'おちつき'], '離途': ['ノーマル', 'シリアス'] };
+    for (const [name, styles] of Object.entries(main)) { const c = sp.find(x => x.name === name); if (c) for (const s of c.styles) if (styles.includes(s.name)) ids.push(s.id); }
+    console.log('[VOICEVOX] 声を読み込んでいます（' + ids.length + '種類）…');
+    const t0 = Date.now();
+    for (const id of ids) { try { await vvSpeak('あ', id); } catch (e) {} }
+    console.log('[VOICEVOX] 声の読み込みが終わりました（' + Math.round((Date.now() - t0) / 1000) + '秒）');
+  } catch (e) { vvWarmed = false; }
+}
+async function vvSpeak(text, speaker) {
+  const q = await fetch(`${VV}/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`, { method: 'POST', signal: AbortSignal.timeout(30000) });
+  if (!q.ok) throw new Error('audio_query ' + q.status);
+  const s = await fetch(`${VV}/synthesis?speaker=${speaker}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await q.json()), signal: AbortSignal.timeout(60000) });
+  if (!s.ok) throw new Error('synthesis ' + s.status);
+  return Buffer.from(await s.arrayBuffer());
+}
 
 /* ================= リサーチ：指定した時間ぶん、ウェブで調べ続けてから答える =================
    ブラウザは「ジョブ」を始めて、数秒おきに経過を見に来る（トンネルが長い通信を切っても、画面を閉じても続く）。
@@ -302,7 +375,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url === '/ping') {
     const a = checkAuth(req);
-    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 4, features: ['search', 'research'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
+    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 5, features: ['search', 'research', 'voicevox'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
   }
 
   if (req.method === 'POST' && url === '/ask') {
@@ -318,11 +391,12 @@ const server = http.createServer(async (req, res) => {
     const alias = aliasOf(body.model, body.tier);
     const effort = ['low', 'medium', 'high', 'xhigh', 'max'].includes(body.effort) ? body.effort : null;
 
-    res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store', 'x-accel-buffering': 'no' });
+    res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store, no-transform', 'x-accel-buffering': 'no' }); res.flushHeaders();
     const send = o => { if (!res.writableEnded) res.write(JSON.stringify(o) + '\n'); };
     running++;
     let child = null, closed = false;
-    const finish = () => { if (!closed) { closed = true; running--; } };
+    const hb = setInterval(() => send({ type: 'ping' }), 10000);
+    const finish = () => { if (!closed) { closed = true; running--; clearInterval(hb); } };
     res.on('close', () => { if (child && !closed) child.kill(); finish(); });
 
     const attempt = (eff, retry) => {
@@ -335,6 +409,26 @@ const server = http.createServer(async (req, res) => {
     };
     attempt(effort, !!effort);
     return;
+  }
+
+  if (url.startsWith('/vv/')) {
+    const a = checkAuth(req);
+    if (a !== 'ok') return json(res, a === 'locked' ? 429 : 401, { error: 'auth_' + a });
+    if (!(await ensureVV())) return json(res, 503, { error: 'voicevox_unavailable' });
+    try {
+      if (req.method === 'GET' && url === '/vv/speakers') {
+        const r = await fetch(VV + '/speakers', { signal: AbortSignal.timeout(20000) });
+        res.writeHead(r.status, { 'content-type': 'application/json', 'cache-control': 'max-age=300' }); return res.end(Buffer.from(await r.arrayBuffer()));
+      }
+      if (req.method === 'POST' && url === '/vv/speak') {
+        const b = JSON.parse(await readBody(req, 200000));
+        const text = String(b.text || '').slice(0, 600), speaker = Number.isInteger(+b.speaker) ? +b.speaker : 1;
+        if (!text.trim() || speaker < 0 || speaker > 9999) return json(res, 400, { error: 'bad_request' });
+        const wav = await vvSpeak(text, speaker);
+        res.writeHead(200, { 'content-type': 'audio/wav', 'content-length': wav.length, 'cache-control': 'no-store, no-transform' }); return res.end(wav);
+      }
+    } catch (e) { return json(res, 502, { error: 'voicevox_error', message: String((e && e.message) || e).slice(0, 120) }); }
+    return json(res, 404, { error: 'not_found' });
   }
 
   if (url === '/research' && req.method === 'POST') {
@@ -374,7 +468,10 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('  許可する画面 : ' + ORIGINS.join(', ') + ' と localhost');
   console.log('  このウィンドウを開いている間だけ、コトダマからあなたのClaudeを使えます。閉じるか Ctrl+C で止まります。');
   if (process.argv.includes('--tunnel')) startTunnel();
+  ensureVV().then(ok => { if (ok) vvWarm(); }).catch(() => {});
+  for (const m of ['haiku', 'sonnet']) { const o = { model: m, effort: 'low', search: false }; hotKeys.set(warmKey(o), Date.now()); replenish(o); }
 });
+process.on('exit', () => { for (const w of warmPool.values()) try { w.child.kill(); } catch (e) {} });
 
 // Cloudflare の一時トンネル（アカウント不要）。起動のたびにURLが変わる
 function startTunnel() {
