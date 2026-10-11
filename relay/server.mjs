@@ -102,14 +102,19 @@ function buildPrompt(turns) {
 // Claude Code が教えてくれる「使用制限の状態」（5時間の枠など）。最後に見たものを覚えておく
 let lastLimits = null;
 
-function runClaude({ prompt, model, effort, images }, onDelta, onClose, onLimits) {
+const SEARCH_ADD = ' When the question needs facts, recent information or verification, use the WebSearch and WebFetch tools before answering, then answer in the language of the user and cite the source URLs. Do not use any other tool.';
+const describeTool = b => b.name === 'WebSearch' ? '検索: ' + String((b.input && b.input.query) || '') : b.name === 'WebFetch' ? '読み込み: ' + String((b.input && b.input.url) || '') : String(b.name || '');
+
+function runClaude({ prompt, model, effort, images, search }, onDelta, onClose, onLimits, onStatus) {
   const withImages = images && images.length > 0;
   const args = ['-p', ...(withImages ? ['--input-format', 'stream-json'] : []), '--output-format', 'stream-json', '--include-partial-messages', '--verbose',
-    '--tools', '', '--no-session-persistence', '--setting-sources', '', '--disable-slash-commands',
-    '--system-prompt', SYSTEM, '--model', model];
+    ...(search ? ['--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch,WebFetch'] : ['--tools', '']),
+    '--no-session-persistence', '--setting-sources', '', '--disable-slash-commands',
+    '--system-prompt', search ? SYSTEM + SEARCH_ADD : SYSTEM, '--model', model];
   if (effort) args.push('--effort', effort);
   const child = spawn(CLAUDE, args, { cwd: WORK, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
-  let buf = '', err = '', got = false, usedModel = null, truncated = false, resultErr = null, finished = false, uIn = 0, uOut = 0;
+  let buf = '', err = '', got = false, usedModel = null, truncated = false, resultErr = null, finished = false, uIn = 0, uOut = 0, resultText = '';
+  const seenTools = new Set(); let msgCount = 0;
   const done = r => { if (finished) return; finished = true; clearTimeout(timer); onClose(r); };
   const timer = setTimeout(() => child.kill(), TIMEOUT_MS);
   child.stdout.on('data', d => {
@@ -122,6 +127,7 @@ function runClaude({ prompt, model, effort, images }, onDelta, onClose, onLimits
         const e = ev.event;
         if (e.type === 'message_start' && e.message) {
           usedModel = e.message.model || usedModel;
+          if (msgCount++ > 0 && got) onDelta('\n\n');
           const u = e.message.usage || {}; uIn += (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
         }
         else if (e.type === 'content_block_delta' && e.delta && e.delta.type === 'text_delta') { got = true; onDelta(e.delta.text); }
@@ -129,12 +135,14 @@ function runClaude({ prompt, model, effort, images }, onDelta, onClose, onLimits
           if (e.delta && e.delta.stop_reason === 'max_tokens') truncated = true;
           if (e.usage && e.usage.output_tokens != null) uOut += e.usage.output_tokens;
         }
+      } else if (ev.type === 'assistant' && ev.message && Array.isArray(ev.message.content)) {
+        for (const b of ev.message.content) if (b.type === 'tool_use' && b.id && !seenTools.has(b.id)) { seenTools.add(b.id); onStatus && onStatus(describeTool(b)); }
       } else if (ev.type === 'rate_limit_event' && ev.rate_limit_info) {
         lastLimits = { ...ev.rate_limit_info, seenAt: Date.now() };
         onLimits && onLimits(lastLimits);
       } else if (ev.type === 'result') {
         if (ev.is_error) resultErr = String(ev.result || ev.subtype || 'error');
-        else if (!got && ev.result) { got = true; onDelta(String(ev.result)); }
+        else { resultText = String(ev.result || ''); if (!got && ev.result) { got = true; onDelta(String(ev.result)); } }
       }
     }
   });
@@ -142,7 +150,7 @@ function runClaude({ prompt, model, effort, images }, onDelta, onClose, onLimits
   child.on('error', e => done({ ok: false, error: 'spawn: ' + e.message, got }));
   child.on('close', code => {
     if (resultErr || (code !== 0 && !got)) done({ ok: false, error: resultErr || err.trim().slice(-400) || 'exit ' + code, got });
-    else done({ ok: true, model: usedModel, truncated, got, usage: { i: uIn, o: uOut } });
+    else done({ ok: true, model: usedModel, truncated, got, result: resultText, usage: { i: uIn, o: uOut } });
   });
   child.stdin.on('error', () => {});
   if (withImages) {
@@ -164,6 +172,128 @@ function readBody(req, limit = 12 * 1024 * 1024) {
 
 const json = (res, code, o) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
 
+/* ================= リサーチ：指定した時間ぶん、ウェブで調べ続けてから答える =================
+   ブラウザは「ジョブ」を始めて、数秒おきに経過を見に来る（トンネルが長い通信を切っても、画面を閉じても続く）。
+   調査は数分ずつの「回」に分けて、回ごとにノートを足していく。最短時間を過ぎたら、ノートをもとに最終回答を書く。 */
+const jobs = new Map();
+const MAX_ROUNDS = 80;
+const NOTES_LIMIT = 36000;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const todayJa = () => new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+const once = (opts, hooks = {}) => new Promise(resolve => {
+  const go = o => {
+    const child = runClaude(o, t => hooks.onDelta && hooks.onDelta(t), r => (!r.ok && !r.got && o.effort ? go({ ...o, effort: null }) : resolve(r)), lim => hooks.onLimits && hooks.onLimits(lim), s => hooks.onStatus && hooks.onStatus(s));
+    hooks.onChild && hooks.onChild(child);
+  };
+  go(opts);
+});
+
+function convText(turns) {
+  if (typeof turns === 'string') return turns;
+  const list = Array.isArray(turns) ? turns : [];
+  if (list.length <= 1) return String((list[0] && list[0].content) || '');
+  return list.slice(1).map(t => (t.role === 'assistant' ? 'アシスタント' : 'ユーザー') + ':\n' + t.content).join('\n\n');
+}
+
+function focusFor(round, f) {
+  if (round === 1) return 'テーマ全体の把握。用語の定義・背景・経緯・主な立場や選択肢・関係する人や組織・最新の動きを広く調べる。ノートの最後に「調べるべき論点リスト」を10〜20個つくる。';
+  if (f < 0.6) return '論点リストのうち、まだノートにないものを選んで深掘りする。公式資料・一次情報・統計・専門家の見解・具体的な事例と数値を集める。';
+  if (f < 0.85) return '反対意見・異論・限界・失敗例・リスクと、最新の動き（日付の確認）、数値の裏取り（複数の出典で照合）を調べる。';
+  return '抜けている観点の補完、ノート内の矛盾の解消、回答にいちばん必要な不足情報の確認。もう十分な点は「十分」と書く。';
+}
+
+function roundPrompt(job, round, elapsed) {
+  const notes = job.notes.length ? job.notes.map(n => n.text).join('\n\n') : 'まだありません';
+  return `あなたは徹底的に調べる調査員です。ウェブ検索（WebSearch）とページ取得（WebFetch）を使って、次の【依頼】に答えるための材料を集めます。ユーザーへの回答はまだ書かず、調査ノートだけを書いてください。
+今日の日付：${todayJa()}
+
+【依頼（ユーザーとの会話）】
+${convText(job.turns)}
+
+【これまでの調査ノート】
+${notes}
+
+【今回（第${round}回・調査開始から${Math.floor(elapsed / 60000)}分／最短${Math.round(job.minMs / 60000)}分）の方針】
+${focusFor(round, elapsed / job.minMs)}
+
+ルール：
+- 検索は日本語と英語の両方を使い、公式サイト・論文・統計・信頼できる報道などの一次情報を優先する。
+- ノートの各項目に、事実・数値・日付と、出典のURLを必ず付ける。確認できなかったことは「未確認」と書く。
+- すでにノートにあることは繰り返さず、新しく分かったことだけを書く。
+- 出力は箇条書きのノート（800〜1500字ほど）。最後に「次に調べるべきこと」を3つ書く。`;
+}
+
+function finalPrompt(job) {
+  const notes = job.notes.map(n => n.text).join('\n\n');
+  return buildPrompt(job.turns) + `\n\n――――\n【調査ノート（ウェブ調査 ${job.round}回・${Math.round((Date.now() - job.t0) / 60000)}分）】\n${notes || '（調査ノートはありません）'}\n――――\n上の調査ノートをふまえて、依頼への回答を書いてください。事実には出典URLを付け、ノートで確認できなかったことは断定しないでください。情報が食い違うときは両論を示してください。調査の過程の説明は不要で、回答だけを書いてください。`;
+}
+
+function jobLog(job, text) {
+  job.log.push({ t: Date.now() - job.t0, text });
+  if (job.log.length > 800) job.log.splice(0, job.log.length - 800);
+  job.logTotal++;
+}
+
+async function runJob(job) {
+  const useModel = job.model;
+  const hooks = (extra = {}) => ({ onChild: c => { job.child = c; }, onStatus: s => jobLog(job, s), onLimits: l => { job.limits = l; }, ...extra });
+  let errors = 0;
+  try {
+    while (!job.cancelled && !job.finishEarly) {
+      const elapsed = Date.now() - job.t0;
+      if (elapsed >= job.minMs && job.round >= 1) break;
+      if (job.round >= MAX_ROUNDS || elapsed > job.minMs + 90 * 60000) break;
+      if (lastLimits && lastLimits.status === 'rejected') { jobLog(job, '使用制限に達したため、ここまでの調査で答えます'); break; }
+      job.round++;
+      jobLog(job, `—— 第${job.round}回の調査を始めます（${focusFor(job.round, elapsed / job.minMs).slice(0, 28)}…）`);
+      const r = await once({ prompt: roundPrompt(job, job.round, elapsed), model: useModel, effort: 'medium', search: true }, hooks());
+      if (job.cancelled) break;
+      if (!r.ok) {
+        errors++; jobLog(job, '調査でエラー：' + String(r.error || '').slice(0, 120));
+        if (errors >= 3) break;
+        await sleep(8000); continue;
+      }
+      job.usage.i += (r.usage && r.usage.i) || 0; job.usage.o += (r.usage && r.usage.o) || 0;
+      const text = String(r.result || '').trim();
+      if (text) { job.notes.push({ round: job.round, text: `■第${job.round}回\n${text}` }); jobLog(job, `第${job.round}回のノートを追加しました（${text.length}字）`); }
+      const total = job.notes.reduce((a, n) => a + n.text.length, 0);
+      if (total > NOTES_LIMIT) {
+        jobLog(job, 'ノートが長くなったので整理しています');
+        const c = await once({ prompt: `次の調査ノートを、重複をまとめて整理し直してください。事実・数値・日付・出典URLはすべて残し、12000字以内の箇条書きにします。整理後のノートだけを出力してください。\n\n${job.notes.map(n => n.text).join('\n\n')}`, model: 'haiku', effort: 'low', search: false }, { onChild: ch => { job.child = ch; } });
+        const ct = String((c && c.result) || '').trim();
+        if (c && c.ok && ct.length > 500) job.notes = [{ round: job.round, text: '■整理済みノート\n' + ct }];
+      }
+      await sleep(1500);
+    }
+    if (job.cancelled) { job.status = 'cancelled'; return; }
+    job.status = 'synthesizing';
+    jobLog(job, `調査を終えました（${job.round}回・${Math.round((Date.now() - job.t0) / 60000)}分）。回答を書いています`);
+    const f = await once({ prompt: finalPrompt(job), model: useModel, effort: job.effort, search: false }, hooks({ onDelta: t => { job.finalText += t; } }));
+    if (job.cancelled) { job.status = 'cancelled'; return; }
+    if (!f.ok && !job.finalText) throw new Error(f.error || '回答を作れませんでした');
+    job.usage.i += (f.usage && f.usage.i) || 0; job.usage.o += (f.usage && f.usage.o) || 0;
+    job.model = f.model || useModel; job.truncated = !!f.truncated; job.status = 'done';
+  } catch (e) {
+    if (job.cancelled) job.status = 'cancelled'; else { job.status = 'error'; job.error = String((e && e.message) || e).slice(0, 300); }
+  } finally { job.endedAt = Date.now(); job.child = null; }
+}
+
+function startResearch(body) {
+  const minutes = Math.max(1, Math.min(600, Math.round(Number(body.minutes) || 30)));
+  const id = crypto.randomBytes(9).toString('base64url');
+  const job = {
+    id, status: 'running', t0: Date.now(), minMs: minutes * 60000, round: 0, notes: [], log: [], logTotal: 0, finalText: '',
+    turns: body.turns, model: aliasOf(body.model, body.tier), effort: ['low', 'medium', 'high', 'xhigh', 'max'].includes(body.effort) ? body.effort : null,
+    usage: { i: 0, o: 0 }, limits: null, error: '', cancelled: false, finishEarly: false, child: null, endedAt: 0, truncated: false,
+  };
+  jobs.set(id, job); jobLog(job, `リサーチを始めます（最短${minutes}分）`);
+  runJob(job);
+  return job;
+}
+const activeJob = () => [...jobs.values()].find(j => j.status === 'running' || j.status === 'synthesizing');
+setInterval(() => { for (const [id, j] of jobs) if (j.endedAt && Date.now() - j.endedAt > 6 * 3600 * 1000) jobs.delete(id); }, 600000).unref();
+
 const server = http.createServer(async (req, res) => {
   const allowed = cors(req, res);
   if (req.method === 'OPTIONS') { res.writeHead(allowed ? 204 : 403); return res.end(); }
@@ -172,7 +302,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url === '/ping') {
     const a = checkAuth(req);
-    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 3, auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
+    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 4, features: ['search', 'research'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
   }
 
   if (req.method === 'POST' && url === '/ask') {
@@ -196,15 +326,43 @@ const server = http.createServer(async (req, res) => {
     res.on('close', () => { if (child && !closed) child.kill(); finish(); });
 
     const attempt = (eff, retry) => {
-      child = runClaude({ prompt, model: alias, effort: eff, images },t => send({ type: 'delta', text: t }), r => {
+      child = runClaude({ prompt, model: alias, effort: eff, images, search: body.search === true }, t => send({ type: 'delta', text: t }), r => {
         if (!r.ok && !r.got && retry) return attempt(null, false);
         if (r.ok) send({ type: 'done', model: r.model, truncated: r.truncated, usage: r.usage, limits: lastLimits });
         else send({ type: 'error', message: r.error });
         finish(); res.end();
-      }, lim => send({ type: 'limits', info: lim }));
+      }, lim => send({ type: 'limits', info: lim }), s => send({ type: 'status', text: s }));
     };
     attempt(effort, !!effort);
     return;
+  }
+
+  if (url === '/research' && req.method === 'POST') {
+    const a = checkAuth(req);
+    if (a !== 'ok') return json(res, a === 'locked' ? 429 : 401, { error: 'auth_' + a });
+    if (activeJob()) return json(res, 429, { error: 'busy_research' });
+    let body;
+    try { body = JSON.parse(await readBody(req)); } catch (e) { return json(res, 400, { error: 'bad_request' }); }
+    if (!buildPrompt(body.turns).trim()) return json(res, 400, { error: 'empty' });
+    const job = startResearch(body);
+    return json(res, 200, { id: job.id });
+  }
+  const rm = url.match(/^\/research\/([A-Za-z0-9_-]+)(\/cancel|\/finish)?$/);
+  if (rm) {
+    const a = checkAuth(req);
+    if (a !== 'ok') return json(res, a === 'locked' ? 429 : 401, { error: 'auth_' + a });
+    const job = jobs.get(rm[1]);
+    if (!job) return json(res, 404, { error: 'no_job' });
+    if (req.method === 'POST' && rm[2] === '/cancel') { job.cancelled = true; try { job.child && job.child.kill(); } catch (e) {} return json(res, 200, { ok: true }); }
+    if (req.method === 'POST' && rm[2] === '/finish') { job.finishEarly = true; try { if (job.status === 'running' && job.child) job.child.kill(); } catch (e) {} return json(res, 200, { ok: true }); }
+    if (req.method === 'GET' && !rm[2]) {
+      const since = Math.max(0, parseInt((req.url.split('since=')[1] || '0'), 10) || 0);
+      const startIdx = Math.max(0, job.log.length - (job.logTotal - since));
+      return json(res, 200, {
+        status: job.status, round: job.round, elapsed: Date.now() - job.t0, minMs: job.minMs, log: job.log.slice(startIdx), logTotal: job.logTotal,
+        finalText: job.finalText, error: job.error, usage: job.usage, limits: job.limits || lastLimits, model: job.model, truncated: job.truncated,
+      });
+    }
   }
 
   json(res, 404, { error: 'not_found' });

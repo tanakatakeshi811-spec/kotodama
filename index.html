@@ -799,7 +799,7 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
         <textarea id="input" rows="1" placeholder="メッセージを入力（/ でコマンド）" enterkeyhint="send"></textarea>
         <div class="bar">
           <div class="bar-l">
-            <button type="button" class="icon-btn" data-act="attach" aria-label="追加メニュー（添付・画像生成・動画生成）" aria-haspopup="menu"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button type="button" class="icon-btn" data-act="attach" aria-label="追加メニュー（添付・検索・リサーチ・画像生成・動画生成）" aria-haspopup="menu"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
             <button type="button" class="icon-btn" data-act="camera" aria-label="写真を撮って添付"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg></button>
             <button type="button" class="icon-btn mic" id="micBtn" data-act="dictate" aria-label="音声で入力"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg></button>
             <button type="button" class="model-chip" id="modelChip" data-act="model" aria-label="モデルと考える深さ"><span class="mc-n">Sonnet 5.5</span><span class="mc-e">高</span><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
@@ -1133,7 +1133,7 @@ const SLASH = [
 const DEFAULTS = {
   theme: 'auto', accent: 'hisui', fs: 'm', enterSend: !COARSE, sounds: false, pixel: false, crt: false,
   model: 'claude-sonnet-5-5', effort: 'high', think: true, thinkOpen: false, length: 'normal', tone: 'auto',
-  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', genImage: false, genVideo: false,
+  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', genImage: false, genVideo: false, webSearch: false, research: false, researchMin: 30,
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
@@ -1747,14 +1747,51 @@ async function relayPing(timeout = 4000) {
     return !!j.auth;
   } catch (e) { return false; } finally { clearTimeout(to); }
 }
+/* リサーチ：中継サーバーに「ジョブ」を頼み、数秒おきに経過を見に行く（長い間つなぎっぱなしにしない） */
+const RELAY_ERR = { auth_locked: 'relay_locked', busy_research: 'relay_busy_research' };
+async function relayFetchJson(path, init, signal) {
+  let res;
+  try { res = await fetch(relayBase() + path, { ...init, signal, headers: relayHeaders() }); }
+  catch (e) { if (e && e.name === 'AbortError') throw { code: 'cancelled' }; throw { code: 'relay_down' }; }
+  let j = null; try { j = await res.json(); } catch (e) {}
+  if (!res.ok) { const er = j && j.error; throw { code: RELAY_ERR[er] || (er && er.startsWith('auth_') ? 'relay_key' : res.status === 404 ? 'relay_job_lost' : res.status === 429 ? 'rate_limited' : 'relay_down') }; }
+  return j;
+}
+async function relayResearch(turns, opts) {
+  const minutes = Math.max(1, Math.min(600, Math.round(+opts.research || 30)));
+  const { id } = await relayFetchJson('/research', { method: 'POST', body: JSON.stringify({ turns, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null, minutes }) }, opts.signal);
+  const cancel = () => { fetch(relayBase() + '/research/' + id + '/cancel', { method: 'POST', headers: relayHeaders() }).catch(() => {}); };
+  if (opts.signal) opts.signal.addEventListener('abort', cancel, { once: true });
+  let since = 0, lines = [], fails = 0, lastText = '';
+  const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  for (;;) {
+    if (opts.signal && opts.signal.aborted) throw { code: 'cancelled' };
+    await new Promise(r => setTimeout(r, 3000));
+    let j;
+    try { j = await relayFetchJson('/research/' + id + '?since=' + since, { method: 'GET' }, opts.signal); fails = 0; }
+    catch (e) { if (e.code === 'cancelled' || e.code === 'relay_job_lost' || e.code === 'relay_key' || ++fails > 40) throw e; continue; }
+    since = j.logTotal;
+    for (const l of j.log) lines.push(`[${fmtT(l.t / 1000)}] ${l.text}`);
+    if (lines.length > 300) lines = lines.slice(-300);
+    if (j.limits) Engine.limits = j.limits;
+    const el = j.elapsed / 1000, mins = Math.floor(el / 60);
+    const stage = j.status === 'synthesizing' ? '回答のまとめ' : `調査（${mins}分／最短${Math.round(j.minMs / 60000)}分・第${j.round}回）`;
+    opts.onProgress && opts.onProgress({ stage, log: lines.join('\n') });
+    if (j.finalText && j.finalText !== lastText) { lastText = j.finalText; opts.onText && opts.onText({ text: j.finalText, delta: '' }); }
+    if (j.status === 'done') { if (j.usage) Usage.addChat(j.usage.i, j.usage.o); return { text: j.finalText || '', truncated: !!j.truncated, modelApplied: j.model || null, modelTierApplied: opts.modelTier || 'default' }; }
+    if (j.status === 'cancelled') throw { code: 'cancelled' };
+    if (j.status === 'error') throw { code: 'relay_error', message: j.error };
+  }
+}
 async function relaySample(input, opts = {}) {
   const turns = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
+  if (opts.research) return relayResearch(turns, opts);
   const images = [];
   for (const b of (opts.images || []).slice(0, 4)) { const d = await blobToB64(b); if (d) images.push({ t: /^image\/(jpeg|png|webp|gif)$/.test(b.type) ? b.type : 'image/jpeg', d }); }
   let res;
   try {
     res = await fetch(relayBase() + '/ask', { method: 'POST', signal: opts.signal, headers: relayHeaders(),
-      body: JSON.stringify({ turns, images, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
+      body: JSON.stringify({ turns, images, search: !!opts.search, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
   } catch (e) { if (e && e.name === 'AbortError') throw { code: 'cancelled' }; throw { code: 'relay_down' }; }
   if (!res.ok) {
     let j = null; try { j = await res.json(); } catch (e) {}
@@ -1762,11 +1799,12 @@ async function relaySample(input, opts = {}) {
     throw { code: er === 'auth_locked' ? 'relay_locked' : (er && er.startsWith('auth_')) ? 'relay_key' : res.status === 429 ? 'rate_limited' : 'relay_down' };
   }
   const reader = res.body.getReader(), dec = new TextDecoder();
-  let buf = '', text = '', fin = null, err = null;
+  let buf = '', text = '', fin = null, err = null; const statusLines = [];
   const handle = line => {
     if (!line.trim()) return; let ev; try { ev = JSON.parse(line); } catch (e) { return; }
     if (ev.type === 'delta') { text += ev.text; opts.onText && opts.onText({ text, delta: ev.text }); }
     else if (ev.type === 'limits' && ev.info) Engine.limits = ev.info;
+    else if (ev.type === 'status') { statusLines.push(ev.text); if (statusLines.length > 40) statusLines.shift(); opts.onProgress && opts.onProgress({ stage: '検索中', log: statusLines.join('\n') }); }
     else if (ev.type === 'done') { fin = ev; if (ev.limits) Engine.limits = ev.limits; if (ev.usage) Usage.addChat(ev.usage.i, ev.usage.o); } else if (ev.type === 'error') err = ev;
   };
   try {
@@ -1823,6 +1861,8 @@ const ERR_JA = {
   network: 'ネットワークに接続できませんでした。',
   no_engine: 'AIにつながっていません。画面上の案内を確認してください。',
   relay_down: 'PCの中継サーバーにつながりません。起動しているか（start-relay.bat）確かめてください。',
+  relay_busy_research: '別のリサーチがまだ続いています。終わるのを待つか、そのチャットの「止める」を押してください。',
+  relay_job_lost: 'リサーチの経過が中継サーバーから消えました（サーバーを再起動した可能性があります）。もう一度お試しください。',
   relay_key: '合言葉が違います。設定 → 接続 で入れ直してください。',
   relay_locked: '合言葉のまちがいが続いたため、中継サーバーが一時的に止められています。15分ほど待ってください。',
 };
@@ -1937,11 +1977,12 @@ const draftSuffix = plan => `――――\n（あなたが作った回答の準�
 const reviewSuffix = draft => `――――\n次は、あなたがこの依頼のために書いた回答の下書きです。\n<draft>\n${draft}\n</draft>\nこの下書きを厳しく点検してください。事実のまちがい、計算ミス、依頼に答えていない部分、抜けている観点、わかりにくい説明を探します。\nまず <review> と </review> の間に、見つけた問題点と直し方を日本語の箇条書きで書いてください（問題がなければ「大きな問題なし」）。\nそのあとに、点検の結果を反映した最終的な回答だけを書いてください。最終回答では、下書きや点検について触れないでください。`;
 
 /* ---------- calls ---------- */
-async function callSample({ turns, images, model, effort, signal, onText }) {
+async function callSample({ turns, images, model, effort, signal, onText, search, research, onProgress }) {
   const m = modelOf(model);
   const opts = { signal, cache: false, modelTier: m.tier, onText: ({ text }) => onText && onText(text) };
   if (!m.auto) opts.model = m.id;
   if (effort) opts.effort = effort;
+  if (Engine.relay) { if (search) opts.search = true; if (research) opts.research = research; if (onProgress) opts.onProgress = onProgress; }
   if (images && images.length && Engine.imgMax) opts.images = images.slice(0, Engine.imgMax);
   const r = await Engine.sample(turns, opts);
   if (!Engine.relay) Usage.addChat(0, 0);
@@ -1966,11 +2007,12 @@ async function apiMessages(conv, extraImages) {
   if (msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: [{ type: 'text', text: '（続けてください）' }] });
   return msgs;
 }
-async function callApi({ conv, model, effort, think, signal, onThink, onText, extraImages, maxTokens }) {
+async function callApi({ conv, model, effort, think, signal, onThink, onText, extraImages, maxTokens, search }) {
   const m = apiModel(model);
   const eff = apiEffort(m, effort);
   const mt = maxTokens || ({ low: 8000, medium: 16000, high: 32000, xhigh: 64000, max: 64000 }[effort] || 16000);
   const body = { model: m.id, max_tokens: mt, stream: true, system: conv.system, messages: await apiMessages(conv, extraImages) };
+  if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }];
   if (eff) body.output_config = { effort: eff };
   if (m.legacy) { if (think) { const budget = { low: 2048, medium: 5000, high: 10000, xhigh: 20000, max: 30000 }[effort] || 8000; body.thinking = { type: 'enabled', budget_tokens: budget }; body.max_tokens = Math.max(mt, budget + 8000); } }
   else body.thinking = { type: 'adaptive', display: think ? 'summarized' : 'omitted' };
@@ -2012,7 +2054,9 @@ async function generate(chat, am, alt, o = {}) {
   const live = !!o.live;
   const model = o.model || (live && SET.liveModel !== 'same' ? SET.liveModel : chat.model);
   let eff = live ? 'low' : (o.effort || chat.effort);
-  const pipe = !live && Engine.kind === 'sample' && (eff === 'xhigh' || eff === 'max');
+  const useResearch = !live && !!SET.research && Engine.relay;
+  const useSearch = !live && !!(SET.webSearch || SET.research) && (Engine.relay || Engine.kind === 'api');
+  const pipe = !live && !useResearch && Engine.kind === 'sample' && (eff === 'xhigh' || eff === 'max');
   const showThink = !live && chat.think;
   Object.assign(alt, { model, effort: eff, text: '', think: [], err: null, trunc: false, applied: null, tier: null, stopped: false, stage: '', started: Date.now(), live: live ? 1 : 0 });
   delete alt.ms;
@@ -2022,6 +2066,8 @@ async function generate(chat, am, alt, o = {}) {
   let ended = false;
   const upd = rafThrottle(() => { if (ended) return; paintMsg(chat, am); o.onUpdate && o.onUpdate(alt); }, 40);
   const setPart = (l, t) => { let p = alt.think.find(x => x.l === l); if (!p) { p = { l, t: '' }; alt.think.push(p); } p.t = t; };
+  const prog = p => { if (ended) return; if (p.stage) alt.stage = p.stage; if (p.log != null) setPart('調べた内容', p.log); upd(); };
+  if (useResearch) S.openThink.add(am.id);
   try {
     if (!engineReady()) throw { code: 'no_engine' };
     const idx = chat.msgs.indexOf(am);
@@ -2031,7 +2077,7 @@ async function generate(chat, am, alt, o = {}) {
     if (conv.dropped) alt.dropped = conv.dropped;
     if (Engine.kind === 'api') {
       alt.stage = '';
-      const r = await callApi({ conv, model, effort: eff, think: showThink || EFF_RANK[eff] > 2, signal: ctl.signal, extraImages: extraImgs, onThink: t => { setPart('思考', t); upd(); }, onText: t => { alt.text = t; upd(); } });
+      const r = await callApi({ conv, model, effort: eff, think: showThink || EFF_RANK[eff] > 2, signal: ctl.signal, extraImages: extraImgs, search: useSearch, onThink: t => { setPart('思考', t); upd(); }, onText: t => { alt.text = t; upd(); } });
       if (r.thinking) setPart('思考', r.thinking);
       alt.text = r.text; alt.applied = r.applied; alt.tier = r.tier; alt.trunc = r.trunc; alt.tok = r.usage;
     } else {
@@ -2040,7 +2086,7 @@ async function generate(chat, am, alt, o = {}) {
       imgs.push(...extraImgs);
       const note = imageNote(conv, extraImgs.length, live ? (Live.imgLabel || (extraImgs.length > 1 ? 'いま2つのカメラ（内カメラと外カメラ）に映っている映像' : 'いまカメラに映っている映像')) : '今回の追加画像');
       const callEff = EFF_RANK[eff] > 2 ? 'high' : eff;
-      const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText });
+      const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText, search: useSearch, research: useResearch ? (+SET.researchMin || 30) : 0, onProgress: prog });
       const fin = r => { alt.applied = r.applied; alt.tier = r.tier; alt.trunc = r.trunc; };
       const review = t => { const s = splitTag(t, 'review'); if (s.inner || s.open) setPart('見直し', s.inner); alt.text = s.rest; };
       if (pipe && eff === 'max') {
@@ -2700,7 +2746,7 @@ function renderComposer() {
   const c = S.view && !S.view.sample ? S.view : null;
   const model = c ? c.model : SET.model, eff = c ? c.effort : SET.effort, think = c ? c.think : SET.think;
   $('#modelChip').innerHTML = `<span class="mc-n">${esc(modelShort(model))}</span><span class="mc-e">${esc(effName(eff))}</span>${think ? `<span class="mc-t" title="思考を表示">${ic('bulb')}</span>` : ''}${ic('chevD')}`;
-  const gi = $('#genInd'); if (gi) { const on = [SET.genImage && '画像', SET.genVideo && '動画'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + '生成オン'; }
+  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && '画像生成', SET.genVideo && '動画生成'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
   const send = $('#sendBtn');
   const here = !!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live;
   if (here) { send.classList.add('stop'); send.innerHTML = ic('stop'); send.setAttribute('aria-label', '生成を止める'); send.disabled = false; }
@@ -2887,10 +2933,37 @@ function toggleGen(key) {
   const name = key === 'genImage' ? '画像生成' : '動画生成';
   toast(on ? `${name}をオンにしました。${key === 'genImage' ? '「〇〇の絵を描いて」と頼むと、AIがSVGのイラストを描きます' : '「〇〇のアニメーションを作って」と頼むと、AIがコードで動く映像を作ります'}` : `${name}をオフにしました`, { ms: on ? 5200 : 2200 });
 }
+const canWeb = () => !!(Engine.relay || Engine.kind === 'api');
+const resMin = () => Math.max(1, Math.min(600, Math.round(+SET.researchMin || 30)));
+function toggleWeb() {
+  if (!canWeb() && !SET.webSearch) { toast('検索は、中継サーバーかAPIキーでAIにつないでいるときだけ使えます', { err: true, ms: 4200 }); return; }
+  const on = !SET.webSearch; Settings.set({ webSearch: on }); renderComposer();
+  toast(on ? '検索をオンにしました。送るたびにネットで調べて、その結果もふまえて答えます' : '検索をオフにしました', { ms: on ? 4600 : 2200 });
+}
+function toggleResearch() {
+  if (!Engine.relay && !SET.research) { toast('リサーチモードは、中継サーバーでAIにつないでいるときだけ使えます', { err: true, ms: 4200 }); return; }
+  const on = !SET.research; Settings.set({ research: on }); renderComposer();
+  toast(on ? `リサーチモードをオンにしました。送ると、最低${resMin()}分はテーマ全体を調べてから答えます（使用量をたくさん使います）` : 'リサーチモードをオフにしました', { ms: on ? 6000 : 2200 });
+}
+async function setResearchMin() {
+  const v = await dialog({
+    title: 'リサーチの最短時間',
+    body: `<p class="help-p">リサーチモードがオンのとき、少なくともこの時間は、ウェブで調べ続けてから答えます。時間が長いほど、深く広く調べますが、Claudeの使用量もたくさん使います。調べている途中でチャットを止めると、調査を打ち切ります。</p>
+      <div class="btn-row" style="flex-wrap:wrap;margin-bottom:10px">${[10, 30, 60, 120, 180].map(m => `<button type="button" class="btn sm" data-rm="${m}">${m}分</button>`).join('')}</div>
+      <label class="field"><span>分（1〜600）</span><input type="number" id="rm-in" min="1" max="600" step="1" inputmode="numeric" value="${resMin()}"></label>`,
+    actions: [{ label: 'キャンセル', value: null }, { label: '保存', primary: true, value: n => { const x = Math.round(+$('#rm-in', n).value); if (!(x >= 1 && x <= 600)) { toast('1〜600の数字を入れてください', { err: true }); return false; } return x; } }],
+    onOpen: n => n.addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b) $('#rm-in', n).value = b.dataset.rm; }),
+  });
+  if (v) { Settings.set({ researchMin: v }); renderComposer(); toast(`リサーチは最短${v}分にしました`, { ms: 2400 }); }
+}
 function openPlusMenu(btn) {
   menu(btn, [
     { head: '追加する' },
     { icon: 'upload', label: 'ファイルや画像を添付', run: () => pickFiles() },
+    '-', { head: '調べる（オン／オフ）' },
+    { icon: 'search', label: '検索をかける', sub: canWeb() ? 'ネットで調べて、その結果もふまえて答える' : '中継サーバーかAPIキーでつないだときだけ使えます', on: !!SET.webSearch, disabled: !canWeb() && !SET.webSearch, run: toggleWeb },
+    { icon: 'bulb', label: 'リサーチモード', sub: Engine.relay || SET.research ? `テーマを丸ごと調べ尽くしてから答える（最短${resMin()}分）` : '中継サーバーでつないだときだけ使えます', on: !!SET.research, disabled: !Engine.relay && !SET.research, run: toggleResearch },
+    { icon: 'sliders', label: 'リサーチの最短時間', sub: `${resMin()}分以上かけて調べる`, run: setResearchMin },
     '-', { head: 'AIにさせること（オン／オフ）' },
     { icon: 'image', label: '画像生成', sub: 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
     { icon: 'play', label: '動画生成', sub: 'AIがコードで動くアニメーションを作る', on: !!SET.genVideo, run: () => toggleGen('genVideo') },
