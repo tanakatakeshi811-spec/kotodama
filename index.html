@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <title>コトダマ</title>
 <meta name="description" content="Claudeと話せるチャットアプリ">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -671,6 +671,17 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 .lv-scr .lv-camx .ic { width: 15px; height: 15px; }
 .lv-scr .lv-show { position: absolute; left: 8px; bottom: 8px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; z-index: 2; }
 .lv-scr .lv-show .ic { width: 15px; height: 15px; }
+/* スマホ：キーボードで入力欄が隠れない・拡大されたままにならない */
+html, body { touch-action: manipulation; }
+@media (pointer: coarse), (hover: none) { textarea, select, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]) { font-size: max(16px, 1em) !important; } }
+body { position: fixed; inset: 0; width: 100%; overscroll-behavior: none; }
+.app { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100%); }
+section.live { inset: auto; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100%); }
+.layer { inset: auto; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100%); }
+/* LIVE：マイクのつなぎ直し */
+.lv-remic { align-self: center; display: inline-flex; align-items: center; gap: 8px; margin: 6px auto 0; padding: 11px 20px; border-radius: 999px; background: var(--accent-live, #4fc6a3); color: #04201a; font-weight: 700; font-size: 14px; box-shadow: 0 6px 22px rgba(0,0,0,.35); z-index: 3; }
+.lv-remic[hidden] { display: none; }
+.lv-remic .ic { width: 18px; height: 18px; }
 .price-list { display: grid; gap: 8px; }
 .price-list > div { display: grid; gap: 2px; padding: 9px 12px; border: 1px solid var(--line, rgba(128,128,128,.25)); border-radius: 12px; }
 .price-list b { font-size: .92em; } .price-list span { font-size: .85em; opacity: .8; line-height: 1.55; }
@@ -3615,6 +3626,7 @@ const Live = {
       </div>
     </div>
     <div class="lv-state" id="lvState" aria-live="polite"></div>
+    <button type="button" class="lv-remic" id="lvRemic" data-lv="remic" hidden>${ic('mic')}<span>マイクをつなぎ直す</span></button>
     <div class="lv-cap" id="lvCap"><div class="lv-you" id="lvYou"></div><div class="lv-ai" id="lvAi"></div></div>
     <form class="lv-type" id="lvType" hidden autocomplete="off"><label class="vh" for="lvInput">話しかける</label><textarea id="lvInput" rows="1" placeholder="話しかける（端末の音声入力も使えます）" enterkeyhint="send"></textarea><button class="btn" type="submit" aria-label="送信">${ic('send')}</button></form>
     <p class="lv-hint" id="lvHint" hidden></p>
@@ -3646,6 +3658,7 @@ const Live = {
       else if (a === 'cam') this.camToggle();
       else if (a === 'cam-off') this.camOff();
       else if (a === 'flip') this.flip();
+      else if (a === 'remic') this.reconnectMic();
       else if (a === 'both') this.dualToggle();
       else if (a === 'scr') this.scrToggle();
       else if (a === 'scr-off') this.scrOff();
@@ -3689,7 +3702,7 @@ const Live = {
     }
     closeSideMobile(); while (Layer.top()) Layer.close();
     if (!this.built) this.build();
-    this.on = true; TTS.unlock(); Audio8.get();
+    this.on = true; TTS.unlock(); Audio8.get(); resetZoom();
     this.typeMode = !STT.ok; this.done = true; this.idleTries = 0; this.lastAI = '';
     $('#lvType').hidden = !this.typeMode; $('#lvHint').hidden = true; $('#lvYou').textContent = ''; $('#lvAi').textContent = ''; $('#lvInput').value = '';
     const t = S.view && !S.view.sample && S.view.title; const cm = charMode(); $('#lvTitle').textContent = cm === 'tenwa' ? (t ? '天和 · ' + t : '天和といっしょ') : cm === 'cyan' ? (t ? 'シアン · ' + t : 'シアンと対話') : cm === 'hiyori' ? (t ? 'ひより · ' + t : 'ひよりとおでかけ') : (t ? 'LIVE · ' + t : 'LIVE');
@@ -3721,7 +3734,7 @@ const Live = {
     STT.stop(true); clearTimeout(this.autoT);
     TTS.onPulse = null; TTS.onState = this.prevTTS || null; this.cutting = true; TTS.cancel(); this.cutting = false;
     if (S.busy && S.busy.live) S.busy.ctl.abort();
-    this.camOff(); this.scrOff(); Orb.stop(); Tenwa.stop(); Cyan.stop(); Hiyori.stop(); this.dressClose(); TTS.onUtter = null; if (GeoPanel.inLive) GeoPanel.close(); this.reacting = false;
+    this.camOff(); this.scrOff(); Orb.stop(); resetZoom(); Tenwa.stop(); Cyan.stop(); Hiyori.stop(); this.dressClose(); TTS.onUtter = null; if (GeoPanel.inLive) GeoPanel.close(); this.reacting = false;
     $('#live').hidden = true; doc.body.classList.remove('live-on');
     try { if (this.wake) this.wake.release(); } catch (e) {} this.wake = null;
     renderHeader(); renderThread(); renderComposer(); renderSidebar();
@@ -3762,9 +3775,29 @@ const Live = {
     const was = this.st;
     this.st = st; Orb.st = st; if (this.angel) this.C.setMode(st);
     if (st === 'speaking' && was !== 'speaking') this.bargeListen();
-    const L = { idle: this.typeMode ? '話しかけてください' : 'タップして話す', listening: '聞いています…', thinking: '考えています…', speaking: '話しています' };
+    const L = { idle: this.micGone() ? 'マイクが切れています' : this.typeMode ? '話しかけてください' : 'タップして話す', listening: '聞いています…', thinking: '考えています…', speaking: '話しています' };
     const s = $('#lvState'); if (s) s.textContent = L[st] || '';
-    this.renderMain();
+    this.renderMain(); this.renderRemic();
+  },
+  /* ---------- マイクが切れたとき：つなぎ直す（許可の確認も出し直す） ---------- */
+  micGone() { return !!STT.Rec && (STT.blocked || this.typeMode); },
+  renderRemic() { const b = $('#lvRemic'); if (b) b.hidden = !(this.on && this.micGone() && this.st !== 'thinking' && this.st !== 'speaking'); },
+  async reconnectMic() {
+    if (!this.on) return;
+    TTS.unlock(); this.cutting = true; TTS.cancel(); this.cutting = false; STT.stop(true);
+    STT.blocked = false; STT.lastErr = ''; this.sttErr = ''; this.idleTries = 0;
+    let denied = false;
+    try { const md = navigator.mediaDevices; if (md && md.getUserMedia) { const st = await md.getUserMedia({ audio: true }); st.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); } }
+    catch (e) { denied = !!e && (e.name === 'NotAllowedError' || e.name === 'SecurityError'); }
+    if (!this.on) return;
+    if (denied) {
+      STT.blocked = true; this.renderRemic();
+      toast('マイクが許可されていません。端末の設定（iPhoneは「設定」→「Safari」→「マイク」）で許可してから、もう一度押してください', { err: true, ms: 8000 });
+      return;
+    }
+    this.typeMode = false; $('#lvType').hidden = true; this.baseHint = ''; this.hint('');
+    this.listen();
+    this.renderRemic();
   },
   renderMain() {
     const b = $('#lvMic'); if (!b) return; const st = this.st;
@@ -3796,7 +3829,7 @@ const Live = {
     if (this.st === 'thinking' || this.st === 'speaking') { this.interrupt(); return; }
     this.listenOrType();
   },
-  listenOrType() { if (this.typeMode) { this.setState('idle'); const ta = $('#lvInput'); ta.focus(); if (COARSE) toast('キーボードのマイクボタンで話すと入力できます'); return; } this.listen(); },
+  listenOrType() { if (this.typeMode && STT.Rec) { this.reconnectMic(); return; } if (this.typeMode) { this.setState('idle'); const ta = $('#lvInput'); ta.focus(); if (COARSE) toast('キーボードのマイクボタンで話すと入力できます'); return; } this.listen(); },
   async interrupt() {
     this.cutting = true; TTS.cancel(); this.cutting = false; this.done = true;
     if (S.busy && S.busy.live) { S.busy.ctl.abort(); this.setState('idle'); for (let i = 0; i < 60 && S.busy; i++) await sleep(50); if (!this.on || this.st !== 'idle') return; }
@@ -3855,7 +3888,7 @@ const Live = {
     $('#lvType').hidden = false;
     this.baseHint = COARSE ? 'キーボードのマイクボタンで話すと、文字になります。入力したら送信してください。' : '音声入力：Windows は Win + H、Mac は fn（地球儀）キーを2回。入力したら Enter で送信します。';
     this.hint('');
-    if (fail && first) toast('この画面ではマイクを直接使えないため、端末の音声入力か文字で話します', { ms: 5200 });
+    if (fail && first) toast(STT.Rec ? 'マイクが切れました。「マイクをつなぎ直す」を押してください（文字でも話せます）' : 'この画面ではマイクを直接使えないため、端末の音声入力か文字で話します', { ms: 5200 });
     this.setState('idle');
     if (!COARSE) setTimeout(() => { if (this.on) $('#lvInput').focus({ preventScroll: true }); }, 40);
   },
@@ -7503,7 +7536,33 @@ async function settingsDo(act, n, redraw) {
 }
 
 /* ---- relay watch ---- */
-if (/[?&]debug\b/.test(location.search)) win.__kd = { CV, moodOf, Settings, SET, Engine, Live };
+/* ---- スマホの画面まわり ----
+   ・キーボードが出ても入力欄が隠れないよう、アプリの高さを「いま見えている領域」（visualViewport）に合わせる
+   ・ピンチやダブルタップでの拡大を止め、拡大されたままになったら自動で戻す */
+function resetZoom() {
+  const m = doc.querySelector('meta[name=viewport]'); if (!m) return;
+  const keep = m.getAttribute('content');
+  m.setAttribute('content', 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,viewport-fit=cover');
+  setTimeout(() => m.setAttribute('content', keep), 350);
+}
+(() => {
+  const vv = win.visualViewport, root = doc.documentElement;
+  if (vv) {
+    const sync = () => {
+      if (vv.scale > 1.02) return;
+      root.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+      root.style.setProperty('--vvt', Math.round(vv.offsetTop) + 'px');
+      if (win.scrollY || win.scrollX) win.scrollTo(0, 0);
+    };
+    vv.addEventListener('resize', sync); vv.addEventListener('scroll', sync);
+    win.addEventListener('orientationchange', () => setTimeout(sync, 300));
+    let zt = 0; vv.addEventListener('resize', () => { clearTimeout(zt); zt = setTimeout(() => { if (vv.scale > 1.03) resetZoom(); }, 450); });
+    sync();
+  }
+  doc.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+  doc.addEventListener('focusout', () => setTimeout(() => { if (win.visualViewport && win.visualViewport.scale > 1.03) resetZoom(); if (win.scrollY) win.scrollTo(0, 0); }, 250));
+})();
+if (/[?&]debug\b/.test(location.search)) win.__kd = { CV, moodOf, Settings, SET, Engine, Live, STT };
 /* 初回だけ：それまで「端末の声」だった人を、VOICEVOXのおまかせ（キャラ別の声）に切り替える。あとから自分で選び直せる */
 if (!HAS_CLAUDE && !LS.get('vvmig', false)) { LS.set('vvmig', true); if (SET.ttsEngine === 'system') Settings.set({ ttsEngine: 'auto' }); }
 /* 初回だけ：LIVEの「自動送信までの時間」が昔の初期値（2秒）のままなら、早い初期値（1.2秒）にする */
