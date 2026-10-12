@@ -1262,9 +1262,9 @@ const DEFAULTS = {
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 1.2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
-  ttsEngine: 'auto', ttsVvMood: true, ttsKeep: false, ttsOpenaiKey: '', ttsOpenaiModel: 'gpt-4o-mini-tts', ttsOpenaiVoice: 'coral', ttsElKey: '', ttsElModel: 'eleven_flash_v2_5', ttsElVoice: '21m00Tcm4TlvDq8ikWAM', ttsGKey: '', ttsGVoice: 'ja-JP-Chirp3-HD-Aoede', ttsVvUrl: 'http://127.0.0.1:50021', ttsVvSpeaker: '1',
+  ttsEngine: 'auto', ttsVvMood: true, ttsVvCast: {}, ttsKeep: false, ttsOpenaiKey: '', ttsOpenaiModel: 'gpt-4o-mini-tts', ttsOpenaiVoice: 'coral', ttsElKey: '', ttsElModel: 'eleven_flash_v2_5', ttsElVoice: '21m00Tcm4TlvDq8ikWAM', ttsGKey: '', ttsGVoice: 'ja-JP-Chirp3-HD-Aoede', ttsVvUrl: 'http://127.0.0.1:50021', ttsVvSpeaker: '1',
 };
-const LOCAL_KEYS = new Set(['geo', 'sysVoice', 'apiKey', 'apiKeep', 'relayUrl', 'relayKey', 'sttLang', 'side', 'ttsEngine', 'ttsVvMood', 'ttsKeep', 'ttsOpenaiKey', 'ttsOpenaiModel', 'ttsOpenaiVoice', 'ttsElKey', 'ttsElModel', 'ttsElVoice', 'ttsGKey', 'ttsGVoice', 'ttsVvUrl', 'ttsVvSpeaker']);
+const LOCAL_KEYS = new Set(['geo', 'sysVoice', 'apiKey', 'apiKeep', 'relayUrl', 'relayKey', 'sttLang', 'side', 'ttsEngine', 'ttsVvMood', 'ttsVvCast', 'ttsKeep', 'ttsOpenaiKey', 'ttsOpenaiModel', 'ttsOpenaiVoice', 'ttsElKey', 'ttsElModel', 'ttsElVoice', 'ttsGKey', 'ttsGVoice', 'ttsVvUrl', 'ttsVvSpeaker']);
 function stripSecrets(o) { if (!o.apiKeep) o.apiKey = ''; if (!o.ttsKeep) { o.ttsOpenaiKey = ''; o.ttsElKey = ''; o.ttsGKey = ''; } return o; }
 const SET = Object.assign({}, DEFAULTS, LS.get('settings', {}));
 
@@ -2386,14 +2386,26 @@ const TTS = {
     const score = v => (GOODV.test(v.name) ? 2 : 0) + (v.localService === false ? 0.5 : 0) + (g === 'f' && FEMALE.test(v.name) ? 3 : 0) + (g === 'm' && MALE.test(v.name) ? 3 : 0) + (g && !FEMALE.test(v.name) && !MALE.test(v.name) ? 0.5 : 0);
     return list.slice().sort((a, b) => score(b) - score(a))[0];
   },
+  /* 声のプリセットごとに、使える声のなかから別の声を割り当てる（男女で分け、同じ性別に複数あるときはプリセットごとにずらす）。
+     iPhoneは日本語の声が2つ（女性・男性）ほどしか出てこないので、同じ性別どうしは高さ・速さの違いで変えるしかない */
+  pickFor(list, p) {
+    if (!list.length) return null;
+    const q = v => (GOODV.test(v.name) ? 2 : 0) + (v.localService === false ? 0.5 : 0);
+    const base = list.slice().sort((a, b) => q(b) - q(a));
+    const fem = base.filter(v => FEMALE.test(v.name)), mal = base.filter(v => MALE.test(v.name));
+    const pool = p.g === 'f' ? (fem.length ? fem : base) : p.g === 'm' ? (mal.length ? mal : base) : base;
+    if (!p.g) return pool[0];
+    let h = 0; for (const ch of String(p.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return pool[h % pool.length];
+  },
   resolve(text, noCloud) {
     const p = voicePreset(SET.voice);
     if (p.engine === 'blip') return { blip: true, rate: SET.rate * p.rate, pitch: SET.pitch * p.pitch };
     if (!noCloud && CV.active()) return { cloud: true, rate: SET.rate };
     const en = SET.enAuto && isEnglish(text);
     let v = null;
-    if (en) v = this.pick(this.en, p.g);
-    else { if (SET.sysVoice) v = this.voices.find(x => x.voiceURI === SET.sysVoice) || null; if (!v) v = this.pick(this.ja, p.g); }
+    if (en) v = this.pickFor(this.en, p);
+    else { if (SET.sysVoice) v = this.voices.find(x => x.voiceURI === SET.sysVoice) || null; if (!v) v = this.pickFor(this.ja, p); }
     return { voice: v, lang: en ? 'en-US' : 'ja-JP', rate: clamp(SET.rate * p.rate, 0.3, 3), pitch: clamp(SET.pitch * p.pitch, 0, 2) };
   },
   resolveSys(t) { return this.resolve(t, true); },
@@ -2482,6 +2494,9 @@ const VV_STYLE = { /* 様子 → 声色（左から順に、入っている声�
   '離途': { serious: ['シリアス'], strong: ['シリアス'] },
   '満別花丸': { _all: ['ボーイ'] },
 };
+const GEN_STYLE = { /* 上の表にないキャラを選んだとき：様子 → 声色の候補（名前で探す） */
+  serious: ['シリアス', 'おちつき'], calm: ['おちつき'], happy: ['うきうき', '元気', 'あまあま'], strong: ['つよつよ', 'ツンツン'], tired: ['へろへろ', 'ヘロヘロ', 'ささやき'], shy: ['人見知り', 'ヒソヒソ', 'ささやき'],
+};
 const MOOD_RE = [
   ['serious', /重要|注意|警告|危険|リスク|問題(?!ありません|ない|なし|なく)|エラー|失敗|障害|深刻|緊急|禁止|違反|責任|重大|事故|被害|亡くな|病気|できません|不可能|残念|申し訳|すみません|ごめん|悲し|つらい|辛い|苦し|心配|不安|結論|慎重|断定できません|計算外/],
   ['strong', /許せ|ダメだ|だめだ|やめろ|いい加減|怒|ふざけ|負けない|勝つ|行くぞ|がんばれ|頑張れ|絶対に/],
@@ -2535,17 +2550,20 @@ const CV = {
     for (const sp of await r.json()) { const st = {}; for (const s of sp.styles || []) st[s.name] = s.id; map.set(sp.name, { name: sp.name, styles: st }); }
     this.vvSpk = { k, at: Date.now(), map }; return map;
   },
-  castName() { return VV_CAST[castKey()]; },
+  /* 自分で選んだ声（キャラごと）があればそれ、なければ初期の声 */
+  castName() { const k = castKey(); return (SET.ttsVvCast && SET.ttsVvCast[k]) || VV_CAST[k] || VV_CAST.std; },
+  setCast(key, name) { const m = Object.assign({}, SET.ttsVvCast || {}); if (name) m[key] = name; else delete m[key]; Settings.set({ ttsVvCast: m }); },
   async vvPick(text) {
     const map = await this.vvSpeakers(); const want = this.castName();
-    const ch = map.get(want) || map.get('猫使アル') || map.values().next().value;
+    const ch = map.get(want) || map.get(VV_CAST[castKey()]) || map.get('猫使アル') || map.values().next().value;
     if (!ch) throw new Error('no speakers');
-    const tbl = VV_STYLE[ch.name] || {};
+    const tbl = VV_STYLE[ch.name];
     const mood = SET.ttsVvMood === false ? 'normal' : moodOf(text);
-    for (const s of [...(tbl._all || tbl[mood] || []), 'ノーマル']) if (ch.styles[s] != null) return ch.styles[s];
+    const want2 = tbl ? (tbl._all || tbl[mood] || []) : (GEN_STYLE[mood] || []);
+    for (const s of [...want2, 'ノーマル']) if (ch.styles[s] != null) return ch.styles[s];
     return Object.values(ch.styles)[0];
   },
-  cfgKey(text) { const e = SET.ttsEngine; if (e === 'auto') return [e, this.vvBase().base, castKey(), SET.ttsVvMood === false ? '-' : moodOf(text), text].join('|'); return [e, e === 'openai' ? SET.ttsOpenaiModel + SET.ttsOpenaiVoice : e === 'eleven' ? SET.ttsElModel + SET.ttsElVoice : e === 'google' ? SET.ttsGVoice : SET.ttsVvUrl + SET.ttsVvSpeaker, text].join('|'); },
+  cfgKey(text) { const e = SET.ttsEngine; if (e === 'auto') return [e, this.vvBase().base, this.castName(), SET.ttsVvMood === false ? '-' : moodOf(text), text].join('|'); return [e, e === 'openai' ? SET.ttsOpenaiModel + SET.ttsOpenaiVoice : e === 'eleven' ? SET.ttsElModel + SET.ttsElVoice : e === 'google' ? SET.ttsGVoice : SET.ttsVvUrl + SET.ttsVvSpeaker, text].join('|'); },
   async fetchAudio(text, signal) {
     const e = SET.ttsEngine; const chk = async r => { if (!r.ok) { let m = ''; try { m = (await r.text()).slice(0, 200); } catch (x) {} const err = new Error('http'); err.status = r.status; err.body = m; throw err; } return r; };
     if (e === 'openai') {
@@ -4016,6 +4034,16 @@ const Live = {
       ...MODELS.filter(m => m.latest || m.auto).map(m => ({ label: m.short, sub: m.desc, on: SET.liveModel === m.id, run: () => set(m.id) }))], { align: 'right' });
   },
   voiceMenu(btn) {
+    /* おまかせ（VOICEVOX）のときは、VOICEVOXのキャラクターを選ぶ（いまのモードの声として覚える） */
+    if (SET.ttsEngine === 'auto' && CV.active()) {
+      const k = castKey(), cur = CV.castName(), def = VV_CAST[k], who = { tenwa: '天和', cyan: 'シアン', hiyori: 'ひより', pixel: 'ドット絵モード', std: 'ふだん' }[k];
+      CV.vvSpeakers().then(map => {
+        const pick = name => { CV.setCast(k, name); this.renderPills(); this.preview(); };
+        menu(btn, [{ head: `声（${who}）` }, { label: '初期の声にする', sub: def, run: () => pick('') },
+          ...[...map.keys()].map(n => ({ label: n, sub: n === def ? '初期の声' : '', on: n === cur, run: () => pick(n) }))], { align: 'right' });
+      }).catch(() => toast('VOICEVOXの声の一覧を取得できませんでした。中継サーバーかVOICEVOXが動いているか確かめてください', { err: true, ms: 5000 }));
+      return;
+    }
     menu(btn, [{ head: '声の種類' }, ...VOICE_PRESETS.map(v => ({ label: v.name, sub: v.desc, on: SET.voice === v.id, run: () => { Settings.set({ voice: v.id }); this.renderPills(); this.preview(); } }))], { align: 'right' });
   },
   /* ---------- camera ---------- */
@@ -7230,6 +7258,17 @@ const LANGS = [['ja-JP', '日本語'], ['en-US', '英語（アメリカ）'], ['
 
 const selRow = (k, title, opts, cur) => `<label class="field"><span>${title}</span><select data-set="${k}">${opts.map(([v, l]) => `<option value="${esc(v)}"${String(cur) === String(v) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
 const txtRow = (k, title, ph, type = 'text') => `<label class="field"><span>${title}</span><input type="${type}" data-set="${k}" value="${esc(SET[k])}" placeholder="${esc(ph || '')}" autocomplete="off" spellcheck="false"></label>`;
+/* おまかせの声を、キャラ（モード）ごとに選び直す。初期の声は「初期の声」を選ぶと戻る */
+function vvCastRows() {
+  const names = CV.vvSpk && CV.vvSpk.map ? [...CV.vvSpk.map.keys()] : null;
+  if (!names && !CV.vvListTried) { CV.vvListTried = true; CV.vvSpeakers().then(() => { if (S.redrawSettings) S.redrawSettings(); }).catch(() => {}); }
+  const rows = [['tenwa', '天和'], ['cyan', 'シアン'], ['hiyori', 'ひより'], ['pixel', 'ドット絵モード'], ['std', 'ふだん']];
+  if (!names) return `<p class="help-p">キャラごとの声を選ぶには、中継サーバーかVOICEVOXにつながっている必要があります（声の一覧を読み込み中）。</p>`;
+  return `<div class="sg-h" style="margin-top:6px">キャラごとの声</div>` + rows.map(([k, label]) => {
+    const cur = (SET.ttsVvCast && SET.ttsVvCast[k]) || '';
+    return `<label class="field"><span>${label}の声</span><select data-cast="${k}"><option value="">初期の声（${esc(VV_CAST[k])}）</option>${names.map(n => `<option value="${esc(n)}"${cur === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
+  }).join('');
+}
 function cloudVoiceHTML() {
   const e = SET.ttsEngine;
   if (HAS_CLAUDE) return `<div class="sg"><div class="sg-h">高品質ボイス（外部サービス）</div>
@@ -7242,6 +7281,7 @@ function cloudVoiceHTML() {
   else if (e === 'google') body = txtRow('ttsGKey', 'APIキー', 'AIza...', 'password') + selRow('ttsGVoice', '声', G_VOICES, SET.ttsGVoice);
   else if (e === 'auto') body = `<div class="help-box"><p class="help-p"><b>いまの声：</b>${esc(CV.castName())}（${SET.angel ? '天和' : SET.cyan ? 'シアン' : SET.hiyori ? 'ひより' : SET.pixel ? 'ドット絵モード' : 'ふだん'}）<br>天和＝猫使ビィ ／ シアン＝離途 ／ ひより＝春日部つむぎ ／ ドット絵モード＝満別花丸（ボーイ） ／ ふだん＝猫使アル</p></div>`
     + swRow('ttsVvMood', '文の様子で声色を変える', 'まじめな話はシリアス・おちつき、うれしい話はうきうき、つかれた話はへろへろ、のように切り替えます')
+    + vvCastRows()
     + txtRow('ttsVvUrl', 'VOICEVOXの場所（中継サーバーがないときだけ使います）', 'http://127.0.0.1:50021');
   else if (e === 'voicevox') body = txtRow('ttsVvUrl', 'VOICEVOXの場所', 'http://127.0.0.1:50021') + (CV.vvList ? selRow('ttsVvSpeaker', '声', CV.vvList, SET.ttsVvSpeaker) : txtRow('ttsVvSpeaker', '声の番号', '1')) + `<div><button type="button" class="btn sm" data-do="tts-list">声の一覧を取得</button></div>`;
   return `<div class="sg"><div class="sg-h">高品質ボイス（外部サービス）</div>
@@ -7460,6 +7500,8 @@ function openSettings(tab) {
         if (d) await settingsDo(d.dataset.do, n, redraw);
       });
       n.addEventListener('change', e => {
+        const ck = e.target.dataset && e.target.dataset.cast;
+        if (ck && e.target.tagName === 'SELECT') { CV.setCast(ck, e.target.value); voiceTest(); redraw(); return; }
         const k = e.target.dataset && e.target.dataset.set; if (!k) return;
         if (e.target.type === 'checkbox') {
           if (k === 'angel') { toggleAngel(e.target.checked).then(() => redraw()); return; }
