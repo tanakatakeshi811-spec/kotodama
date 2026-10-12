@@ -858,6 +858,241 @@ body.geo-on { overflow: hidden; }
 .lv-ovl { pointer-events: none; cursor: default; }
 .geo-side > * { flex-shrink: 0; }
 .lv-hy { -webkit-mask-image: linear-gradient(to bottom, #000 92%, transparent 100%); mask-image: linear-gradient(to bottom, #000 92%, transparent 100%); }
+.geo-empty .btn { margin: 8px 0 4px; display: inline-flex; align-items: center; gap: 4px; } .geo-empty .btn .ic, .gs-on .btn .ic { width: 14px; height: 14px; margin-right: 3px; vertical-align: -2px; } .gs-on .btn[disabled] { opacity: .6; }
+
+/* ---------- 勉強ウィジェット ---------- */
+.study { --ok: var(--hl-str); --ok-soft: color-mix(in srgb, var(--hl-str) 14%, transparent); --st-ink: var(--ink); --st-grid: var(--rule); --st-trace: color-mix(in srgb, var(--ink) 16%, transparent);
+  margin: 12px 0; border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; line-height: 1.6; font-size: 15px; }
+.study.wait, .study.bad { display: flex; align-items: center; gap: 10px; padding: 18px 16px; color: var(--ink-3); font-size: 13.5px; }
+.study.bad .ic { color: var(--warn); flex: 0 0 auto; }
+.study .st-load { padding: 22px; text-align: center; color: var(--ink-3); }
+.st-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px 8px; flex-wrap: wrap; }
+.st-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); font-size: 12px; font-weight: 600; }
+.st-badge .ic { width: 15px; height: 15px; }
+.st-title { flex: 1 1 auto; min-width: 0; font-family: var(--f-display); font-size: 15.5px; overflow-wrap: anywhere; }
+.st-prog { display: inline-flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.st-prog em { font-style: normal; color: var(--ok); font-weight: 600; }
+.st-bar { height: 4px; margin: 0 14px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.st-bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .35s ease; }
+.st-body { padding: 14px; display: grid; gap: 12px; }
+.st-body .btn .ic { width: 17px; height: 17px; }
+.st-tools, .st-row, .st-next, .st-acts, .st-judge { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.st-tools .btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+.st-next { justify-content: flex-end; }
+.st-judge { display: grid; grid-template-columns: 1fr 1fr; }
+.st-judge .btn { min-height: 48px; font-size: 15px; font-weight: 600; }
+.st-ok { background: var(--ok-soft) !important; border-color: var(--ok) !important; color: var(--ok) !important; }
+.st-ng { background: var(--warn-soft) !important; border-color: var(--warn) !important; color: var(--warn) !important; }
+.st-ans { display: flex; gap: 8px; }
+.st-ans input { flex: 1 1 auto; min-width: 0; height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); font-size: 17px; font-family: inherit; }
+.st-ans input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.st-ans input:disabled { opacity: .75; }
+.st-ans .btn { min-height: 46px; white-space: nowrap; flex: 0 0 auto; }
+.st-ans input.shake { animation: st-shake .35s; }
+@keyframes st-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.st-hint { margin: 0; display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--mind-soft); color: var(--ink-2); font-size: 14px; }
+.st-hint .ic { flex: 0 0 auto; color: var(--mind); width: 18px; height: 18px; margin-top: 2px; }
+.st-fb { margin: 0; padding: 12px 14px; border-radius: 14px; border: 1px solid; display: grid; gap: 8px; font-size: 14.5px; }
+.st-fb p { margin: 0; }
+.st-fb.ok { background: var(--ok-soft); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.st-fb.ng { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.st-fb b { margin-right: 6px; } .st-fb.ok > p > b { color: var(--ok); } .st-fb.ng > p > b { color: var(--warn); }
+.st-fb b .ic { width: 17px; height: 17px; vertical-align: -3px; margin-right: 3px; }
+p.st-fb { display: flex; align-items: center; gap: 6px; } p.st-fb .ic { width: 17px; height: 17px; color: var(--ok); }
+.st-exp-a b { font-size: 16px; }
+.st-exp { padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--rule); color: var(--ink-2); font-size: 14px; line-height: 1.75; }
+.st-exp span { display: block; font-size: 11.5px; letter-spacing: .08em; color: var(--ink-3); font-weight: 600; margin-bottom: 2px; }
+/* カード */
+.st-card { perspective: 1200px; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+.st-card:focus-visible .st-face { outline: 2px solid var(--accent); outline-offset: 2px; }
+.st-in { display: grid; transition: transform .5s cubic-bezier(.3,.8,.3,1); transform-style: preserve-3d; }
+.st-card.flip .st-in { transform: rotateY(180deg); }
+.st-face { grid-area: 1 / 1; min-height: 190px; padding: 26px 18px 30px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; position: relative;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden; background: linear-gradient(160deg, var(--surface), var(--paper)); border: 1px solid var(--rule); box-shadow: var(--shadow); }
+.st-back { transform: rotateY(180deg); background: linear-gradient(160deg, var(--accent-soft), var(--surface)); }
+.st-side { position: absolute; top: 10px; left: 14px; font-size: 11.5px; color: var(--ink-3); letter-spacing: .08em; }
+.st-big { font-family: var(--f-display); font-size: clamp(26px, 6vw, 38px); font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.st-big.long { font-size: clamp(18px, 4.4vw, 24px); }
+.st-read { color: var(--ink-3); font-size: 13px; }
+.st-tap { position: absolute; bottom: 9px; font-size: 11.5px; color: var(--ink-3); opacity: .8; }
+.st-ex { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); line-height: 1.6; } .st-ex small { color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { .st-in { transition: none; } }
+/* 問題 */
+.st-q { display: grid; gap: 4px; }
+.st-qn { font-size: 12px; font-weight: 700; color: var(--accent-text); letter-spacing: .06em; }
+.st-qt { font-size: 17px; line-height: 1.8; overflow-wrap: anywhere; }
+.st-qt code, .st-exp code { font-family: var(--f-mono); font-size: .92em; background: var(--code); padding: 1px 5px; border-radius: 5px; }
+.st-choices { display: grid; gap: 8px; }
+.st-ch { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 8px 14px; border-radius: 13px; border: 1px solid var(--rule); background: var(--paper); text-align: left; font-size: 15.5px; color: var(--ink); line-height: 1.5; }
+.st-ch:not([disabled]):hover { border-color: var(--accent); background: var(--accent-soft); }
+.st-cl { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: var(--sunken); font-weight: 700; font-size: 13px; color: var(--ink-2); }
+.st-ch.right { border-color: var(--ok); background: var(--ok-soft); } .st-ch.right .st-cl { background: var(--ok); color: #fff; }
+.st-ch.wrong { border-color: var(--warn); background: var(--warn-soft); } .st-ch.wrong .st-cl { background: var(--warn); color: #fff; }
+.st-ch[disabled] { cursor: default; opacity: 1; }
+.st-ch[disabled]:not(.right):not(.wrong) { opacity: .6; }
+/* 漢字 */
+.st-kq { display: grid; gap: 4px; justify-items: center; text-align: center; }
+.st-yomi { font-size: 26px; font-weight: 700; letter-spacing: .12em; font-family: var(--f-display); }
+.st-sent { font-size: 16px; color: var(--ink-2); }
+.st-hl { color: var(--accent-text); font-weight: 700; }
+.st-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; font-size: 12.5px; color: var(--ink-3); }
+.st-boxes, .st-models { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 190px)); gap: 10px; justify-content: center; }
+.st-box { position: relative; aspect-ratio: 1; border: 2px solid color-mix(in srgb, var(--ink) 55%, transparent); border-radius: 6px; background: var(--paper); touch-action: none; }
+.st-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.st-model-row { display: grid; gap: 6px; justify-items: center; }
+.st-model-row > span { font-size: 12px; color: var(--ink-3); letter-spacing: .08em; }
+.st-model { aspect-ratio: 1; display: grid; place-items: center; border: 2px solid color-mix(in srgb, var(--ok) 60%, transparent); border-radius: 6px; background: var(--ok-soft); font-family: "UD デジタル 教科書体 N-R","UD Digi Kyokasho N-R","YuKyokasho","Yu Kyokasho","Klee","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-size: clamp(40px, 13vw, 130px); line-height: 1; color: var(--ink); }
+.st-models { grid-template-columns: repeat(var(--n), minmax(0, 120px)); }
+.st-models .st-model { font-size: clamp(34px, 10vw, 84px); }
+.st-ask { margin: 0; text-align: center; color: var(--ink-2); font-size: 14px; }
+.st-kk { font-family: "UD デジタル 教科書体 N-R","YuKyokasho","Yu Kyokasho","Klee","Hiragino Mincho ProN","Yu Mincho",serif; font-size: 1.25em; }
+/* 結果 */
+.st-end { display: grid; gap: 12px; justify-items: center; text-align: center; }
+.st-score { --p: 0; width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--sunken) 0); }
+.st-score > div { width: 108px; height: 108px; border-radius: 50%; background: var(--surface); display: grid; place-content: center; line-height: 1.1; }
+.st-score b { font-size: 40px; font-family: var(--f-display); } .st-score span { font-size: 13px; color: var(--ink-3); }
+.st-msg { margin: 0; font-weight: 600; font-size: 15.5px; }
+.st-wrong { width: 100%; text-align: left; border: 1px solid var(--rule); border-radius: 12px; padding: 4px 12px; background: var(--paper); }
+.st-wrong summary { cursor: pointer; padding: 6px 0; font-size: 13.5px; color: var(--ink-2); font-weight: 600; }
+.st-wrong ul { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.st-wrong li { display: grid; gap: 1px; padding: 6px 0; border-top: 1px dashed var(--rule); font-size: 14px; margin: 0; }
+.st-wrong li span { color: var(--ink-3); font-size: 13px; }
+.st-acts { justify-content: center; }
+/* はじめるシート */
+.st-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.st-type { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--rule); background: var(--surface); font-size: 14px; color: var(--ink); text-align: left; }
+.st-type .ic { color: var(--accent-text); width: 20px; height: 20px; flex: 0 0 auto; }
+.st-type.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+@media (max-width: 520px) { .st-body { padding: 12px; } .st-face { min-height: 170px; } .st-boxes { gap: 6px; } }
+
+/* ---------- サイドバーのカラオケ ---------- */
+.side-link { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 6px; padding: 9px 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--ink); text-align: left; }
+.side-link:hover { background: var(--hover); }
+.side-link .ic { color: var(--accent-text); }
+.side-link small { margin-left: auto; font-size: 11.5px; color: var(--ink-3); font-weight: 400; }
+
+/* ---------- カラオケ ---------- */
+section.kara { position: fixed; inset: 0; z-index: 76; display: flex; flex-direction: column; overflow: hidden; color: var(--ink);
+  --paper: #120F28; --surface: rgba(255,255,255,.075); --sunken: rgba(0,0,0,.3); --hover: rgba(255,255,255,.08); --ink: #F4F2FF; --ink-2: #CBC6EA; --ink-3: #9C96C4; --rule: rgba(255,255,255,.15);
+  --accent-soft: color-mix(in srgb, var(--accent) 26%, transparent); --accent-text: color-mix(in srgb, var(--accent) 45%, #fff); --shadow-sm: none;
+  --k-gold: #FFD65A; --k-good: #78FFAA; --k-high: #FF9A7A; --k-low: #7AC8FF;
+  background: radial-gradient(1200px 700px at 15% -10%, #3A1D6E 0%, transparent 60%), radial-gradient(900px 600px at 110% 20%, #0E4A6B 0%, transparent 55%), linear-gradient(180deg, #110D26, #090716); }
+section.kara[hidden] { display: none; }
+body.kara-on { overflow: hidden; }
+.kara .icon-btn { color: var(--ink); }
+.k-top { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px; border-bottom: 1px solid var(--rule); }
+.k-ttl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-display); font-size: 17px; letter-spacing: .06em; }
+.k-ttl .ic { color: var(--k-gold); }
+.k-sp { flex: 1; }
+.k-main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.k-pick, .k-sing { max-width: 1040px; margin: 0 auto; padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 40px); display: grid; gap: 14px; }
+.k-search { display: flex; gap: 8px; }
+.k-search input, .k-url input { flex: 1; min-width: 0; height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--rule); background: rgba(0,0,0,.25); color: var(--ink); font-size: 16px; font-family: inherit; }
+.k-search .btn { min-height: 46px; }
+.k-chk, .k-sw { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-2); }
+.k-chk input, .k-sw input { width: 18px; height: 18px; accent-color: var(--accent); }
+.k-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; font-size: 15px; font-weight: 700; }
+.k-h .ic { color: var(--k-gold); width: 18px; height: 18px; align-self: center; }
+.k-h small { font-weight: 400; color: var(--ink-3); font-size: 12px; }
+.k-songs { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+.k-song { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; border: 1px solid var(--rule); background: var(--surface); text-align: left; color: var(--ink); transition: transform .15s, border-color .15s; }
+.k-song:hover { border-color: var(--k-gold); transform: translateY(-1px); }
+.k-song > .ic { color: var(--ink-3); flex: 0 0 auto; }
+.k-art { flex: 0 0 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(135deg, #FF6FB5, #7A5CFF); color: #fff; }
+.k-art.k-st-koto { background: linear-gradient(135deg, #FF8FA3, #C2457A); } .k-art.k-st-xmas { background: linear-gradient(135deg, #2FBF71, #C73E3E); } .k-art.k-st-waltz { background: linear-gradient(135deg, #FFB648, #FF5E7E); } .k-art.k-st-six8 { background: linear-gradient(135deg, #36C2F2, #3D6BFF); } .k-art.k-st-piano { background: linear-gradient(135deg, #8E8AA8, #4D4970); }
+.k-si { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.k-si b { font-size: 15.5px; } .k-si small { color: var(--ink-3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-si .k-meta { color: var(--ink-2); }
+.k-res:empty { display: none; }
+.k-wait { display: flex; align-items: center; gap: 10px; padding: 14px; color: var(--ink-2); }
+.k-fail { padding: 14px; border-radius: 14px; border: 1px solid var(--rule); background: var(--surface); display: grid; gap: 10px; }
+.k-fail p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.k-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.k-row > span { font-size: 12.5px; color: var(--ink-3); }
+.k-url { display: flex; gap: 8px; } .k-url input { height: 40px; font-size: 14px; }
+.k-yt { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.k-yt button { width: 100%; display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 14px; border: 1px solid var(--rule); background: var(--surface); text-align: left; color: var(--ink); }
+.k-yt button:hover { border-color: var(--k-gold); }
+.k-yt img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 9px; background: #000; flex: 0 0 auto; }
+.k-yt span { min-width: 0; display: grid; gap: 2px; } .k-yt b { font-size: 13.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } .k-yt small { font-size: 12px; color: var(--ink-3); }
+.k-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.k-hist li { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 12px; align-items: baseline; padding: 8px 12px; border-radius: 12px; background: var(--surface); }
+.k-hist b { font-size: 14px; } .k-hist span { font-size: 12px; color: var(--ink-3); } .k-hist em { font-style: normal; font-weight: 700; color: var(--k-gold); font-variant-numeric: tabular-nums; } .k-hist small { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-3); }
+.k-note { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-3); line-height: 1.7; }
+/* 歌う画面 */
+.k-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.k-tt { flex: 1; min-width: 0; display: grid; } .k-tt b { font-family: var(--f-display); font-size: 20px; } .k-tt small { color: var(--ink-3); font-size: 12.5px; }
+.k-keys { display: flex; align-items: center; gap: 6px; } .k-lab { font-size: 12px; color: var(--ink-3); }
+.k-keys .btn { min-width: 38px; font-size: 16px; } .k-keyv { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+.k-parts { grid-auto-columns: minmax(0, 1fr); overflow-x: auto; background: rgba(0,0,0,.28); }
+.k-parts button { font-size: 12.5px; padding: 0 4px; color: var(--ink-2); }
+.k-parts button.on { background: var(--accent); color: var(--accent-ink); }
+.k-player { position: relative; border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; max-height: 46vh; }
+.k-player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.k-yterr { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; padding: 18px; text-align: center; background: rgba(8,6,20,.92); }
+.k-yterr[hidden] { display: none; } .k-yterr p { margin: 0; } .k-yterr .k-row { justify-content: center; }
+.k-stage { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--rule); background: linear-gradient(180deg, rgba(20,14,48,.9), rgba(6,10,26,.95)); box-shadow: inset 0 0 60px rgba(120,80,255,.12); }
+.k-lane { display: block; width: 100%; height: clamp(200px, 34vh, 340px); touch-action: pan-y; }
+.k-sing.free .k-lane { height: clamp(150px, 22vh, 220px); }
+.k-hint { position: absolute; left: 12px; top: 10px; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .2s; }
+.k-hint.good, .k-hint.high, .k-hint.low, .k-hint.quiet { opacity: 1; }
+.k-hint.good { color: var(--k-good); } .k-hint.high { color: var(--k-high); } .k-hint.low { color: var(--k-low); } .k-hint.quiet { color: var(--ink-2); }
+.k-badge { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%) scale(.6); font: 900 clamp(26px, 6vw, 46px)/1 var(--f-display); letter-spacing: .04em; opacity: 0; pointer-events: none; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
+.k-badge.show { animation: k-pop 1.1s ease-out; }
+.k-badge.p { color: var(--k-gold); } .k-badge.g { color: var(--k-good); } .k-badge.o { color: #9fd7ff; } .k-badge.m { color: var(--ink-2); font-size: clamp(20px, 4.5vw, 32px); }
+@keyframes k-pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 30% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -62%) scale(1); } }
+.k-count { position: absolute; inset: 0; display: grid; place-items: center; font: 900 clamp(48px, 12vw, 96px)/1 var(--f-display); color: #fff; pointer-events: none; text-shadow: 0 0 30px rgba(160,120,255,.8); }
+.k-count:empty { display: none; }
+.k-lyr { min-height: 104px; padding: 10px 14px; display: grid; gap: 4px; text-align: center; }
+.k-l1 small { display: block; font-size: 13px; color: var(--ink-3); margin-bottom: 2px; }
+.k-l1 > div { font: 800 clamp(24px, 5.2vw, 40px)/1.35 var(--f-display); letter-spacing: .03em; overflow-wrap: anywhere; }
+.k-tk { --p: 0; background: linear-gradient(90deg, var(--k-gold) calc(var(--p) * 100%), #fff calc(var(--p) * 100%)); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 2px 0 rgba(40,20,90,.85)); }
+.k-l2 { font-size: clamp(15px, 3.4vw, 20px); color: var(--ink-3); font-weight: 600; min-height: 1.4em; }
+.k-ctl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.btn.k-go { min-height: 56px; padding: 0 30px; font-size: 17px; font-weight: 700; border-radius: 999px; background: linear-gradient(135deg, #FF5FA2, #8A5CFF); border: 0; color: #fff; box-shadow: 0 8px 26px rgba(170,80,255,.35); }
+.btn.k-go.on { background: linear-gradient(135deg, #5A5F7A, #3A3E57); box-shadow: none; }
+.btn.k-go .ic { width: 22px; height: 22px; }
+.k-mic { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-3); } .k-mic .ic { width: 16px; height: 16px; } .k-mic.bad { color: var(--k-high); }
+.k-free { margin: 0; display: flex; gap: 8px; font-size: 13px; color: var(--ink-2); line-height: 1.7; } .k-free .ic { flex: 0 0 auto; margin-top: 3px; width: 16px; height: 16px; }
+.k-opts { border: 1px solid var(--rule); border-radius: 14px; background: var(--surface); }
+.k-opts summary { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.k-opts summary .ic { width: 17px; height: 17px; }
+.k-optg { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 18px; padding: 4px 14px 14px; align-items: center; }
+.k-optg label:not(.k-sw) { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-3); }
+.k-optg select { height: 36px; border-radius: 10px; border: 1px solid var(--rule); background: rgba(0,0,0,.3); color: var(--ink); padding: 0 8px; }
+.k-optg input[type=range] { accent-color: var(--accent); width: 100%; }
+.k-lyrmode { background: rgba(0,0,0,.28); }
+.k-mini { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+/* 結果 */
+.k-result[hidden] { display: none; }
+.k-res-in { position: relative; display: grid; gap: 14px; padding: 18px; border-radius: 20px; border: 1px solid rgba(255,214,90,.35); background: linear-gradient(160deg, rgba(58,29,110,.75), rgba(14,22,50,.85)); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+.k-rx { position: absolute; right: 8px; top: 8px; }
+.k-total { text-align: center; display: grid; gap: 2px; }
+.k-total > small { color: var(--ink-3); letter-spacing: .1em; font-size: 12px; }
+.k-total > b { font: 900 clamp(40px, 10vw, 66px)/1.1 var(--f-display); color: var(--k-gold); text-shadow: 0 0 24px rgba(255,214,90,.35); font-variant-numeric: tabular-nums; }
+.k-total > b span { font-size: 1em; } .k-total > p { margin: 0; font-weight: 700; font-size: 17px; } .k-total > p small { display: block; font-weight: 400; font-size: 13px; color: var(--ink-2); }
+.k-bars { display: grid; gap: 8px; }
+.k-bar { display: grid; grid-template-columns: 92px 1fr 36px; align-items: center; gap: 10px; font-size: 13.5px; }
+.k-bar i, .k-ln i { height: 10px; border-radius: 10px; background: rgba(255,255,255,.1); overflow: hidden; }
+.k-bar b, .k-ln b { display: block; height: 100%; border-radius: 10px; background: linear-gradient(90deg, #8A5CFF, #FF5FA2, var(--k-gold)); }
+.k-bar em { font-style: normal; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.k-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; } .k-chips span { padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 12px; color: var(--ink-2); }
+.k-lines h4, .k-tips h4, .k-coach h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 14px; } .k-tips h4 .ic, .k-coach h4 .ic { color: var(--k-gold); width: 17px; height: 17px; }
+.k-ln { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) 56px; gap: 10px; align-items: center; padding: 4px 0; font-size: 13px; }
+.k-ln span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); } .k-ln em { font-style: normal; font-size: 12px; color: var(--k-gold); text-align: right; }
+.k-tips ul { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; font-size: 14px; line-height: 1.7; }
+.k-coach-b { font-size: 14.5px; line-height: 1.8; color: var(--ink); } .k-coach-b .md, .k-coach-b p { margin: .3em 0; } .k-coach-b ul { padding-left: 1.3em; margin: .3em 0; }
+.k-coach-b .dots { color: var(--k-gold); margin-right: 6px; }
+.k-racts { justify-content: center; }
+@media (max-width: 600px) {
+  .k-pick, .k-sing { padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 32px); gap: 12px; }
+  .k-songs, .k-yt { grid-template-columns: 1fr; }
+  .k-parts { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .k-bar { grid-template-columns: 96px 1fr 32px; font-size: 13px; }
+  .k-ln { grid-template-columns: minmax(0, 1.3fr) 1fr 58px; }
+  .k-ln em { white-space: nowrap; }
+  .k-search .btn span { display: none; }
+}
 
 </style>
 </head>
@@ -873,6 +1108,7 @@ body.geo-on { overflow: hidden; }
         <button class="icon-btn" data-act="side-toggle" aria-label="一覧を閉じる"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></svg></button>
       </div>
       <button class="new-btn" data-act="new-chat"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5H7A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-5"/><path d="M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7L12.7 14.2 9.5 15l.8-3.2z"/></svg><span>新しいチャット</span><kbd>Ctrl K</kbd></button>
+      <button class="side-link" data-act="karaoke"><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10.5-2.5v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17" cy="15.5" r="2.5"/><path d="M9 9.5l10.5-2.5"/></svg><span>カラオケ</span><small>歌って採点</small></button>
       <label class="side-search"><span class="vh">チャットを検索</span><svg class="ic " viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="chatSearch" type="search" placeholder="チャットを検索" autocomplete="off" enterkeyhint="search"></label>
       <nav class="chat-list" id="chatList"><div class="cl-h">サンプル</div><div class="ci ci-sample"><button class="ci-b" data-act="open-guide"><span class="ci-t">使い方ガイド</span><span class="tag">サンプル</span></button></div></nav>
       <div class="side-foot">
@@ -996,7 +1232,7 @@ function debounce(fn, ms) { let t = 0, args = []; const d = (...a) => { args = a
 const S = { mode: 'local', index: {}, chats: new Map(), view: null, busy: null, pend: [], search: '', fullHit: null, stick: true, openThink: new Set(), older: new Map(), ready: false, files: new Map(), thumbs: new Map(), urls: new Map() };
 
 /* icons (injected by the build from one shared map) */
-const ICONS = {"x": "<path d=\"M18 6 6 18M6 6l12 12\"/>", "plus": "<path d=\"M12 5v14M5 12h14\"/>", "map": "<path d=\"M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z\"/><path d=\"M9 4v14M15 6v14\"/>", "locate": "<path d=\"M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z\"/><circle cx=\"12\" cy=\"10\" r=\"2.4\"/>", "crosshair": "<circle cx=\"12\" cy=\"12\" r=\"7\"/><path d=\"M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3\"/><circle cx=\"12\" cy=\"12\" r=\"1.6\"/>", "route": "<circle cx=\"6\" cy=\"18\" r=\"2.2\"/><circle cx=\"18\" cy=\"6\" r=\"2.2\"/><path d=\"M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8\"/>", "body": "<circle cx=\"12\" cy=\"4.6\" r=\"2.2\"/><path d=\"M7.5 9h9M12 9v6.5M12 15.5l-3 6M12 15.5l3 6M7.5 9 6 14M16.5 9l1.5 5\"/>", "check": "<path d=\"m5 12.5 4.5 4.5L19 7.5\"/>", "chevD": "<path d=\"m6 9 6 6 6-6\"/>", "chevL": "<path d=\"m15 6-6 6 6 6\"/>", "chevR": "<path d=\"m9 6 6 6-6 6\"/>", "menu": "<path d=\"M4 7h16M4 12h16M4 17h10\"/>", "panel": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><path d=\"M9.5 4.5v15\"/>", "compose": "<path d=\"M12 4.5H7A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-5\"/><path d=\"M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7L12.7 14.2 9.5 15l.8-3.2z\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m20 20-4.2-4.2\"/>", "sliders": "<path d=\"M4 7h9M17 7h3M4 17h3M11 17h9\"/><circle cx=\"15\" cy=\"7\" r=\"2\"/><circle cx=\"9\" cy=\"17\" r=\"2\"/>", "cloud": "<path d=\"M7.5 18.5h9.5a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7 9.6a4.5 4.5 0 0 0 .5 8.9z\"/>", "device": "<rect x=\"6\" y=\"3\" width=\"12\" height=\"18\" rx=\"2.5\"/><path d=\"M11 17.5h2\"/>", "wave": "<path d=\"M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2\"/>", "more": "<circle cx=\"5.5\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"18.5\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/>", "camera": "<path d=\"M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z\"/><circle cx=\"12\" cy=\"12.5\" r=\"3.5\"/>", "file": "<path d=\"M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3.5V8h4.5M9 13h6M9 16.5h4\"/>", "sparkle": "<path d=\"M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5z\"/><path d=\"M19 15.5c.25 1.6 1 2.35 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.15 2.25-.9 2.5-2.5z\"/>", "mic": "<rect x=\"9\" y=\"3.5\" width=\"6\" height=\"11\" rx=\"3\"/><path d=\"M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5\"/>", "send": "<path d=\"M12 19V5M6 11l6-6 6 6\"/>", "stop": "<rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>", "copy": "<rect x=\"8.5\" y=\"8.5\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2\"/>", "edit": "<path d=\"M15.2 5.3a2 2 0 0 1 2.8 2.8L8.5 17.6 5 18.5l.9-3.5z\"/><path d=\"m13.5 7 3 3\"/>", "refresh": "<path d=\"M19.5 12a7.5 7.5 0 1 1-2.2-5.3\"/><path d=\"M19.5 4.5V9H15\"/>", "trash": "<path d=\"M4.5 7h15M10 4h4M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5\"/>", "pin": "<path d=\"M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5z\"/><path d=\"M12 12v8.5\"/>", "persona": "<circle cx=\"12\" cy=\"8.5\" r=\"3.8\"/><path d=\"M4.5 20a7.5 7.5 0 0 1 15 0\"/>", "download": "<path d=\"M12 4v11M7 10.5l5 5 5-5M5 19.5h14\"/>", "upload": "<path d=\"M12 15.5v-11M7 9l5-5 5 5M5 19.5h14\"/>", "branch": "<circle cx=\"6.5\" cy=\"5.5\" r=\"2\"/><circle cx=\"6.5\" cy=\"18.5\" r=\"2\"/><circle cx=\"17.5\" cy=\"8.5\" r=\"2\"/><path d=\"M6.5 7.5v9M17.5 10.5c0 4-5 3-9.5 6.5\"/>", "speaker": "<path d=\"M4.5 9.5h3l4.5-4v13l-4.5-4h-3z\"/><path d=\"M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11\"/>", "volumeOff": "<path d=\"M4.5 9.5h3l4.5-4v13l-4.5-4h-3z\"/><path d=\"m16 9.5 5 5M21 9.5l-5 5\"/>", "bulb": "<path d=\"M9.5 17.5h5M10.5 20.5h3\"/><path d=\"M12 3.5a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2v1h5v-1c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3.5z\"/>", "alert": "<path d=\"M12 4 3 19.5h18z\"/><path d=\"M12 10v4.5M12 17.2v.3\"/>", "key": "<circle cx=\"8\" cy=\"15.5\" r=\"3.5\"/><path d=\"m10.5 13 9-9M16 7.5l2.5 2.5M14 9.5l2 2\"/>", "help": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M9.6 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2-2.4 3.5M12 16.8v.3\"/>", "flip": "<path d=\"M4.5 12a7.5 7.5 0 0 1 13.2-4.9M19.5 12a7.5 7.5 0 0 1-13.2 4.9\"/><path d=\"M18.5 3.5v4h-4M5.5 20.5v-4h4\"/>", "cc": "<rect x=\"3.5\" y=\"5.5\" width=\"17\" height=\"13\" rx=\"2.5\"/><path d=\"M10.6 10.2a2.2 2.2 0 1 0 0 3.6M16.6 10.2a2.2 2.2 0 1 0 0 3.6\"/>", "keyboard": "<rect x=\"2.5\" y=\"6\" width=\"19\" height=\"12\" rx=\"2.5\"/><path d=\"M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9\"/>", "image": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><circle cx=\"9\" cy=\"10\" r=\"1.8\"/><path d=\"m20.5 16-5-5-9 8.5\"/>", "db": "<ellipse cx=\"12\" cy=\"6\" rx=\"7\" ry=\"2.8\"/><path d=\"M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8\"/>", "play": "<path d=\"M8 5.5v13l10-6.5z\"/>", "eye": "<path d=\"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 11v5M12 7.8v.3\"/>", "screen": "<rect x=\"3.5\" y=\"5\" width=\"17\" height=\"11.5\" rx=\"1.8\"/><path d=\"M9 20h6M12 16.5V20\"/>"};
+const ICONS = {"x": "<path d=\"M18 6 6 18M6 6l12 12\"/>", "plus": "<path d=\"M12 5v14M5 12h14\"/>", "map": "<path d=\"M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z\"/><path d=\"M9 4v14M15 6v14\"/>", "locate": "<path d=\"M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z\"/><circle cx=\"12\" cy=\"10\" r=\"2.4\"/>", "crosshair": "<circle cx=\"12\" cy=\"12\" r=\"7\"/><path d=\"M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3\"/><circle cx=\"12\" cy=\"12\" r=\"1.6\"/>", "route": "<circle cx=\"6\" cy=\"18\" r=\"2.2\"/><circle cx=\"18\" cy=\"6\" r=\"2.2\"/><path d=\"M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8\"/>", "body": "<circle cx=\"12\" cy=\"4.6\" r=\"2.2\"/><path d=\"M7.5 9h9M12 9v6.5M12 15.5l-3 6M12 15.5l3 6M7.5 9 6 14M16.5 9l1.5 5\"/>", "book": "<path d=\"M12 6.5C10.2 5 7.6 4.5 4 4.5v13c3.6 0 6.2.5 8 2 1.8-1.5 4.4-2 8-2v-13c-3.6 0-6.2.5-8 2z\"/><path d=\"M12 6.5v13\"/>", "cards": "<rect x=\"3.5\" y=\"7\" width=\"12.5\" height=\"13.5\" rx=\"2\"/><path d=\"M8 4h10.5a2 2 0 0 1 2 2v11\"/>", "music": "<path d=\"M9 17.5V6l10.5-2.5v12\"/><circle cx=\"6.5\" cy=\"17.5\" r=\"2.5\"/><circle cx=\"17\" cy=\"15.5\" r=\"2.5\"/><path d=\"M9 9.5l10.5-2.5\"/>", "shuffle": "<path d=\"M3.5 7H7c4.2 0 5.8 10 10 10h3.5M3.5 17H7c1.5 0 2.6-1.3 3.5-3M13.5 10c.9-1.7 2-3 3.5-3h3.5M18 4.5 20.5 7 18 9.5M18 14.5l2.5 2.5-2.5 2.5\"/>", "undo": "<path d=\"M9 14 4.5 9.5 9 5\"/><path d=\"M4.5 9.5h10a5 5 0 0 1 0 10H11\"/>", "pen": "<path d=\"M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z\"/><path d=\"m13.5 7 3 3\"/>", "check": "<path d=\"m5 12.5 4.5 4.5L19 7.5\"/>", "chevD": "<path d=\"m6 9 6 6 6-6\"/>", "chevL": "<path d=\"m15 6-6 6 6 6\"/>", "chevR": "<path d=\"m9 6 6 6-6 6\"/>", "menu": "<path d=\"M4 7h16M4 12h16M4 17h10\"/>", "panel": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><path d=\"M9.5 4.5v15\"/>", "compose": "<path d=\"M12 4.5H7A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-5\"/><path d=\"M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7L12.7 14.2 9.5 15l.8-3.2z\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m20 20-4.2-4.2\"/>", "sliders": "<path d=\"M4 7h9M17 7h3M4 17h3M11 17h9\"/><circle cx=\"15\" cy=\"7\" r=\"2\"/><circle cx=\"9\" cy=\"17\" r=\"2\"/>", "cloud": "<path d=\"M7.5 18.5h9.5a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7 9.6a4.5 4.5 0 0 0 .5 8.9z\"/>", "device": "<rect x=\"6\" y=\"3\" width=\"12\" height=\"18\" rx=\"2.5\"/><path d=\"M11 17.5h2\"/>", "wave": "<path d=\"M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2\"/>", "more": "<circle cx=\"5.5\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"12\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"18.5\" cy=\"12\" r=\"1.35\" fill=\"currentColor\" stroke=\"none\"/>", "camera": "<path d=\"M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z\"/><circle cx=\"12\" cy=\"12.5\" r=\"3.5\"/>", "file": "<path d=\"M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3.5V8h4.5M9 13h6M9 16.5h4\"/>", "sparkle": "<path d=\"M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5z\"/><path d=\"M19 15.5c.25 1.6 1 2.35 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.15 2.25-.9 2.5-2.5z\"/>", "mic": "<rect x=\"9\" y=\"3.5\" width=\"6\" height=\"11\" rx=\"3\"/><path d=\"M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5\"/>", "send": "<path d=\"M12 19V5M6 11l6-6 6 6\"/>", "stop": "<rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"1.6\" fill=\"currentColor\" stroke=\"none\"/>", "copy": "<rect x=\"8.5\" y=\"8.5\" width=\"11\" height=\"11\" rx=\"2\"/><path d=\"M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2\"/>", "edit": "<path d=\"M15.2 5.3a2 2 0 0 1 2.8 2.8L8.5 17.6 5 18.5l.9-3.5z\"/><path d=\"m13.5 7 3 3\"/>", "refresh": "<path d=\"M19.5 12a7.5 7.5 0 1 1-2.2-5.3\"/><path d=\"M19.5 4.5V9H15\"/>", "trash": "<path d=\"M4.5 7h15M10 4h4M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5\"/>", "pin": "<path d=\"M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5z\"/><path d=\"M12 12v8.5\"/>", "persona": "<circle cx=\"12\" cy=\"8.5\" r=\"3.8\"/><path d=\"M4.5 20a7.5 7.5 0 0 1 15 0\"/>", "download": "<path d=\"M12 4v11M7 10.5l5 5 5-5M5 19.5h14\"/>", "upload": "<path d=\"M12 15.5v-11M7 9l5-5 5 5M5 19.5h14\"/>", "branch": "<circle cx=\"6.5\" cy=\"5.5\" r=\"2\"/><circle cx=\"6.5\" cy=\"18.5\" r=\"2\"/><circle cx=\"17.5\" cy=\"8.5\" r=\"2\"/><path d=\"M6.5 7.5v9M17.5 10.5c0 4-5 3-9.5 6.5\"/>", "speaker": "<path d=\"M4.5 9.5h3l4.5-4v13l-4.5-4h-3z\"/><path d=\"M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11\"/>", "volumeOff": "<path d=\"M4.5 9.5h3l4.5-4v13l-4.5-4h-3z\"/><path d=\"m16 9.5 5 5M21 9.5l-5 5\"/>", "bulb": "<path d=\"M9.5 17.5h5M10.5 20.5h3\"/><path d=\"M12 3.5a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2v1h5v-1c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3.5z\"/>", "alert": "<path d=\"M12 4 3 19.5h18z\"/><path d=\"M12 10v4.5M12 17.2v.3\"/>", "key": "<circle cx=\"8\" cy=\"15.5\" r=\"3.5\"/><path d=\"m10.5 13 9-9M16 7.5l2.5 2.5M14 9.5l2 2\"/>", "help": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M9.6 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2-2.4 3.5M12 16.8v.3\"/>", "flip": "<path d=\"M4.5 12a7.5 7.5 0 0 1 13.2-4.9M19.5 12a7.5 7.5 0 0 1-13.2 4.9\"/><path d=\"M18.5 3.5v4h-4M5.5 20.5v-4h4\"/>", "cc": "<rect x=\"3.5\" y=\"5.5\" width=\"17\" height=\"13\" rx=\"2.5\"/><path d=\"M10.6 10.2a2.2 2.2 0 1 0 0 3.6M16.6 10.2a2.2 2.2 0 1 0 0 3.6\"/>", "keyboard": "<rect x=\"2.5\" y=\"6\" width=\"19\" height=\"12\" rx=\"2.5\"/><path d=\"M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9\"/>", "image": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"2.5\"/><circle cx=\"9\" cy=\"10\" r=\"1.8\"/><path d=\"m20.5 16-5-5-9 8.5\"/>", "db": "<ellipse cx=\"12\" cy=\"6\" rx=\"7\" ry=\"2.8\"/><path d=\"M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8\"/>", "play": "<path d=\"M8 5.5v13l10-6.5z\"/>", "eye": "<path d=\"M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 11v5M12 7.8v.3\"/>", "screen": "<rect x=\"3.5\" y=\"5\" width=\"17\" height=\"11.5\" rx=\"1.8\"/><path d=\"M9 20h6M12 16.5V20\"/>"};
 ICONS.screen = '<rect x="3.5" y="5" width="17" height="11.5" rx="1.8"/><path d="M9 20h6M12 16.5V20"/>';
 const SCREEN_OK = !HAS_CLAUDE && !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
 const ic = (n, cls = '') =>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
@@ -1183,6 +1419,17 @@ const effName = id => (EFF_BY_ID[id] || EFF_BY_ID.high).name;
 const PERSONAS = [
   { id: 'std', name: 'コトダマ', desc: '親切で率直なアシスタント', prompt: '親切で率直なアシスタントとして答えてください。わからないことは推測で断言せず、わからないと伝えてください。' },
   { id: 'teacher', name: 'やさしい先生', desc: 'たとえを使ってわかりやすく', prompt: 'やさしい先生として、むずかしい言葉を避け、身近なたとえを使って順を追って説明してください。専門用語を使うときは短い説明を添えてください。' },
+  { id: 'juku', name: '塾の先生', desc: '答えを先に言わず、考え方からわかりやすく', voice: true, prompt: 'あなたは学習塾のベテラン講師です。いちばんの目的は、生徒が「自分の力でわかる・解ける」ようになることです。答えを先に教えるのではなく、わかりやすい説明とヒントで、生徒が自分でたどり着けるように導きます。\n' +
+    '進め方：\n' +
+    '1. 問題や質問を受けたら、いきなり答えは言いません。まず「何を聞かれているか」「使えそうな知識は何か」を短く一緒に確かめます。\n' +
+    '2. 解き方の考え方を、一歩ずつ説明します。1回の返答で進めるのは1〜2ステップまで。各返答の最後に、生徒が考えて答えられる短い問いかけを1つだけ置きます（「では、ここまでで□□はいくつになるかな？」など）。\n' +
+    '3. 生徒の答えが合っていたら、どこが良かったかを具体的にほめて次へ進みます。まちがっていたら、まず合っている部分を認め、まちがいに自分で気づけるヒントを出します。すぐに正解は言いません。\n' +
+    '4. 生徒が解き終えたら、大事なポイントを2〜3行でまとめ、似た練習問題を1問出します。\n' +
+    '5. 生徒が「答えを教えて」とはっきり頼んだとき、何度考えてもつまずいているとき、または急いでいるときは、答えと解き方を途中式つきでていねいに示し、最後に理解を確かめる問いを1つ出します。\n' +
+    '6. 宿題やテストの丸写しにならないよう、答えだけを並べることはしません（考え方は必ず添えます）。\n' +
+    '説明のしかた：むずかしい言葉は避け、身近なたとえ・図・表・箇条書きを使います。数式は途中を省略しません。専門用語には短い説明を添えます。学年やレベルがわからなければ、最初に一言だけ聞きます（わかれば聞きません）。\n' +
+    '口調：明るく励ます、ていねいな「です・ます」。「いい着眼点ですね」「おしい！あと一歩です」のように前向きに。\n' +
+    '正確さ：内容は正確に。不確かなことはそう伝えます。' },
   { id: 'english', name: '英会話パートナー', desc: '英語で話す練習相手', prompt: 'あなたはフレンドリーな英会話パートナーです。相手のレベルに合わせたやさしい英語で会話してください。相手の英語に不自然な点があれば、返答の最後に「（ひとこと）」に続けて日本語で1行だけ自然な言い方を教えてください。相手が日本語で話したら、英語でどう言うかを教えてから会話を続けてください。', voice: true },
   { id: 'kansai', name: '関西弁の相棒', desc: '気さくな関西弁の友だち', prompt: '気さくで面白い関西弁の友だちとして話してください。軽いツッコミも入れつつ、内容は正確にしてください。', voice: true },
   { id: 'critic', name: '辛口レビュアー', desc: '遠慮なく弱点を指摘する', prompt: '辛口のレビュアーとして、遠慮せず問題点・弱点・リスクを具体的に指摘し、必ず改善案を出してください。お世辞は不要です。' },
@@ -1251,6 +1498,8 @@ const SLASH = [
   { k: '天使', d: '天使モード（天和）を切り替える', act: 'angel' },
   { k: 'シアン', d: 'シアンモードを切り替える', act: 'cyan' },
   { k: 'ひより', d: 'ひよりモードを切り替える', act: 'hiyori' },
+  { k: '勉強', d: '勉強する（単語カード・問題・漢字の書き取り）', act: 'study' },
+  { k: 'カラオケ', d: 'カラオケを開く（歌って採点）', act: 'karaoke' },
   { k: '地図', d: '地図を開く', act: 'map' },
   { k: '位置情報', d: '位置情報の共有を切り替える', act: 'geo' },
 ];
@@ -1258,7 +1507,7 @@ const SLASH = [
 const DEFAULTS = {
   theme: 'auto', accent: 'hisui', fs: 'm', enterSend: !COARSE, sounds: false, pixel: false, crt: false,
   model: 'claude-sonnet-5-5', effort: 'high', think: true, thinkOpen: false, length: 'normal', tone: 'auto',
-  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', hiyori: false, hiyoriHat: 'beret', hiyoriHair: 'side', hiyoriJacket: 'olive', hiyoriSkirt: 'teal', hiyoriRibbon: 'teal', hiyoriBag: 'satchel', hiyoriSky: 'auto', liveFull: false, geo: false, genImage: false, genVideo: false, webSearch: false, research: false, researchMin: 30,
+  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', hiyori: false, hiyoriHat: 'beret', hiyoriHair: 'side', hiyoriJacket: 'olive', hiyoriSkirt: 'teal', hiyoriRibbon: 'teal', hiyoriBag: 'satchel', hiyoriSky: 'auto', liveFull: false, geo: false, genImage: false, genVideo: false, study: false, webSearch: false, research: false, researchMin: 30,
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 1.2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
@@ -1308,7 +1557,7 @@ const GUIDE = {
       id: 'g2', role: 'assistant', t: 0, cur: 0, alts: [{
         model: 'claude-sonnet-5-5', effort: 'high', ms: 6400, applied: 'claude-sonnet-5-5', tier: 'default',
         think: [{ l: '思考', t: 'アプリでできることを知りたいという質問。\n主な機能は表にまとめると見比べやすい。\nすぐ試せる操作（スラッシュコマンドやショートカット）も添えると親切。\nコードの見え方も一緒に見せておこう。' }],
-        text: 'コトダマは、Claude と話せるチャットアプリです。主な機能をまとめました。\n\n| 機能 | 使い方 |\n|---|---|\n| **モデルを選ぶ** | 入力欄の下のボタン（例：Sonnet 5.5・高）から Fable・Opus・Sonnet・Haiku を切り替え |\n| **考える深さ** | 低・中・高・超高・最大の5段階。**超高**は下書きを見直してから、**最大**は分析→下書き→見直しの3段階で答えます |\n| **思考をのぞく** | 回答の上の「思考」を開くと、AIが考えた過程を読めます |\n| **LIVE** | 右上の LIVE で声の会話。AIが読み上げ、カメラに映したものも見て答えます |\n| **添付** | ＋ボタン・貼り付け・ドラッグで、画像・PDF・Word・Excel・PowerPoint・テキストを読ませられます |\n| **音声入力** | マイクのボタンで、話した言葉を入力 |\n| **ドット絵モード** | 設定 → 一般 → ドット絵モード |\n\n### 便利なワザ\n- 入力欄で `/` を打つと、要約・翻訳・校正などのコマンドが出ます\n- `/覚えて 〇〇` で、すべてのチャットで覚えておいてほしいことを登録できます\n- 回答の下の ↻ で作り直し、◀ ▶ で前の答えと見比べられます\n- `Ctrl` + `K` で新しいチャット、`Esc` で生成を止めます\n\n```js\n// コードはこんなふうに表示され、右上のボタンでコピーできます\nconst greet = name => `こんにちは、${name}さん！`;\n```\n\nさっそく何か話しかけてみてください。'
+        text: 'コトダマは、Claude と話せるチャットアプリです。主な機能をまとめました。\n\n| 機能 | 使い方 |\n|---|---|\n| **モデルを選ぶ** | 入力欄の下のボタン（例：Sonnet 5.5・高）から Fable・Opus・Sonnet・Haiku を切り替え |\n| **考える深さ** | 低・中・高・超高・最大の5段階。**超高**は下書きを見直してから、**最大**は分析→下書き→見直しの3段階で答えます |\n| **思考をのぞく** | 回答の上の「思考」を開くと、AIが考えた過程を読めます |\n| **LIVE** | 右上の LIVE で声の会話。AIが読み上げ、カメラに映したものも見て答えます |\n| **添付** | ＋ボタン・貼り付け・ドラッグで、画像・PDF・Word・Excel・PowerPoint・テキストを読ませられます |\n| **音声入力** | マイクのボタンで、話した言葉を入力 |\n| **勉強モード** | ＋ → 勉強モード。「英単語カードを作って」「方程式の問題を5問」「漢字の書き取り」で、その場で解けるカード・問題・手書き練習に |\n| **カラオケ** | 左の一覧の「カラオケ」。音程バーを見ながら歌って採点、AIの先生がアドバイス |\n| **地図・位置情報** | ＋ → 位置情報を共有で、近くのおすすめや行き方を案内 |\n| **ドット絵モード** | 設定 → 一般 → ドット絵モード |\n\n### 便利なワザ\n- 入力欄で `/` を打つと、要約・翻訳・校正などのコマンドが出ます\n- `/覚えて 〇〇` で、すべてのチャットで覚えておいてほしいことを登録できます\n- 回答の下の ↻ で作り直し、◀ ▶ で前の答えと見比べられます\n- `Ctrl` + `K` で新しいチャット、`Esc` で生成を止めます\n\n```js\n// コードはこんなふうに表示され、右上のボタンでコピーできます\nconst greet = name => `こんにちは、${name}さん！`;\n```\n\nさっそく何か話しかけてみてください。'
       }]
     }
   ]
@@ -1555,6 +1804,7 @@ const MD = (() => {
   }
   function code(src, lang, open, rest) {
     const gl = (lang || '').toLowerCase();
+    if (gl === 'study') return Study.html(src, open);
     if (gl === 'gen-image' || gl === 'gen-video') { const g = gl === 'gen-image' ? genImageHTML(src, open) : genVideoHTML(src, open); if (g) return g; }
     const info = codeInfo(lang, rest), l = info.lang;
     const name = LANG[l] || (info.ext && LANG[info.ext]) || l || 'コード';
@@ -2018,6 +2268,7 @@ function systemText(chat, o = {}) {
   const mem = SET.memory.split('\n').map(x => x.trim()).filter(Boolean);
   if (mem.length) L.push('', '【ユーザーについて覚えておくこと】', ...mem.map(x => '・' + x));
   if (typeof Geo !== 'undefined' && Geo.on && Geo.ok) L.push('', ...Geo.promptLines(!!o.live));
+  if (!o.live && Study.want(chat)) L.push('', ...Study.promptLines());
   if (!o.live && SET.genImage) L.push('', '【画像の生成（オン）】', 'ユーザーが画像・イラスト・図・ロゴ・アイコンを作ってほしいと頼んだときは、SVGで描いて見せられます。次の形で、言語名を gen-image にしたコードブロックに、完全なSVG（<svg ...> から </svg> まで）を1つだけ書いてください。\n```gen-image\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">…</svg>\n```\nルール：viewBox を必ず付ける／外部ファイル・外部URL・scriptタグ・imageタグは使わない（図形・パス・グラデーション・文字だけで描く）／文字は font-family="sans-serif" を使う／背景は自分で塗る。コードブロックの前後に、何を描いたかを短く日本語で書く。写真のような絵は描けないので、頼まれたときはベクターのイラストになると最初に一言伝える。複数案を頼まれたら最大3つまで、別々のコードブロックで。');
   if (!o.live && SET.genVideo) L.push('', '【動画（アニメーション）の生成（オン）】', 'ユーザーが動画・アニメーション・動く映像を作ってほしいと頼んだときは、コードで動くアニメーションを作れます。言語名を gen-video にしたコードブロックに、完全に自己完結した1つのHTML文書を書いてください。\n```gen-video\n<!doctype html><html><body>…</body></html>\n```\nルール：外部ファイル・外部URL・ネット通信・音は使わない／canvas（requestAnimationFrame）かCSS／SVGのアニメーションで描く／5〜15秒でループする／背景色を必ず指定し、画面いっぱい（16:9を想定、canvasは window.innerWidth と innerHeight に合わせる）に描く／マウス操作や入力は必要にしない。コードブロックの前後に、何を作ったかを短く日本語で書く。実写のような映像は作れないので、頼まれたときは「コードで描くアニメーション」になると最初に一言伝える。');
   if (!o.live) L.push('', '【コードやファイルを書くとき】', 'コードやファイルの中身を書くときは、コードブロックの言語名のあとにコロンとファイル名を付けてください（例：```html:index.html、```python:main.py）。ユーザーはそのまま保存したり、HTML・SVG・JavaScriptはその場でプレビューして動かしたりできます。ウェブページやゲームを作るときは、なるべくCSSとJavaScriptを1つのHTMLファイルにまとめてください。');
@@ -2293,6 +2544,8 @@ function speakable(t) {
   if (typeof SET !== 'undefined' && SET.angel) t = String(t || '').replace(/天和/g, tenwaYomi());
   return String(t || '')
     .replace(/\[\[[^\]]*\]\]/g, '')
+    .replace(/```study[\s\S]*?(```|$)/g, '（問題は画面に出しています）')
+    .replace(/```gen-(image|video)[\s\S]*?(```|$)/g, '')
     .replace(/```[\s\S]*?(```|$)/g, '（コードは画面に表示しています）')
     .replace(/`([^`]*)`/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -2826,8 +3079,14 @@ function emptyHTML() {
     : SET.angel
     ? `<div class="hello angel-hello">${TW_HERO ? `<img class="tw-hero" src="${TW_HERO}" alt="天和">` : mgHTML()}<h1>${esc(greeting())}、ぼく天和だよ</h1><p>空からお手伝いに来た見習い天使だよ。なんでも話しかけてね。右上の LIVE を押すと、ぼくと声でお話しできるよ。</p></div>`
     : `<div class="hello">${mgHTML()}<h1>${esc(greeting())}</h1><p>何でも話しかけてください。写真やファイルも見せられます。右上の LIVE で声の会話もできます。</p></div>`;
-  return `<div class="empty">${hello}
-  <div class="sugs">
+  const sugs = SET.study ? `<div class="sugs">
+    <button class="sug" data-act="study-sg" data-ty="en"><span class="si">${ic('cards')}</span><span><b>英単語カード</b><small>めくって覚える・書いて答える</small></span></button>
+    <button class="sug" data-act="study-sg" data-ty="math"><span class="si">${ic('edit')}</span><span><b>数学の問題</b><small>解いて答え合わせ・解き方つき</small></span></button>
+    <button class="sug" data-act="study-sg" data-ty="kanji"><span class="si">${ic('pen')}</span><span><b>漢字の書き取り</b><small>指やペンで書いて練習</small></span></button>
+    <button class="sug" data-act="study-sg" data-ty="quiz"><span class="si">${ic('book')}</span><span><b>ほかの教科</b><small>理科・社会・英文法など</small></span></button>
+  </div>` : '';
+  return `<div class="empty">${hello}${sugs}
+  <div class="sugs"${SET.study ? ' hidden' : ''}>
     <button class="sug" data-act="sg-camera"><span class="si">${ic('camera')}</span><span><b>写真のものを調べる</b><small>撮った写真に写っているものを教えて</small></span></button>
     <button class="sug" data-act="live"><span class="si">${ic('wave')}</span><span><b>声で話す</b><small>LIVEモードで、話しながら会話</small></span></button>
     <button class="sug" data-act="sg-file"><span class="si">${ic('file')}</span><span><b>資料を要約する</b><small>PDF・Word・Excelを3行で</small></span></button>
@@ -2942,6 +3201,7 @@ function hydrate(scope) {
     imageURL(a).then(u => { if (u) img.src = u; else img.closest('.att-thumb') && img.closest('.att-thumb').classList.add('missing'); });
   }
   Hl.apply(scope);
+  Study.mount(scope);
 }
 function scrollBottom(force) { if (force || S.stick) thread.scrollTop = thread.scrollHeight; }
 setInterval(() => {
@@ -2963,7 +3223,7 @@ function renderComposer() {
   const model = c ? c.model : SET.model, eff = c ? c.effort : SET.effort, think = c ? c.think : SET.think;
   $('#modelChip').innerHTML = `<span class="mc-n">${esc(modelShort(model))}</span><span class="mc-e">${esc(effName(eff))}</span>${think ? `<span class="mc-t" title="思考を表示">${ic('bulb')}</span>` : ''}${ic('chevD')}`;
   $('#composer').classList.toggle('geo-on-dot', !!Geo.on);
-  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && '画像生成', SET.genVideo && '動画生成', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
+  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && '画像生成', SET.genVideo && '動画生成', SET.study && '勉強', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
   const send = $('#sendBtn');
   const here = !!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live;
   if (here) { send.classList.add('stop'); send.innerHTML = ic('stop'); send.setAttribute('aria-label', '生成を止める'); send.disabled = false; }
@@ -3019,7 +3279,7 @@ function applySlash(k) {
   if (s.t) { input.value = s.t; autosize(); input.focus(); input.setSelectionRange(input.value.length, input.value.length); renderComposer(); return; }
   if (s.act === 'memory') { input.value = '/覚えて '; input.focus(); renderComposer(); return; }
   input.value = ''; autosize(); renderComposer();
-  ({ new: newChat, live: () => Live.open(), settings: () => openSettings(), pixel: togglePixel, angel: () => toggleAngel(), cyan: () => toggleCyan(), hiyori: () => toggleHiyori(), map: () => GeoPanel.open(), geo: () => toggleGeo() })[s.act]();
+  ({ new: newChat, live: () => Live.open(), settings: () => openSettings(), pixel: togglePixel, angel: () => toggleAngel(), cyan: () => toggleCyan(), hiyori: () => toggleHiyori(), map: () => GeoPanel.open(), geo: () => toggleGeo(), study: () => Study.openSheet(), karaoke: () => Karaoke.open() })[s.act]();
 }
 function addMemory(t) {
   t = t.trim(); if (!t) return;
@@ -3184,6 +3444,9 @@ function openPlusMenu(btn) {
     '-', { head: 'AIにさせること（オン／オフ）' },
     { icon: 'image', label: '画像生成', sub: 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
     { icon: 'play', label: '動画生成', sub: 'AIがコードで動くアニメーションを作る', on: !!SET.genVideo, run: () => toggleGen('genVideo') },
+    '-', { head: '勉強' },
+    { icon: 'book', label: '勉強モード', sub: '「カードを作って」で、その場で解けるカードや問題に', on: !!SET.study, run: () => Study.toggle() },
+    { icon: 'cards', label: '問題を作る', sub: '英単語カード・数学の問題・漢字の書き取りなど', run: () => Study.openSheet() },
     '-', { head: '場所' },
     { icon: 'locate', label: '位置情報を共有', sub: Geo.on && Geo.ok ? (Geo.label() || '共有中') : '近くのお店やおすすめ・行き方を、場所に合わせて答える', on: !!Geo.on, run: toggleGeo },
     { icon: 'map', label: '地図を見る', sub: '近くの場所・検索・徒歩ルート', run: () => GeoPanel.open() },
@@ -7115,7 +7378,7 @@ function codeInfo(lang, rest) {
   file = file.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80);
   return { lang: l, file, ext };
 }
-const codeBlocks = text => (String(text || '').match(/^\s{0,3}(```|~~~)/gm) || []).length >> 1;
+const codeBlocks = text => (String(text || '').replace(/^\s{0,3}```(study|gen-image|gen-video)\b[\s\S]*?^\s{0,3}```\s*$/gm, '').match(/^\s{0,3}(```|~~~)/gm) || []).length >> 1;
 
 const CodePrev = {
   src(codeEl) { const c = $('pre code', codeEl); return c ? c.textContent : ''; },
@@ -7332,6 +7595,10 @@ const SET_TAB = {
       <div class="sg-h" style="margin-top:6px">着がえ・髪型・持ち物</div><div class="dress-set">${cyanDressHTML('hiyori')}</div>
       <div class="btn-row"><button type="button" class="btn sm" data-do="cyan-live">${ic('wave')}ひよりとLIVEで話す</button><button type="button" class="btn sm" data-do="map">${ic('map')}地図を開く</button></div>` : ''}
     </div>
+    <div class="sg"><div class="sg-h">勉強・カラオケ</div>
+      <div class="row-set">${rl('勉強モード', '「英単語カードを作って」「方程式の問題を5問」「漢字の書き取り」のように頼むと、チャットの中でそのまま解けるカードや問題になります（めくる・書いて答える・手書き・採点・まちがえた問題だけ復習）')}<label class="sw"><input type="checkbox" data-set="study"${SET.study ? ' checked' : ''} aria-label="勉強モード"><span></span></label></div>
+      <div class="btn-row"><button type="button" class="btn sm" data-do="study">${ic('cards')}問題を作る</button><button type="button" class="btn sm" data-do="karaoke">${ic('music')}カラオケを開く</button></div>
+    </div>
     <div class="sg"><div class="sg-h">位置情報</div>
       <div class="row-set">${rl('位置情報を共有', Geo.on && Geo.ok ? `共有中：${esc(Geo.label())}` : '共有すると、近くのお店やおすすめ、行き方を、いまいる場所に合わせて答えます。場所はAIへの質問にだけ使い、保存しません')}<label class="sw"><input type="checkbox" data-set="geo"${Geo.on ? ' checked' : ''} aria-label="位置情報を共有"><span></span></label></div>
       <div class="btn-row"><button type="button" class="btn sm" data-do="map">${ic('map')}地図を開く</button><button type="button" class="btn sm" data-do="geo-man">${ic('locate')}場所を入力して共有</button></div>
@@ -7509,6 +7776,7 @@ function openSettings(tab) {
           if (k === 'hiyori') { toggleHiyori(e.target.checked).then(() => redraw()); return; }
           if (k === 'geo') { (e.target.checked ? Geo.enable() : Promise.resolve(Geo.disable())).then(() => { renderComposer(); redraw(); }); return; }
           if (k === 'pixel') togglePixel(e.target.checked); else Settings.set({ [k]: e.target.checked });
+          if (k === 'study') { renderComposer(); if (!S.view || !S.view.msgs.length) renderThread(); }
           if (k === 'pixel' || k === 'enterSend' || k === 'apiKeep') redraw();
           return;
         }
@@ -7535,6 +7803,8 @@ async function settingsDo(act, n, redraw) {
   if (act === 'cyan-off') { await toggleCyan(false); redraw(); return; }
   if (act === 'hiyori-off') { await toggleHiyori(false); redraw(); return; }
   if (act === 'map') { Layer.close(); setTimeout(() => GeoPanel.open(), 60); return; }
+  if (act === 'study') { Layer.close(); setTimeout(() => Study.openSheet(), 60); return; }
+  if (act === 'karaoke') { Layer.close(); setTimeout(() => Karaoke.open(), 60); return; }
   if (act === 'geo-man') { await Geo.askManual(''); renderComposer(); redraw(); return; }
   if (act === 'usage-reset') { if (await confirmBox('使用量を数え直す', '数えた使用量をゼロに戻します。', '数え直す')) { Usage.reset(); redraw(); } return; }
   if (act === 'tts-list') {
@@ -7725,8 +7995,8 @@ const Geo = {
     else toast(`「${name}」付近として答えます（地図の情報は読み込めませんでした）`, { ms: 3200 });
     this.emit(); return true;
   },
-  async fetchJSON(url, init) {
-    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 20000);
+  async fetchJSON(url, init, ms) {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), ms || 20000);
     try { const r = await fetch(url, Object.assign({ signal: ctl.signal }, init || {})); if (!r.ok) throw new Error('http ' + r.status); this.net = true; return await r.json(); }
     catch (e) { this.net = false; throw e; } finally { clearTimeout(to); }
   },
@@ -7740,22 +8010,49 @@ const Geo = {
       this.emit();
     } catch (e) { /* keep the coordinates */ }
   },
-  async nearby(p) {
-    this.poiPos = p; this.poiErr = '';
-    const R = 900, at = `(around:${R},${p.lat},${p.lon})`;
-    const q = `[out:json][timeout:20];(nwr${at}["amenity"~"^(restaurant|cafe|fast_food|food_court|ice_cream|bar|pub|pharmacy|bank|atm|toilets|post_office|library|cinema|karaoke_box|hospital|clinic|police|place_of_worship)$"]["name"];nwr${at}["shop"]["name"];nwr${at}["tourism"~"^(attraction|museum|viewpoint|gallery|zoo|aquarium|theme_park|hotel)$"]["name"];nwr${at}["leisure"~"^(park|garden|playground)$"]["name"];nwr${at}["railway"="station"]["name"];nwr${at}["historic"]["name"];);out center tags 300;`;
-    try {
-      const j = await this.fetchJSON('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } });
-      const seen = new Set(), out = [];
+  /* nearby places: several Overpass servers in turn (they are often busy), then a lighter fallback with Nominatim */
+  OVERPASS: ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'],
+  poiLoading: false, poiTry: 0,
+  async nearby(p, manual) {
+    p = p || this.here(); if (!p) return;
+    if (this.poiLoading && !manual) return;
+    this.poiPos = p; this.poiErr = ''; this.poiLoading = true; this.emit();
+    const R = 850, at = `(around:${R},${p.lat},${p.lon})`;
+    const q = `[out:json][timeout:25];(nw${at}["amenity"~"^(restaurant|cafe|fast_food|food_court|ice_cream|bar|pub|pharmacy|bank|atm|toilets|post_office|library|cinema|karaoke_box|hospital|clinic|police|place_of_worship)$"]["name"];nw${at}["shop"~"^(convenience|supermarket|bakery|department_store|mall|books|clothes|confectionery|drugstore|chemist|electronics|gift|variety_store|toys|sports|hairdresser|cosmetics|stationery|second_hand|beauty|florist|shoes|hardware|doityourself|furniture|pastry|tea|coffee|alcohol|butcher|greengrocer)$"]["name"];nw${at}["tourism"~"^(attraction|museum|viewpoint|gallery|zoo|aquarium|theme_park|hotel)$"]["name"];nw${at}["leisure"~"^(park|garden|playground)$"]["name"];nw${at}["railway"="station"]["name"];nw${at}["historic"]["name"];);out center tags 250;`;
+    let j = null;
+    const start = this.poiTry++ % this.OVERPASS.length;
+    for (let i = 0; i < this.OVERPASS.length && !j; i++) {
+      const url = this.OVERPASS[(start + i) % this.OVERPASS.length];
+      try { j = await this.fetchJSON(url, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, 16000); if (!j || !Array.isArray(j.elements)) j = null; }
+      catch (e) { j = null; }
+    }
+    let out = [];
+    if (j) {
+      const seen = new Set();
       for (const el of j.elements || []) {
         const t = el.tags || {}, lat = el.lat != null ? el.lat : el.center && el.center.lat, lon = el.lon != null ? el.lon : el.center && el.center.lon;
         const name = t['name:ja'] || t.name; if (!name || lat == null) continue;
         const key = name + '|' + Math.round(lat * 2000) + '|' + Math.round(lon * 2000); if (seen.has(key)) continue; seen.add(key);
         out.push(this.poiOf(name, lat, lon, t, p));
       }
-      out.sort((a, b) => a.d - b.d);
-      this.pois = out.slice(0, 160); this.emit();
-    } catch (e) { this.poiErr = 'net'; this.emit(); }
+    } else out = await this.nearbyLite(p);
+    this.poiLoading = false;
+    if (!j && !out.length) { this.poiErr = 'net'; this.emit(); if (!manual && !this.poiRetryT) this.poiRetryT = setTimeout(() => { this.poiRetryT = 0; if (this.on && !this.pois.length) this.nearby(this.here()); }, 9000); return; }
+    out.sort((a, b) => a.d - b.d);
+    this.pois = out.slice(0, 160); this.poiErr = j ? '' : 'lite'; this.emit();
+  },
+  /* fallback: a few category searches around here (fewer places, but it usually works) */
+  async nearbyLite(p) {
+    const vb = `&viewbox=${p.lon - 0.012},${p.lat + 0.01},${p.lon + 0.012},${p.lat - 0.01}&bounded=1`, out = [], seen = new Set();
+    const tags = { restaurant: { amenity: 'restaurant' }, cafe: { amenity: 'cafe' }, convenience: { shop: 'convenience' }, station: { railway: 'station' }, park: { leisure: 'park' }, supermarket: { shop: 'supermarket' } };
+    for (const [k, t] of Object.entries(tags)) {
+      try {
+        const r = await this.fetchJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=[${k}]&accept-language=ja&limit=15${vb}`, null, 12000);
+        for (const x of r || []) { const name = x.name || String(x.display_name || '').split(',')[0]; if (!name || seen.has(name)) continue; seen.add(name); out.push(this.poiOf(name, +x.lat, +x.lon, t, p)); }
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 1100));   // Nominatim: one request per second
+    }
+    return out;
   },
   poiOf(name, lat, lon, t, from) {
     const cat = GEO_CATS.find(c => c.m(t)) || GEO_CATS[GEO_CATS.length - 1];
@@ -7764,6 +8061,7 @@ const Geo = {
     const d = from ? geoDist(from, { lat, lon }) : 0;
     return { name, lat, lon, cat: cat.id, em: cat.em, kind, cuisine, hours: t.opening_hours || '', web: t.website || t['contact:website'] || '', d, dir: from ? geoDir(geoBear(from, { lat, lon })) : '' };
   },
+  reload() { const h = this.here(); if (!h) return; if (!this.addr || this.pos) this.reverse(h); this.nearby(h, true); },
   refreshDist() { const h = this.here(); if (!h) return; for (const p of this.pois) { p.d = geoDist(h, p); p.dir = geoDir(geoBear(h, p)); } this.pois.sort((a, b) => a.d - b.d); },
   async search(q, first) {
     const h = this.here(), vb = h ? `&viewbox=${h.lon - 0.25},${h.lat + 0.2},${h.lon + 0.25},${h.lat - 0.2}` : '';
@@ -7988,7 +8286,7 @@ const GeoPanel = {
     if (!this.el) return;
     const h = Geo.here(), share = $('.geo-share', this.el);
     share.innerHTML = Geo.on && Geo.ok
-      ? `<div class="gs-on">${ic('locate')}<span><b>位置情報を共有中</b><small>${esc(Geo.label() || '取得中…')}</small></span><button class="btn sm" data-g="share-off">やめる</button></div>`
+      ? `<div class="gs-on">${ic('locate')}<span><b>位置情報を共有中</b><small>${esc(Geo.label() || '取得中…')}</small></span><button class="btn sm" data-g="reload" ${Geo.poiLoading ? 'disabled' : ''} aria-label="近くの場所を読み込み直す">${ic('refresh')}${Geo.poiLoading ? '読み込み中…' : '読み込む'}</button><button class="btn sm" data-g="share-off">やめる</button></div>`
       : Geo.on ? `<div class="gs-on">${ic('locate')}<span><b>現在地を取得中…</b></span></div>`
       : `<div class="gs-off"><span><b>位置情報を共有すると</b><small>近くのお店やおすすめ、行き方をAIが教えてくれます</small></span><button class="btn sm primary" data-g="share-on">${ic('locate')}共有する</button><button class="btn sm" data-g="share-man">場所を入力</button></div>`;
     this.map.me = h;
@@ -8000,7 +8298,8 @@ const GeoPanel = {
     this.map.pins = pins; this.map.sel = this.sel;
     const ul = $('.geo-list', this.el);
     ul.innerHTML = list.length ? list.map((p, i) => `<li><button class="geo-it${p === this.sel ? ' on' : ''}" data-g="pick" data-i="${i}"><span class="em">${p.em}</span><span class="nm"><b>${esc(p.name)}</b><small>${esc([p.kind, p.cuisine].filter(Boolean).join('・'))}</small></span><span class="ds">${h ? `${esc(p.dir)} ${geoM(p.d)}` : ''}</span></button></li>`).join('')
-      : `<li class="geo-empty">${Geo.on && Geo.ok ? (Geo.poiErr ? '近くの場所を読み込めませんでした（ネットにつながっていないか、この画面では使えないようです）。上の検索や、AIへの質問はできます。' : Geo.poiPos ? '近くに見つかりませんでした' : '近くの場所を探しています…') : '位置情報を共有するか、場所を検索してください'}</li>`;
+      : `<li class="geo-empty">${Geo.on && Geo.ok ? (Geo.poiLoading ? '近くの場所を探しています…（混んでいるときは少し時間がかかります）' : Geo.poiErr === 'net' ? `近くの場所を読み込めませんでした。地図のサーバーが混んでいることがあります。<button class="btn sm primary" data-g="reload">${ic('refresh')}もう一度読み込む</button><br><small>上の検索や、AIへの質問はそのままできます。</small>` : Geo.poiPos ? `近くに見つかりませんでした。<button class="btn sm" data-g="reload">${ic('refresh')}読み込み直す</button>` : '近くの場所を探しています…') : '位置情報を共有するか、場所を検索してください'}</li>`;
+    if (Geo.poiErr === 'lite' && list.length) ul.insertAdjacentHTML('beforeend', `<li class="geo-empty">混雑のため、主なお店だけ表示しています。<button class="btn sm" data-g="reload">${ic('refresh')}全部読み込む</button></li>`);
     this._list = list;
     // place card
     const card = $('.geo-card', this.el), p = this.sel;
@@ -8025,6 +8324,7 @@ const GeoPanel = {
     else if (a === 'zout') this.map.zoomAt(-1, this.map.size()[0] / 2, this.map.size()[1] / 2);
     else if (a === 'share-on') { await Geo.enable(); const h = Geo.here(); if (h) this.map.setView(h.lat, h.lon, 16); renderComposer(); if (typeof Live !== 'undefined') Live.renderGeo(); }
     else if (a === 'share-man') { await Geo.askManual(''); const h = Geo.here(); if (h) this.map.setView(h.lat, h.lon, 16); renderComposer(); if (typeof Live !== 'undefined') Live.renderGeo(); }
+    else if (a === 'reload') { if (!Geo.here()) { toast('先に位置情報を共有してください'); return; } Geo.reload(); toast('近くの場所を読み込んでいます…', { ms: 1800 }); }
     else if (a === 'share-off') { Geo.disable(); this.route = null; GeoNav.stop(); renderComposer(); if (typeof Live !== 'undefined') Live.renderGeo(); }
     else if (a === 'cat') { this.cat = b.dataset.c; this.results = null; this.update(); }
     else if (a === 'clear-q') { this.results = null; $('.geo-q input', this.el).value = ''; this.update(); }
@@ -8059,6 +8359,1083 @@ const GeoPanel = {
     else this.map.fit(this.starred.concat(Geo.here() ? [Geo.here()] : []), 60);
   },
 };
+
+/* ---- 89k_karaoke.js ---- */
+/* ========== カラオケ: 曲えらび・伴奏・音程バー・採点・AIの先生 ========== */
+const KARA_PARTS = [
+  { id: 'orig', name: '原曲キー' },
+  { id: 'sop', name: 'ソプラノ', lo: 60, hi: 79 }, { id: 'mezzo', name: 'メゾ', lo: 57, hi: 76 }, { id: 'alto', name: 'アルト', lo: 53, hi: 72 },
+  { id: 'ten', name: 'テノール', lo: 48, hi: 67 }, { id: 'bari', name: 'バリトン', lo: 45, hi: 64 }, { id: 'bass', name: 'バス', lo: 40, hi: 60 },
+];
+const NOTE_JA = ['ド', 'ド♯', 'レ', 'レ♯', 'ミ', 'ファ', 'ファ♯', 'ソ', 'ソ♯', 'ラ', 'ラ♯', 'シ'];
+const KCHORD = { C: [0, 4, 7], Dm: [2, 5, 9], D7: [2, 6, 9, 0], E: [4, 8, 11], Em: [4, 7, 11], F: [5, 9, 0], G: [7, 11, 2], G7: [7, 11, 2, 5], Am: [9, 0, 4] };
+const kMidi = s => { const m = /^([A-G])([#b]?)(-?\d)$/.exec(s); return 12 * (+m[3] + 1) + { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); };
+const kHz = m => 440 * Math.pow(2, (m - 69) / 12);
+const kName = m => NOTE_JA[((Math.round(m) % 12) + 12) % 12] + (Math.floor(Math.round(m) / 12) - 1);
+const kNameJa = m => { const r = Math.round(m), o = Math.floor(r / 12) - 1; return (o <= 2 ? '低い' : o >= 5 ? '高い' : '') + NOTE_JA[((r % 12) + 12) % 12]; };
+
+function kParse(s) {
+  const notes = [], lines = [], chords = []; let b = 0;
+  s.lines.forEach(([text, src, ch], li) => {
+    const a = notes.length, b0 = b;
+    for (const tok of src.trim().split(/\s+/)) {
+      const [p, d, ...ly] = tok.split(':'); const dur = +d;
+      if (p !== 'r') notes.push({ m: kMidi(p), b, d: dur, ly: ly.join(':'), line: li });
+      b += dur;
+    }
+    let cb = b0; for (const [name, d] of ch) { chords.push({ b: cb, d, name }); cb += d; }
+    lines.push({ text, a, z: notes.length, b0, b1: b });
+  });
+  for (const n of notes) if (n.ly === '~') n.cont = true;
+  const ms = notes.map(n => n.m);
+  return Object.assign({}, s, { notes, lines, chords, beats: b, lo: Math.min(...ms), hi: Math.max(...ms) });
+}
+
+const Karaoke = (() => {
+  const P = Object.assign({ part: 'orig', key: 0, tempo: 1, octFree: true, guide: 0.55, back: 0.7, lyr: 'lyrics', mon: false, kara: true, lag: 0 }, LS.get('kara', {}));
+  const saveP = () => LS.set('kara', P);
+  let el = null, view = 'pick', song = null, yt = null, ctx = null, master = null, gG = null, gB = null, runG = null;
+  let mic = null, micErr = '', playing = false, t0 = 0, spb = 0.6, lat = 0.1, endT = 0, sched = null, hist = [], raf = 0, last = null, hintT = 0, phraseShown = -1, res = null, ytState = { ready: false, err: 0, t: 0, st: -1 }, searchRes = null, searching = false, coachTxt = '', coachBusy = false, freeT0 = 0, noise = null, rev = null, monG = null;
+  const S2 = { hint: '', hintCls: '', badge: '', badgeT: 0 };
+
+  /* ---------- audio ---------- */
+  function audio() {
+    if (!ctx) {
+      const AC = win.AudioContext || win.webkitAudioContext; if (!AC) return null;
+      ctx = new AC({ latencyHint: 'interactive' });
+      master = ctx.createGain(); master.gain.value = 0.9;
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3; master.connect(comp); comp.connect(ctx.destination);
+      noise = ctx.createBuffer(1, ctx.sampleRate * 1, ctx.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return ctx;
+  }
+  function env(g, t, a, peak, d, sus, rel, end) { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.setTargetAtTime(peak * sus, t + a, d); g.gain.setTargetAtTime(0.0001, end, rel); }
+  function guideNote(m, t, dur, dest) {
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o1.type = 'triangle'; o2.type = 'sine'; o1.frequency.value = kHz(m); o2.frequency.value = kHz(m) * 2; o2.detune.value = 3;
+    const g2 = ctx.createGain(); g2.gain.value = 0.18; f.type = 'lowpass'; f.frequency.value = 2600;
+    o1.connect(f); o2.connect(g2); g2.connect(f); f.connect(g); g.connect(dest);
+    if (dur > 0.55) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 5.4; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(0, t + 0.3); lg.gain.linearRampToValueAtTime(14, t + Math.min(dur, 0.8)); l.connect(lg); lg.connect(o1.detune); lg.connect(o2.detune); l.start(t); l.stop(t + dur + 0.3); }
+    const end = t + Math.max(0.08, dur - 0.04); env(g, t, 0.025, 0.32, 0.12, 0.75, 0.06, end);
+    o1.start(t); o2.start(t); o1.stop(end + 0.4); o2.stop(end + 0.4);
+  }
+  function tone(m, t, dur, dest, o = {}) {
+    const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = o.type || 'triangle'; osc.frequency.value = kHz(m); if (o.det) osc.detune.value = o.det;
+    let node = osc; if (o.lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; if (o.lpEnv) { f.frequency.setValueAtTime(o.lp * 3, t); f.frequency.exponentialRampToValueAtTime(o.lp, t + o.lpEnv); } osc.connect(f); node = f; }
+    node.connect(g); g.connect(dest);
+    const end = t + dur; if (o.pluck) { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(o.vol || 0.2, t + 0.005); g.gain.setTargetAtTime(0.0001, t + 0.01, o.pluck); }
+    else env(g, t, o.a || 0.01, o.vol || 0.2, o.d || 0.2, o.s == null ? 0.6 : o.s, o.r || 0.08, end);
+    osc.start(t); osc.stop(end + (o.pluck ? o.pluck * 6 : 0.6));
+  }
+  function drum(kind, t, dest, vol = 1) {
+    if (kind === 'kick') { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); g.gain.setValueAtTime(0.55 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.3); return; }
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noise;
+    if (kind === 'hat') { f.type = 'highpass'; f.frequency.value = 7500; g.gain.setValueAtTime(0.12 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); }
+    else if (kind === 'bell') { f.type = 'bandpass'; f.frequency.value = 9000; f.Q.value = 2; g.gain.setValueAtTime(0.16 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16); }
+    else if (kind === 'click') { f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 6; g.gain.setValueAtTime(0.5 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05); }
+    else { f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.7; g.gain.setValueAtTime(0.26 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16); }
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + 0.3);
+  }
+  /* 伴奏の予定表を作る（拍の位置と音） */
+  function buildEvents(sg, shift) {
+    const ev = [], st = sg.style, sig = sg.sig, pick = sg.pick || 0;
+    for (const n of sg.notes) ev.push({ b: n.b, k: 'g', m: n.m + shift, d: n.d });
+    const near = (pc, lo) => { let m = lo + ((pc - lo) % 12 + 12) % 12; return m; };
+    for (const c of sg.chords) {
+      const pcs = (KCHORD[c.name] || KCHORD.C).map(p => (p + shift + 120) % 12), root = pcs[0];
+      if (st === 'koto') {
+        const r = near(root, 45), fifth = r + 7;
+        for (let x = 0; x < c.d; x += 4) { ev.push({ b: c.b + x, k: 'pl', m: r, d: 1.5 }); ev.push({ b: c.b + x + 0.02, k: 'pl', m: fifth, d: 1.5 }); ev.push({ b: c.b + x + 2, k: 'pl', m: fifth + 5, d: 1, v: 0.6 }); }
+        continue;
+      }
+      const voic = pcs.map(p => near(p, 55)).sort((a, b) => a - b);
+      if (st === 'piano') { for (let x = 0; x < c.d; x += 2) for (const m of voic) ev.push({ b: c.b + x, k: 'pi', m, d: 1.8 }); ev.push({ b: c.b, k: 'bs', m: near(root, 36), d: Math.min(c.d, 2) }); continue; }
+      ev.push({ b: c.b, k: 'pad', ms: voic, d: c.d });
+      const bassM = near(root, 36);
+      if (st === 'waltz') { for (let x = 0; x < c.d; x++) { const ab = c.b + x - pick, beat = ((ab % 3) + 3) % 3; if (beat === 0) ev.push({ b: c.b + x, k: 'bs', m: bassM, d: 0.9 }); else for (const m of voic) ev.push({ b: c.b + x, k: 'pi', m, d: 0.6, v: 0.5 }); } }
+      else if (st === 'six8') { for (let x = 0; x < c.d; x++) { const beat = ((c.b + x) % 6 + 6) % 6; if (beat === 0 || beat === 3) ev.push({ b: c.b + x, k: 'bs', m: beat === 0 ? bassM : bassM + 7, d: 2.5 }); ev.push({ b: c.b + x, k: 'pi', m: voic[(beat) % voic.length] + 12, d: 0.9, v: 0.45 }); } }
+      else { for (let x = 0; x < c.d; x += 1) { const beat = ((c.b + x) % sig + sig) % sig; if (beat === 0 || beat === 2) ev.push({ b: c.b + x, k: 'bs', m: beat === 2 && c.d > 2 ? bassM + 7 : bassM, d: 0.9 }); ev.push({ b: c.b + x + 0.5, k: 'pi', m: voic[(x * 2 + 1) % voic.length] + 12, d: 0.4, v: 0.35 }); } }
+    }
+    if (st === 'pop' || st === 'xmas' || st === 'waltz' || st === 'six8') {
+      for (let b = 0; b < sg.beats; b += (st === 'six8' ? 1 : 0.5)) {
+        const ab = b - pick, whole = Math.abs(ab - Math.round(ab)) < 1e-6, beat = ((Math.round(ab) % sig) + sig) % sig;
+        if (st === 'waltz') { if (whole && b >= pick) { if (beat === 0) ev.push({ b, k: 'kick' }); else ev.push({ b, k: 'hat' }); } continue; }
+        if (st === 'six8') { const bb = ((Math.round(b) % 6) + 6) % 6; if (bb === 0) ev.push({ b, k: 'kick' }); else if (bb === 3) ev.push({ b, k: 'snare', v: 0.6 }); else ev.push({ b, k: 'hat', v: 0.6 }); continue; }
+        if (whole && (beat === 0 || (sig === 4 && beat === 2))) ev.push({ b, k: 'kick' });
+        if (whole && (beat === 1 || beat === 3)) ev.push({ b, k: 'snare', v: 0.8 });
+        ev.push({ b, k: st === 'xmas' ? 'bell' : 'hat', v: whole ? 1 : 0.6 });
+      }
+    }
+    return ev.sort((a, b) => a.b - b.b);
+  }
+  function playEv(e, t) {
+    const d = e.d * spb;
+    if (e.k === 'g') guideNote(e.m, t, d, gG);
+    else if (e.k === 'pad') for (const m of e.ms) { tone(m, t, d, gB, { type: 'sawtooth', lp: 900, vol: 0.035, a: 0.12, d: 0.6, s: 0.7, r: 0.25, det: -6 }); tone(m, t, d, gB, { type: 'sawtooth', lp: 900, vol: 0.03, a: 0.12, d: 0.6, s: 0.7, r: 0.25, det: 7 }); }
+    else if (e.k === 'bs') { tone(e.m, t, d, gB, { type: 'triangle', vol: 0.32, a: 0.008, d: 0.25, s: 0.5, r: 0.08 }); tone(e.m + 12, t, d, gB, { type: 'sine', vol: 0.08, a: 0.008, d: 0.2, s: 0.4 }); }
+    else if (e.k === 'pi') tone(e.m, t, d, gB, { type: 'triangle', pluck: 0.25, vol: 0.12 * (e.v || 1), lp: 2400 });
+    else if (e.k === 'pl') { tone(e.m, t, d, gB, { type: 'sawtooth', pluck: 0.32, vol: 0.13 * (e.v || 1), lp: 1500, lpEnv: 0.2 }); tone(e.m + 12, t, d, gB, { type: 'triangle', pluck: 0.18, vol: 0.06 * (e.v || 1) }); }
+    else drum(e.k, t, gB, e.v || 1);
+  }
+
+  /* ---------- マイクと音程検出（YIN） ---------- */
+  async function micOn() {
+    if (mic) return true;
+    micErr = '';
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { micErr = 'none'; return false; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+      audio(); const src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 2048; src.connect(an);
+      mic = { stream, src, an, buf: new Float32Array(an.fftSize), ds: new Float32Array(1024), sm: [] };
+      setMon(); return true;
+    } catch (e) { micErr = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'denied' : 'fail'; return false; }
+  }
+  function micOff() { if (!mic) return; try { mic.stream.getTracks().forEach(t => t.stop()); mic.src.disconnect(); } catch (e) {} mic = null; if (monG) { try { monG.disconnect(); } catch (e) {} monG = null; } }
+  function setMon() {
+    if (!mic || !ctx) return;
+    if (P.mon && !monG) {
+      monG = ctx.createGain(); monG.gain.value = 0.8;
+      if (!rev) { rev = ctx.createConvolver(); const len = ctx.sampleRate * 1.6, b = ctx.createBuffer(2, len, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2) * 0.5; } rev.buffer = b; rev.connect(master); }
+      const wet = ctx.createGain(); wet.gain.value = 0.35; mic.src.connect(monG); monG.connect(master); monG.connect(wet); wet.connect(rev);
+    } else if (!P.mon && monG) { try { mic.src.disconnect(monG); monG.disconnect(); } catch (e) {} monG = null; }
+  }
+  function yin(x, sr) {
+    const N = x.length, W = N >> 1; let rms = 0; for (let i = 0; i < N; i++) rms += x[i] * x[i]; rms = Math.sqrt(rms / N);
+    if (rms < 0.006) return { f: 0, rms };
+    const tMin = Math.max(2, Math.floor(sr / 1150)), tMax = Math.min(W - 2, Math.floor(sr / 70));
+    const d = new Float32Array(tMax + 2);
+    for (let t = 1; t <= tMax + 1; t++) { let s = 0; for (let i = 0; i < W; i++) { const v = x[i] - x[i + t]; s += v * v; } d[t] = s; }
+    let run = 0; const c = new Float32Array(tMax + 2); c[0] = 1;
+    for (let t = 1; t <= tMax + 1; t++) { run += d[t]; c[t] = run ? d[t] * t / run : 1; }
+    let tau = -1;
+    for (let t = tMin; t <= tMax; t++) if (c[t] < 0.13) { while (t + 1 <= tMax && c[t + 1] < c[t]) t++; tau = t; break; }
+    if (tau < 0) { let best = tMin; for (let t = tMin; t <= tMax; t++) if (c[t] < c[best]) best = t; if (c[best] < 0.28) tau = best; else return { f: 0, rms }; }
+    const a = c[tau - 1], b = c[tau], cc = c[tau + 1], den = a + cc - 2 * b; const sh = den ? (a - cc) / (2 * den) : 0;
+    return { f: sr / (tau + clamp(sh, -1, 1)), rms, q: 1 - b };
+  }
+  function detect() {
+    if (!mic) return null;
+    const an = mic.an, b = mic.buf; an.getFloatTimeDomainData(b);
+    let sr = ctx.sampleRate, x = b;
+    if (sr > 30000) { const ds = mic.ds; for (let i = 0; i < 1024; i++) ds[i] = (b[2 * i] + b[2 * i + 1]) * 0.5; x = ds; sr /= 2; }
+    const r = yin(x, sr);
+    let m = r.f ? 69 + 12 * Math.log2(r.f / 440) : null;
+    if (m != null && (m < 36 || m > 86)) m = null;
+    const sm = mic.sm; sm.push(m); if (sm.length > 3) sm.shift();
+    if (m != null && sm.length === 3 && sm[0] != null && sm[2] != null) { const med = [...sm].sort((p, q) => p - q)[1]; if (Math.abs(m - med) > 9) m = med; }
+    return { m, db: 20 * Math.log10(r.rms + 1e-6) };
+  }
+
+  /* ---------- 曲の準備 ---------- */
+  const partOf = () => KARA_PARTS.find(p => p.id === P.part) || KARA_PARTS[0];
+  function shiftFor(sg) {
+    const p = partOf(); let s = 0;
+    if (p.lo) { s = Math.round((p.lo + p.hi) / 2 - (sg.lo + sg.hi) / 2); if (sg.hi + s > p.hi) s -= sg.hi + s - p.hi; if (sg.lo + s < p.lo) s += p.lo - (sg.lo + s); s = Math.round(s); }
+    return s + P.key;
+  }
+  const shift = () => (song ? shiftFor(song) : P.key);
+  const noteAt = beat => { if (!song) return -1; const ns = song.notes; let lo = 0, hi = ns.length - 1; while (lo <= hi) { const mi = (lo + hi) >> 1; if (ns[mi].b > beat) hi = mi - 1; else if (ns[mi].b + ns[mi].d <= beat) lo = mi + 1; else return mi; } return -1; };
+  const lineAt = beat => { if (!song) return -1; for (let i = 0; i < song.lines.length; i++) if (beat < song.lines[i].b1) return i; return song.lines.length - 1; };
+  const lyricOf = n => (P.lyr === 'doremi' && !song.ex ? NOTE_JA[((n.m % 12) + 12) % 12] : n.ly);
+
+  /* ---------- 画面 ---------- */
+  function shell() {
+    el = doc.createElement('section'); el.className = 'kara'; el.setAttribute('aria-label', 'カラオケ'); el.hidden = true;
+    el.innerHTML = `<div class="k-top"><button class="icon-btn" data-k="close" aria-label="カラオケを閉じる">${ic('x')}</button><button class="icon-btn" data-k="back" aria-label="曲をえらぶ" hidden>${ic('chevL')}</button><b class="k-ttl">${ic('music')}カラオケ</b><span class="k-sp"></span></div><div class="k-main"></div>`;
+    doc.body.appendChild(el);
+    el.addEventListener('click', onClick);
+    el.addEventListener('submit', e => { e.preventDefault(); const f = e.target; if (f.dataset.k === 'search') search($('input', f).value); else if (f.dataset.k === 'url') openURL($('input', f).value); });
+    el.addEventListener('input', e => { const t = e.target; if (t.dataset.kv === 'guide') { P.guide = +t.value; if (gG) gG.gain.value = P.guide; saveP(); } if (t.dataset.kv === 'back') { P.back = +t.value; if (gB) gB.gain.value = P.back * 0.8; saveP(); } });
+    el.addEventListener('change', e => { const t = e.target; if (t.dataset.kv === 'tempo') { P.tempo = +t.value; saveP(); renderSing(); } if (t.dataset.kv === 'oct') { P.octFree = t.checked; saveP(); } if (t.dataset.kv === 'lag') { P.lag = +t.value; saveP(); } if (t.dataset.kv === 'mon') { P.mon = t.checked; saveP(); setMon(); if (P.mon) toast('スピーカーだとハウリングすることがあります。ヘッドホンで使ってください', { ms: 4200 }); } if (t.dataset.kv === 'kara') { P.kara = t.checked; saveP(); } });
+    doc.addEventListener('keydown', e => {
+      if (!el || el.hidden || Layer.top()) return;
+      if (e.key === 'Escape') { e.preventDefault(); if (view === 'sing') { if (playing) stop(false); else back(); } else close(); }
+      else if (e.key === ' ' && view === 'sing' && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) { e.preventDefault(); playing ? stop(true) : start(); }
+    });
+    win.addEventListener('message', onYTMsg);
+    win.addEventListener('resize', rafThrottle(() => { if (el && !el.hidden) sizeLane(); }, 100));
+  }
+  function open() {
+    if (!el) shell();
+    if (typeof Live !== 'undefined' && Live.on) Live.close();
+    TTS.cancel(); closeSideMobile && closeSideMobile();
+    el.hidden = false; doc.body.classList.add('kara-on');
+    if (view === 'sing' && (song || yt)) renderSing(); else renderPick();
+  }
+  function close() { stop(false); stopLoop(); micOff(); ytKill(); if (el) el.hidden = true; doc.body.classList.remove('kara-on'); if (ctx) { ctx.close().catch(() => {}); ctx = null; rev = null; } view = 'pick'; }
+  function back() { stop(false); ytKill(); res = null; view = 'pick'; renderPick(); }
+  const hist0 = () => LS.get('karaHist', []);
+  function bestOf(id) { const h = hist0().filter(x => x.id === id); return h.length ? Math.max(...h.map(x => x.score)) : null; }
+  function renderPick() {
+    view = 'pick'; $('[data-k="back"]', el).hidden = true; $('[data-k="close"]', el).hidden = false;
+    const card = s => { const sg = kParse(s), best = bestOf(s.id), secs = Math.round(sg.beats * 60 / s.bpm); return `<button class="k-song" data-k="song" data-id="${s.id}"><span class="k-art k-st-${s.style}">${ic(s.ex ? 'mic' : 'music')}</span><span class="k-si"><b>${esc(s.title)}</b><small>${esc(s.sub)}</small><small class="k-meta">${secs}秒・音域 ${kName(sg.lo)}〜${kName(sg.hi)}${best != null ? `・ベスト ${best.toFixed(1)}点` : ''}</small></span>${ic('chevR')}</button>`; };
+    const hs = hist0().slice(0, 6);
+    $('.k-main', el).innerHTML = `<div class="k-pick">
+      <form class="k-search" data-k="search"><input type="search" placeholder="曲名・アーティストで探す（YouTube）" aria-label="曲を探す" enterkeyhint="search" value="${esc(LS.get('karaQ', ''))}"><button class="btn primary">${ic('search')}<span>探す</span></button></form>
+      <label class="k-chk"><input type="checkbox" data-kv="kara"${P.kara ? ' checked' : ''}>「カラオケ」版（歌のない伴奏）を探す</label>
+      <div class="k-res">${resultsHTML()}</div>
+      <h3 class="k-h">${ic('sparkle')}音程ガイドつきの曲 <small>音程バー・歌詞・採点・AIの先生</small></h3>
+      <div class="k-songs">${KARA_SONGS.map(card).join('')}</div>
+      ${hs.length ? `<h3 class="k-h">${ic('db')}歌った記録</h3><ul class="k-hist">${hs.map(h => `<li><b>${esc(h.title)}</b><span>${esc(h.part || '')}</span><em>${h.score.toFixed(3)}点</em><small>${fmtDate(h.t)}</small></li>`).join('')}</ul>` : ''}
+      <p class="k-note">マイクで歌を聞いて、音程・リズム・安定性などを採点します。伴奏がマイクに入らないよう、ヘッドホンやイヤホンを使うと正確になります。</p></div>`;
+  }
+  function resultsHTML() {
+    if (searching) return `<div class="k-wait"><span class="dots"><i></i><i></i><i></i></span>YouTubeで探しています…</div>`;
+    if (!searchRes) return '';
+    if (searchRes.err) return `<div class="k-fail"><p>${esc(searchRes.err)}</p><div class="k-row"><a class="btn sm" href="https://www.youtube.com/results?search_query=${encodeURIComponent(searchRes.q)}" target="_blank" rel="noopener noreferrer">${ic('search')}YouTubeで探す</a></div><form class="k-url" data-k="url"><input type="url" placeholder="見つけた動画のURLを貼りつけ" aria-label="YouTubeのURL"><button class="btn sm primary">歌う</button></form></div>`;
+    return `<ul class="k-yt">${searchRes.items.map((v, i) => `<li><button data-k="yt" data-i="${i}"><img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" loading="lazy"><span><b>${esc(v.title)}</b><small>${esc(v.author || '')}${v.len ? '・' + Math.floor(v.len / 60) + ':' + pad2(v.len % 60) : ''}</small></span></button></li>`).join('')}</ul><form class="k-url" data-k="url"><input type="url" placeholder="ほかの動画のURLを貼りつけて歌う" aria-label="YouTubeのURL"><button class="btn sm">歌う</button></form>`;
+  }
+
+  /* ---------- YouTube ---------- */
+  const PIPED = ['https://pipedapi.kavin.rocks', 'https://pipedapi.adminforge.de', 'https://api.piped.private.coffee', 'https://pipedapi.r4fo.com'];
+  const INVID = ['https://inv.nadeko.net', 'https://invidious.nerdvpn.de', 'https://iv.melmac.space', 'https://invidious.f5.si', 'https://yewtu.be'];
+  async function getJ(url, ms = 7000) { const c = new AbortController(), to = setTimeout(() => c.abort(), ms); try { const r = await fetch(url, { signal: c.signal }); if (!r.ok) throw 0; return await r.json(); } finally { clearTimeout(to); } }
+  async function ytSearch(q) {
+    const tries = [
+      ...PIPED.map(b => async () => { const j = await getJ(`${b}/search?q=${encodeURIComponent(q)}&filter=videos`); const it = (j.items || []).filter(x => x.url && /watch\?v=/.test(x.url)).map(x => ({ id: x.url.split('v=')[1].slice(0, 11), title: x.title, author: x.uploaderName, len: x.duration })); if (!it.length) throw 0; return it; }),
+      ...INVID.map(b => async () => { const j = await getJ(`${b}/api/v1/search?q=${encodeURIComponent(q)}&type=video`); const it = (j || []).filter(x => x.videoId).map(x => ({ id: x.videoId, title: x.title, author: x.author, len: x.lengthSeconds })); if (!it.length) throw 0; return it; }),
+    ];
+    for (let i = 0; i < tries.length; i += 3) { try { return await Promise.any(tries.slice(i, i + 3).map(f => f())); } catch (e) {} }
+    if (Engine.relay && engineReady()) {
+      try {
+        const r = await relaySample(`YouTubeで「${q}」の動画を探して、見つかった動画のURLとタイトルを最大6件、次の形で1行ずつだけ書いてください：\nURL | タイトル | チャンネル名`, { search: true, modelTier: 'quick' });
+        const it = []; for (const l of String(r.text || '').split('\n')) { const m = l.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{11})/); if (m) { const p = l.split('|').map(x => x.trim()); it.push({ id: m[1], title: p[1] || q, author: p[2] || '' }); } }
+        if (it.length) return it;
+      } catch (e) {}
+    }
+    return null;
+  }
+  async function search(q) {
+    q = String(q || '').trim(); if (!q) return; LS.set('karaQ', q);
+    searching = true; searchRes = null; $('.k-res', el).innerHTML = resultsHTML();
+    const full = P.kara && !/カラオケ|karaoke|off ?vocal|instrumental/i.test(q) ? q + ' カラオケ' : q;
+    const items = await ytSearch(full);
+    searching = false;
+    searchRes = items ? { q: full, items: items.slice(0, 12) } : { q: full, err: 'いまはこの画面から検索できませんでした（検索サーバーにつながりません）。YouTubeで探して、動画のURLを下に貼りつけると歌えます。' };
+    if (view === 'pick') $('.k-res', el).innerHTML = resultsHTML();
+  }
+  const ytId = u => { const m = String(u || '').match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/) || String(u || '').trim().match(/^([\w-]{11})$/); return m ? m[1] : ''; };
+  function openURL(u) { const id = ytId(u); if (!id) { toast('YouTubeのURLを貼りつけてください', { err: true }); return; } pickYT({ id, title: 'YouTubeの動画', author: '' }); }
+  function pickYT(v) { song = null; yt = v; res = null; coachTxt = ''; ytState = { ready: false, err: 0, t: 0, st: -1 }; renderSing(); }
+  function ytPost(func, args) { const f = $('.k-ytf', el); if (f && f.contentWindow) f.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args: args || [], id: 1, channel: 'widget' }), '*'); }
+  function ytKill() { const f = el && $('.k-ytf', el); if (f) f.src = 'about:blank'; }
+  function onYTMsg(e) {
+    if (!el || !yt || !/youtube(-nocookie)?\.com$/.test(String(e.origin).replace(/^https?:\/\/(www\.)?/, ''))) return;
+    let d = e.data; try { if (typeof d === 'string') d = JSON.parse(d); } catch (x) { return; }
+    if (!d || !d.event) return;
+    if (d.event === 'onReady' || d.event === 'initialDelivery') ytState.ready = true;
+    if (d.event === 'onError' || (d.info && d.info.playerState === undefined && d.event === 'onError')) { ytState.err = +d.info || 1; renderYTErr(); }
+    if (d.info && typeof d.info === 'object') { if (d.info.currentTime != null) ytState.t = d.info.currentTime; if (d.info.playerState != null) { const was = ytState.st; ytState.st = d.info.playerState; if (ytState.st === 1 && was !== 1 && !playing) start(true); if (ytState.st === 0 && playing) stop(true); } }
+  }
+  function renderYTErr() { const n = $('.k-yterr', el); if (!n) return; n.hidden = false; n.innerHTML = `<p>${ytState.err === 101 || ytState.err === 150 ? 'この動画は、ほかのサイトの中では再生できない設定になっています。' : 'この画面では動画を再生できませんでした（ファイルを直接開いているときなど）。'}</p><div class="k-row"><a class="btn sm" href="https://www.youtube.com/watch?v=${esc(yt.id)}" target="_blank" rel="noopener noreferrer">${ic('play')}YouTubeで開く</a><span>別のタブで流しながら、ここで「歌う」を押すと採点できます。</span></div>`; }
+
+  /* ---------- 歌う画面 ---------- */
+  function renderSing() {
+    view = 'sing'; $('[data-k="back"]', el).hidden = false; $('[data-k="close"]', el).hidden = false;
+    const free = !song;
+    const parts = KARA_PARTS.map(p => `<button type="button" class="${p.id === P.part ? 'on' : ''}" data-k="part" data-p="${p.id}">${p.name}</button>`).join('');
+    const sh = shift();
+    $('.k-main', el).innerHTML = `<div class="k-sing${free ? ' free' : ''}">
+      <div class="k-head"><div class="k-tt"><b>${esc(song ? song.title : yt.title)}</b><small>${esc(song ? song.sub : (yt.author || 'YouTube'))}</small></div>
+        <div class="k-keys"><span class="k-lab">キー</span><button type="button" class="btn sm" data-k="key" data-d="-1" aria-label="キーを下げる">♭</button><b class="k-keyv">${P.key > 0 ? '+' : ''}${P.key}</b><button type="button" class="btn sm" data-k="key" data-d="1" aria-label="キーを上げる">♯</button></div></div>
+      <div class="k-parts seg" role="group" aria-label="声のパート">${parts}</div>
+      ${free ? `<div class="k-player"><iframe class="k-ytf" title="YouTubeの動画" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube-nocookie.com/embed/${esc(yt.id)}?enablejsapi=1&playsinline=1&rel=0${/^https?:/.test(location.origin) ? '&origin=' + encodeURIComponent(location.origin) : ''}"></iframe><div class="k-yterr" hidden></div></div>` : ''}
+      <div class="k-stage"><canvas class="k-lane" aria-label="音程バー"></canvas><div class="k-hint" aria-live="polite"></div><div class="k-badge"></div><div class="k-count"></div></div>
+      ${free ? `<p class="k-free">${ic('info')}ガイドのない曲は「自由採点」です。声の安定・音程の正確さ（半音のずれ）・抑揚・ロングトーンを見ます。動画を再生すると採点が始まります。</p>` : `<div class="k-lyr"><div class="k-l1"></div><div class="k-l2"></div></div>`}
+      <div class="k-ctl"><button type="button" class="btn primary k-go" data-k="go">${ic('play')}<span>${free ? '歌う（採点スタート）' : 'スタート'}</span></button><span class="k-mic" aria-live="polite"></span></div>
+      <details class="k-opts"><summary>${ic('sliders')}設定</summary><div class="k-optg">
+        ${free ? '' : `<label>テンポ<select data-kv="tempo">${[0.8, 0.9, 1, 1.1, 1.2].map(v => `<option value="${v}"${v === P.tempo ? ' selected' : ''}>${Math.round(v * 100)}%</option>`).join('')}</select></label>
+        <label>ガイドメロディ<input type="range" min="0" max="1" step="0.05" value="${P.guide}" data-kv="guide"></label>
+        <label>伴奏<input type="range" min="0" max="1" step="0.05" value="${P.back}" data-kv="back"></label>
+        <div class="seg k-lyrmode">${[['lyrics', '歌詞'], ['doremi', 'ドレミ']].map(([v, n]) => `<button type="button" class="${P.lyr === v ? 'on' : ''}" data-k="lyr" data-v="${v}">${n}</button>`).join('')}</div>`}
+        <label>タイミング補正（声が遅れて判定されるとき）<select data-kv="lag">${[-100, -50, 0, 50, 100, 150, 200, 300].map(v => `<option value="${v}"${v === (+P.lag || 0) ? ' selected' : ''}>${v > 0 ? '+' : ''}${v}ミリ秒${v === 150 ? '（Bluetoothイヤホン）' : v === 0 ? '（ふつう）' : ''}</option>`).join('')}</select></label>
+        <label class="k-sw"><input type="checkbox" data-kv="oct"${P.octFree ? ' checked' : ''}>オクターブちがいも正解にする</label>
+        <label class="k-sw"><input type="checkbox" data-kv="mon"${P.mon ? ' checked' : ''}>自分の声を聞く（エコー・ヘッドホン向け）</label>
+        ${song ? `<p class="k-mini">いまのキー：${sh > 0 ? '+' : ''}${sh}（音域 ${kNameJa(song.lo + sh)}〜${kNameJa(song.hi + sh)}）</p>` : ''}
+      </div></details>
+      <div class="k-result" hidden></div></div>`;
+    const f = $('.k-ytf', el); if (f) f.addEventListener('load', () => { try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*'); } catch (e) {} });
+    sizeLane(); paintLyrics(0); updMic(); loopStart();
+    if (res) showResult();
+  }
+  function updMic() {
+    const n = el && $('.k-mic', el); if (!n) return;
+    n.innerHTML = mic ? `${ic('mic')}マイク オン` : micErr === 'denied' ? `${ic('alert')}マイクが使えません（許可されていないか、この画面では使えない設定です）` : micErr ? `${ic('alert')}マイクが見つかりません` : `${ic('mic')}スタートでマイクを使います`;
+    n.classList.toggle('bad', !!micErr && !mic);
+  }
+  let lane = null, lg = null, LW = 0, LH = 0;
+  function sizeLane() {
+    lane = el && $('.k-lane', el); if (!lane) return; lg = lane.getContext('2d');
+    const r = lane.getBoundingClientRect(), dpr = Math.min(2, win.devicePixelRatio || 1);
+    LW = Math.max(10, r.width); LH = Math.max(10, r.height); lane.width = Math.round(LW * dpr); lane.height = Math.round(LH * dpr); lg.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawLane();
+  }
+  function paintLyrics(beat) {
+    if (!song || !el) return; const l1 = $('.k-l1', el), l2 = $('.k-l2', el); if (!l1) return;
+    const li = Math.max(0, lineAt(beat)), L = song.lines[li], N = song.lines[li + 1];
+    const toks = ln => { const out = []; for (let k = ln.a; k < ln.z; k++) { const n = song.notes[k]; if (n.cont && out.length) { out[out.length - 1].e = n.b + n.d; continue; } out.push({ t: lyricOf(n), s: n.b, e: n.b + n.d }); } return out; };
+    const sp = (t, i, arr) => { const join = P.lyr === 'doremi' || song.lang === 'ja' ? (P.lyr === 'doremi' ? ' ' : '') : (t.t.endsWith('-') ? '' : ' '); return `<span class="k-tk" data-s="${t.s}" data-e="${t.e}">${esc(P.lyr === 'doremi' ? t.t : t.t.replace(/-$/, ''))}</span>${i < arr.length - 1 ? join : ''}`; };
+    if (l1.dataset.li !== String(li) || l1.dataset.mode !== P.lyr) {
+      l1.dataset.li = li; l1.dataset.mode = P.lyr;
+      l1.innerHTML = (song.lang === 'ja' && P.lyr !== 'doremi' && L.text.replace(/\s/g, '') !== toks(L).map(t => t.t).join('') ? `<small>${esc(L.text)}</small>` : '') + `<div>${toks(L).map(sp).join('')}</div>`;
+      l2.innerHTML = N ? (P.lyr === 'doremi' ? toks(N).map(t => t.t).join(' ') : esc(N.text)) : '';
+    }
+    for (const s of $$('.k-tk', l1)) { const a = +s.dataset.s, e = +s.dataset.e; s.style.setProperty('--p', beat <= a ? 0 : beat >= e ? 1 : (beat - a) / (e - a)); }
+  }
+
+  /* ---------- 再生と採点 ---------- */
+  async function start(fromYT) {
+    if (playing) return;
+    audio(); if (!ctx) { toast('この端末では音を鳴らせません', { err: true }); return; }
+    const okMic = await micOn(); updMic();
+    if (!okMic && !song) { toast(micErr === 'denied' ? 'マイクが使えないため採点できません。ブラウザでHTMLファイルを開くと使えます' : 'マイクが見つかりません', { err: true, ms: 4600 }); return; }
+    if (!okMic) toast('マイクが使えないので、伴奏とガイドだけ流します（採点なし）', { ms: 3600 });
+    res = null; coachTxt = ''; const rn = $('.k-result', el); if (rn) rn.hidden = true;
+    hist = []; phraseShown = -1; S2.hint = ''; S2.badge = '';
+    lat = (ctx.outputLatency || ctx.baseLatency || 0.01) + 0.06 + (+P.lag || 0) / 1000;
+    if (song) {
+      spb = 60 / (song.bpm * P.tempo);
+      const sh = shift(), evs = buildEvents(song, sh);
+      for (const n of song.notes) n.acc = null;
+      const cnt = song.sig === 6 ? 6 : song.sig === 3 ? 3 : 4, cspb = song.sig === 6 ? spb : spb;
+      t0 = ctx.currentTime + 0.25 + cnt * cspb + (song.pick ? -0 : 0);
+      runG = ctx.createGain(); runG.gain.value = 1; runG.connect(master);
+      gG = ctx.createGain(); gB = ctx.createGain(); gG.gain.value = P.guide; gB.gain.value = P.back * 0.8; gG.connect(runG); gB.connect(runG);
+      for (let i = 0; i < cnt; i++) drum('click', t0 - (cnt - i) * cspb, runG, i === 0 ? 1.2 : 0.8);
+      sched = { evs, i: 0 };
+      endT = t0 + (song.beats + 0.6) * spb;
+    } else {
+      freeT0 = ctx.currentTime; t0 = freeT0; sched = null; endT = Infinity;
+      if (!fromYT) { ytPost('playVideo'); }
+    }
+    playing = true; setGo(); loopStart();
+  }
+  function setGo() { const b = el && $('.k-go', el); if (!b) return; b.innerHTML = playing ? `${ic('stop')}<span>${song ? '止める' : '採点を終える'}</span>` : `${ic('play')}<span>${song ? (res ? 'もう一度歌う' : 'スタート') : '歌う（採点スタート）'}</span>`; b.classList.toggle('on', playing); }
+  function stop(finish) {
+    if (!playing) return; playing = false;
+    if (runG && ctx) { const g = runG; try { g.gain.setTargetAtTime(0, ctx.currentTime, 0.05); } catch (e) {} setTimeout(() => { try { g.disconnect(); } catch (e) {} }, 500); runG = null; gG = gB = null; }
+    if (!song && ytState.st === 1) ytPost('pauseVideo');
+    sched = null; setGo();
+    const voiced = hist.filter(h => h.m != null).length;
+    if (finish && mic && voiced > 20) { res = score(); saveHist(); showResult(); coach(); }
+    else if (finish && mic) toast('声がほとんど聞こえませんでした。マイクに近づいて、もう一度歌ってみてください', { ms: 4200 });
+    const c = $('.k-count', el); if (c) c.textContent = '';
+  }
+  function pump() {
+    if (!sched || !ctx) return; const ahead = ctx.currentTime + 0.18;
+    while (sched.i < sched.evs.length) { const e = sched.evs[sched.i], t = t0 + e.b * spb; if (t > ahead) break; if (t > ctx.currentTime - 0.05) playEv(e, Math.max(t, ctx.currentTime)); sched.i++; }
+  }
+  function loopStart() { if (!raf) raf = requestAnimationFrame(tick); }
+  function stopLoop() { cancelAnimationFrame(raf); raf = 0; }
+  function tick() {
+    raf = 0; if (!el || el.hidden || view !== 'sing') return;
+    if (playing) pump();
+    const now = ctx ? ctx.currentTime : 0;
+    const d = mic ? detect() : null; last = d;
+    if (playing && d) {
+      const ts = now - t0 - lat;
+      if (song) {
+        const beat = ts / spb, ni = noteAt(beat), n = ni >= 0 ? song.notes[ni] : null;
+        let err = null, mm = d.m;
+        if (n && mm != null) { let df = mm - (n.m + shift()); if (P.octFree) df -= 12 * Math.round(df / 12); err = df * 100; mm = n.m + shift() + df; }
+        if (ts > -0.2) hist.push({ t: ts, b: beat, m: mm, raw: d.m, db: d.db, ni, err });
+        if (n && err != null) { const a = clamp(1 - (Math.abs(err) - 35) / 165, 0, 1); n.acc = n.acc == null ? a : n.acc * 0.9 + a * 0.1; }
+      } else hist.push({ t: ts, m: d.m, raw: d.m, db: d.db, ni: -1, err: null });
+      if (now - hintT > 0.45) { hintT = now; liveHint(); }
+    }
+    if (playing && song) {
+      const beat = (now - t0 - lat + 0.06) / spb;
+      paintLyrics(Math.max(0, beat));
+      const c = $('.k-count', el); if (c) { const left = Math.ceil(-beat); c.textContent = beat < 0 && left <= 4 ? String(left) : ''; }
+      const li = lineAt(beat - 0.05); if (li > 0 && li - 1 > phraseShown && beat > song.lines[li - 1].b1 + 0.1) { phraseShown = li - 1; phraseBadge(li - 1); }
+      if (now > endT) { phraseBadge(song.lines.length - 1); stop(true); }
+    }
+    drawLane();
+    if (playing || mic) raf = requestAnimationFrame(tick);
+  }
+  function liveHint() {
+    const n = $('.k-hint', el); if (!n) return;
+    const tNow = hist.length ? hist[hist.length - 1].t : 0, rec = hist.filter(h => h.t > tNow - 0.9);
+    let txt = '', cls = '';
+    if (song) {
+      const tg = rec.filter(h => h.ni >= 0); if (tg.length < 8) { n.textContent = ''; n.className = 'k-hint'; return; }
+      const v = tg.filter(h => h.err != null);
+      if (v.length < tg.length * 0.3) { txt = '声を出してみよう！'; cls = 'quiet'; }
+      else { const e = v.map(h => h.err).sort((a, b) => a - b)[v.length >> 1]; if (Math.abs(e) <= 30) { txt = 'ピッタリ！'; cls = 'good'; } else if (Math.abs(e) <= 60) { txt = 'いい感じ'; cls = 'good'; } else if (e > 0) { txt = '少し高いよ ↓'; cls = 'high'; } else { txt = '少し低いよ ↑'; cls = 'low'; } }
+    } else {
+      const v = rec.filter(h => h.m != null); if (v.length < 6) { n.textContent = ''; n.className = 'k-hint'; return; }
+      const dev = v.map(h => { const x = (h.m - Math.round(h.m)) * 100; return x; }), md = dev.sort((a, b) => a - b)[dev.length >> 1];
+      txt = Math.abs(md) < 22 ? '音程しっかり！' : md > 0 ? '少し上ずり気味' : '少し下がり気味'; cls = Math.abs(md) < 22 ? 'good' : md > 0 ? 'high' : 'low';
+    }
+    n.textContent = txt; n.className = 'k-hint ' + cls;
+  }
+  function phraseBadge(li) {
+    if (!song || li < 0) return; const L = song.lines[li]; const ns = song.notes.slice(L.a, L.z);
+    const fr = hist.filter(h => h.ni >= L.a && h.ni < L.z); if (fr.length < 5) return;
+    const v = fr.filter(h => h.err != null); const a = v.length ? v.reduce((s, h) => s + clamp(1 - (Math.abs(h.err) - 35) / 165, 0, 1), 0) / fr.length : 0;
+    const [t, c] = a > 0.85 ? ['PERFECT!', 'p'] : a > 0.68 ? ['GREAT!', 'g'] : a > 0.45 ? ['GOOD', 'o'] : ['もう少し！', 'm'];
+    const b = $('.k-badge', el); if (!b) return; b.textContent = t; b.className = 'k-badge show ' + c; clearTimeout(S2.badgeT); S2.badgeT = setTimeout(() => { b.className = 'k-badge'; }, 1100);
+    void ns;
+  }
+  function drawLane() {
+    if (!lg || !el || el.hidden) return; const g = lg, W = LW, H = LH;
+    g.clearRect(0, 0, W, H);
+    const now = ctx ? ctx.currentTime : 0, sh = shift();
+    const px = W * 0.24, secW = (W - px) / 4.2;
+    let lo, hi; const tv = playing ? now - t0 - lat : song ? -0.6 : (hist.length ? hist[hist.length - 1].t : 0);
+    if (song) { lo = song.lo + sh - 3; hi = song.hi + sh + 3; }
+    else { const v = hist.slice(-240).filter(h => h.m != null).map(h => h.m); const c = v.length ? v.sort((a, b) => a - b)[v.length >> 1] : (partOf().lo ? (partOf().lo + partOf().hi) / 2 : 62); lo = Math.round(c) - 9; hi = Math.round(c) + 9; }
+    const rows = hi - lo + 1, rh = (H - 16) / rows, y = m => H - 8 - (m - lo + 0.5) * rh, xT = t => px + (t - tv) * secW;
+    for (let m = lo; m <= hi; m++) { const pc = ((m % 12) + 12) % 12; g.fillStyle = pc === 0 ? 'rgba(255,255,255,.10)' : [1, 3, 6, 8, 10].includes(pc) ? 'rgba(0,0,0,.10)' : 'rgba(255,255,255,.03)'; g.fillRect(0, y(m) - rh / 2, W, rh); }
+    const labels = () => { g.fillStyle = 'rgba(12,9,30,.62)'; g.fillRect(0, 0, 46, H); g.font = `${Math.max(9, Math.min(12, rh * 0.75))}px system-ui,sans-serif`; g.textBaseline = 'middle'; for (let m = lo; m <= hi; m++) { const pc = ((m % 12) + 12) % 12; if (pc === 0 || rows < 16 || [4, 7].includes(pc)) { g.fillStyle = pc === 0 ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.45)'; g.fillText(kName(m), 6, y(m)); } } };
+    if (song) {
+      const spbx = playing ? spb : 60 / (song.bpm * P.tempo);
+      for (const n of song.notes) {
+        const t = n.b * spbx, x0 = xT(t), x1 = xT(t + n.d * spbx); if (x1 < 30 || x0 > W) continue;
+        const yy = y(n.m + sh), hgt = Math.max(6, rh * 0.72), done = playing && t + n.d * spbx < tv, cur = playing && t <= tv && t + n.d * spbx > tv;
+        const a = n.acc;
+        g.fillStyle = a == null ? (done ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.22)') : a > 0.7 ? 'rgba(255,214,90,.95)' : a > 0.4 ? 'rgba(120,220,170,.85)' : 'rgba(255,120,120,.75)';
+        if (cur && a == null) g.fillStyle = 'rgba(255,255,255,.4)';
+        g.beginPath(); (g.roundRect ? g.roundRect(x0 + 1, yy - hgt / 2, Math.max(4, x1 - x0 - 2), hgt, hgt / 2) : g.rect(x0 + 1, yy - hgt / 2, Math.max(4, x1 - x0 - 2), hgt)); g.fill();
+        if (cur) { g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2; g.stroke(); }
+        if (!n.cont && x1 - x0 > 18) { g.fillStyle = 'rgba(255,255,255,.85)'; g.font = `600 ${Math.max(10, Math.min(13, hgt * 0.75))}px system-ui,sans-serif`; g.textBaseline = 'bottom'; g.fillText(String(lyricOf(n)).replace(/-$/, ''), x0 + 3, yy - hgt / 2 - 2); }
+      }
+    }
+    /* 歌った線 */
+    g.lineWidth = 3.5; g.lineCap = 'round'; g.lineJoin = 'round';
+    let prev = null;
+    for (let i = Math.max(0, hist.length - 900); i < hist.length; i++) {
+      const h = hist[i], xx = xT(h.t); if (xx < 0) { prev = null; continue; } if (xx > W + 4) break;
+      if (h.m == null) { prev = null; continue; }
+      const yy = y(h.m);
+      if (prev && xx - prev[0] < 14) { g.strokeStyle = h.err == null ? 'rgba(110,210,255,.95)' : Math.abs(h.err) <= 50 ? 'rgba(120,255,170,.95)' : Math.abs(h.err) <= 110 ? 'rgba(255,220,110,.95)' : 'rgba(255,110,110,.95)'; g.beginPath(); g.moveTo(prev[0], prev[1]); g.lineTo(xx, yy); g.stroke(); }
+      prev = [xx, yy];
+    }
+    labels();
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(px - 1, 0, 2, H);
+    if (last && last.m != null) {
+      let m = last.m; if (song && P.octFree) { const n = song.notes[noteAt(playing ? tv / spb : -1)]; if (n) { const df = m - (n.m + sh); m -= 12 * Math.round(df / 12); } }
+      if (!song || (m >= lo - 1 && m <= hi + 1)) { g.beginPath(); g.arc(px, y(clamp(m, lo, hi)), 7, 0, 7); g.fillStyle = '#fff'; g.shadowColor = 'rgba(120,220,255,.9)'; g.shadowBlur = 14; g.fill(); g.shadowBlur = 0; }
+    }
+    if (last) { const lv = clamp((last.db + 60) / 50, 0, 1); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(W - 8, 6, 4, H - 12); g.fillStyle = lv > 0.85 ? '#ff8a7a' : '#7ef0b8'; g.fillRect(W - 8, 6 + (H - 12) * (1 - lv), 4, (H - 12) * lv); }
+  }
+
+  /* ---------- 採点 ---------- */
+  function score() {
+    const V = hist.filter(h => h.m != null), r = { mode: song ? 'guide' : 'free' };
+    const median = a => { if (!a.length) return 0; const s = [...a].sort((p, q) => p - q); return s[s.length >> 1]; };
+    const segs = (arr, cond) => { const out = []; let cur = []; for (const h of arr) { if (cond(h)) cur.push(h); else { if (cur.length) out.push(cur); cur = []; } } if (cur.length) out.push(cur); return out; };
+    const vib = seg => { if (seg.length < 30) return false; const xs = seg.map(h => h.m * 100), m0 = median(xs), d = xs.map(x => x - m0); let zc = 0, amp = 0; for (let i = 1; i < d.length; i++) { if ((d[i - 1] < 0) !== (d[i] < 0)) zc++; amp = Math.max(amp, Math.abs(d[i])); } const dur = seg[seg.length - 1].t - seg[0].t, hz = zc / 2 / (dur || 1); return hz > 4 && hz < 8.5 && amp > 18 && amp < 140; };
+    const dbs = V.map(h => h.db).sort((a, b) => a - b);
+    const dynR = dbs.length > 10 ? dbs[Math.floor(dbs.length * 0.9)] - dbs[Math.floor(dbs.length * 0.15)] : 0;
+    r.expr = Math.round(clamp(dynR / 14, 0, 1) * 100);
+    if (song) {
+      const notes = song.notes, sh = shift(); let wsum = 0, accS = 0, tim = [], cov = 0, covW = 0, stab = [], longs = [], vibN = 0;
+      r.lines = song.lines.map(() => ({ acc: 0, w: 0, err: [], early: [] }));
+      notes.forEach((n, i) => {
+        const fr = hist.filter(h => h.ni === i), dur = n.d * spb; if (!fr.length) return;
+        const vf = fr.filter(h => h.err != null), body = vf.filter(h => h.b > n.b + Math.min(0.25, n.d * 0.3));
+        const acc = fr.length ? vf.reduce((s, h) => s + clamp(1 - (Math.abs(h.err) - 35) / 165, 0, 1), 0) / fr.length : 0;
+        const w = Math.min(dur, 1.5); wsum += w; accS += acc * w; covW += w; cov += (vf.length / fr.length) * w;
+        const L = r.lines[n.line]; L.acc += acc * w; L.w += w; if (body.length) L.err.push(median(body.map(h => h.err)));
+        if (!n.cont) { const first = fr.find(h => h.err != null); if (first) { const e = (first.b - n.b) * spb; const prevSung = i > 0 && notes[i - 1].b + notes[i - 1].d >= n.b - 0.01 && hist.some(h => h.ni === i - 1 && h.err != null); if (!prevSung || Math.abs(n.m - notes[i - 1].m) > 0) { tim.push(clamp(1 - (Math.abs(e) - 0.07) / 0.3, 0, 1)); L.early.push(e); } } }
+        if (dur >= 0.55 && body.length > 10) { const md = median(body.map(h => h.err)), mad = median(body.map(h => Math.abs(h.err - md))); stab.push(clamp(1 - (mad - 10) / 45, 0, 1)); if (vib(body)) vibN++; }
+        if (dur >= 0.95) longs.push(clamp((body.length / Math.max(1, fr.length)) * 1.15, 0, 1) * (stab.length ? stab[stab.length - 1] : 0.6));
+      });
+      r.pitch = Math.round((wsum ? accS / wsum : 0) * 100);
+      r.rhythm = Math.round((tim.length ? tim.reduce((a, b) => a + b, 0) / tim.length : 0) * 100);
+      r.stab = Math.round((stab.length ? stab.reduce((a, b) => a + b, 0) / stab.length : 0.5) * 100);
+      r.long = Math.round((longs.length ? longs.reduce((a, b) => a + b, 0) / longs.length : 0.5) * 100);
+      r.vib = vibN; r.cov = Math.round((covW ? cov / covW : 0) * 100);
+      r.lines = r.lines.map((L, i) => ({ text: song.lines[i].text, acc: L.w ? Math.round(L.acc / L.w * 100) : 0, err: L.err.length ? Math.round(median(L.err)) : 0, early: L.early.length ? Math.round(median(L.early) * 1000) : 0, sung: L.w > 0 }));
+      const raw = (r.pitch * 0.5 + r.rhythm * 0.15 + r.stab * 0.15 + r.long * 0.1 + r.expr * 0.1) / 100 * Math.min(1, (r.cov / 100) / 0.8 + 0.1);
+      r.total = Math.round(clamp(raw * 100 + Math.min(2, r.vib * 0.5), 0, 100) * 1000) / 1000;
+      r.part = partOf().name; r.key = sh; r.range = [song.lo + sh, song.hi + sh];
+    } else {
+      const total = hist.length ? hist[hist.length - 1].t - hist[0].t : 0;
+      const steady = []; for (let i = 2; i < V.length - 2; i++) { const sl = Math.abs(V[i + 2].m - V[i - 2].m) / Math.max(0.02, V[i + 2].t - V[i - 2].t); if (sl < 3 && V[i + 2].t - V[i - 2].t < 0.2) steady.push(V[i]); }
+      const dev = steady.map(h => Math.abs((h.m - Math.round(h.m)) * 100));
+      r.pitch = Math.round((dev.length ? dev.reduce((s, d) => s + clamp(1 - (d - 14) / 36, 0, 1), 0) / dev.length : 0) * 100);
+      const ss = segs(V, () => true).filter(s => s.length > 12);
+      const notesSeg = []; for (const s of ss) { let cur = [s[0]]; for (let i = 1; i < s.length; i++) { if (Math.abs(s[i].m - median(cur.map(h => h.m))) > 0.7 || s[i].t - s[i - 1].t > 0.12) { if (cur.length > 8) notesSeg.push(cur); cur = []; } cur.push(s[i]); } if (cur.length > 8) notesSeg.push(cur); }
+      const st = notesSeg.map(c => { const xs = c.map(h => h.m * 100), md = median(xs); return clamp(1 - (median(xs.map(x => Math.abs(x - md))) - 10) / 45, 0, 1); });
+      r.stab = Math.round((st.length ? st.reduce((a, b) => a + b, 0) / st.length : 0) * 100);
+      const longs = notesSeg.filter(c => c[c.length - 1].t - c[0].t > 0.9); r.long = Math.round(clamp(longs.length / Math.max(3, notesSeg.length * 0.25), 0, 1) * 100);
+      r.vib = longs.filter(vib).length; r.cov = Math.round(clamp(V.length / Math.max(1, hist.length) / 0.6, 0, 1) * 100); r.rhythm = null;
+      const ms = V.map(h => h.m).sort((a, b) => a - b); r.range = ms.length ? [ms[Math.floor(ms.length * 0.05)], ms[Math.floor(ms.length * 0.95)]] : null;
+      const raw = (r.pitch * 0.45 + r.stab * 0.25 + r.long * 0.15 + r.expr * 0.15) / 100 * Math.min(1, r.cov / 100 + 0.15);
+      r.total = Math.round(clamp(raw * 100 + Math.min(2, r.vib * 0.5), 0, 100) * 1000) / 1000; r.secs = Math.round(total); r.part = partOf().name;
+    }
+    r.tips = tips(r); return r;
+  }
+  function tips(r) {
+    const t = [];
+    if (r.mode === 'guide') {
+      const sharp = r.lines.filter(l => l.sung && l.err > 35), flat = r.lines.filter(l => l.sung && l.err < -35), late = r.lines.filter(l => l.sung && l.early > 140), early = r.lines.filter(l => l.sung && l.early < -140);
+      if (flat.length) t.push(`「${flat[0].text}」は音が低めになりがち。上の音を「上から」ねらうつもりで、息をしっかり支えよう。`);
+      if (sharp.length) t.push(`「${sharp[0].text}」は少し高め。力を抜いて、のどをしめずに歌おう。`);
+      if (late.length) t.push(`「${late[0].text}」は出だしが少し遅れぎみ。前の音のうちに息を吸っておこう。`);
+      if (early.length) t.push(`「${early[0].text}」は出だしが少し早め。伴奏の拍をよく聞こう。`);
+    } else if (r.pitch < 60) t.push('音と音のあいだで声がゆれやすいみたい。ひとつひとつの音をまっすぐ伸ばす練習をしよう。');
+    if (r.stab < 60) t.push('伸ばす音がゆれています。おなかから一定の息で、まっすぐ伸ばそう。');
+    if (r.expr < 40) t.push('声の大きさの変化（抑揚）が少なめ。サビは少し大きく、静かなところはやさしく歌うともっと良くなるよ。');
+    if (r.cov < 70) t.push('声が聞こえないところがありました。マイクに近づいて、はっきり歌ってみよう。');
+    if (!t.length) t.push('とても安定しています！次はキーを上げたり、テンポを上げたりして挑戦してみよう。');
+    return t.slice(0, 3);
+  }
+  function saveHist() { if (!res) return; const h = hist0(); h.unshift({ id: song ? song.id : 'yt:' + yt.id, title: song ? song.title : yt.title, part: res.part, score: res.total, t: Date.now() }); LS.set('karaHist', h.slice(0, 40)); }
+  function rank(s) { return s >= 95 ? ['すばらしい！', 'プロ級の歌声です'] : s >= 88 ? ['とても上手！', 'カラオケで自慢できるレベル'] : s >= 78 ? ['上手！', 'あと少しで高得点'] : s >= 65 ? ['いい感じ', '練習するともっと伸びます'] : ['これから！', 'まずはガイドをよく聞いて']; }
+  function showResult() {
+    const n = $('.k-result', el); if (!n || !res) return; const r = res, [rk, rs] = rank(r.total);
+    const bar = (name, v, note) => v == null ? '' : `<div class="k-bar"><span>${name}</span><i><b style="width:${v}%"></b></i><em>${v}</em>${note ? `<small>${note}</small>` : ''}</div>`;
+    n.hidden = false;
+    n.innerHTML = `<div class="k-res-in"><button class="icon-btn k-rx" data-k="rclose" aria-label="結果を閉じる">${ic('x')}</button>
+      <div class="k-total"><small>${r.mode === 'guide' ? '採点結果' : '自由採点'}</small><b><span class="k-num">${r.total.toFixed(3)}</span>点</b><p>${esc(rk)}<small>${esc(rs)}</small></p></div>
+      <div class="k-bars">${bar('音程', r.pitch)}${bar('リズム', r.rhythm)}${bar('安定性', r.stab)}${bar('ロングトーン', r.long)}${bar('抑揚', r.expr)}<div class="k-chips"><span>ビブラート ${r.vib}回</span><span>声が出ていた ${r.cov}%</span><span>${esc(r.part)}${r.mode === 'guide' ? `・キー ${r.key > 0 ? '+' : ''}${r.key}` : ''}</span>${r.range ? `<span>音域 ${kNameJa(r.range[0])}〜${kNameJa(r.range[1])}</span>` : ''}</div></div>
+      ${r.lines ? `<div class="k-lines"><h4>フレーズごと</h4>${r.lines.map(l => `<div class="k-ln"><span>${esc(l.text)}</span><i><b style="width:${l.acc}%"></b></i><em>${!l.sung ? '—' : l.err > 35 ? '高め' : l.err < -35 ? '低め' : l.early > 140 ? '遅れ' : l.early < -140 ? '早め' : l.acc >= 80 ? 'ピッタリ' : ''}</em></div>`).join('')}</div>` : ''}
+      <div class="k-tips"><h4>${ic('bulb')}ワンポイント</h4><ul>${r.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+      <div class="k-coach"><h4>${ic('sparkle')}AIの先生から</h4><div class="k-coach-b">${coachTxt ? MD.render(coachTxt) : coachBusy ? '<span class="dots"><i></i><i></i><i></i></span> 歌を聞いて、アドバイスを考えています…' : engineReady() ? `<button class="btn sm" data-k="coach">${ic('sparkle')}アドバイスをもらう</button>` : '<p class="k-mini">AIにつながると、ここに先生のアドバイスが出ます。</p>'}</div></div>
+      <div class="k-row k-racts"><button class="btn primary" data-k="go">${ic('refresh')}もう一度歌う</button><button class="btn" data-k="back">${ic('music')}ほかの曲</button>${engineReady() ? `<button class="btn" data-k="chat">${ic('compose')}チャットで先生に相談</button>` : ''}</div></div>`;
+    const num = $('.k-num', n); if (num && !reduced()) { const T = r.total, t1 = performance.now(); const step = () => { const p = Math.min(1, (performance.now() - t1) / 1200); num.textContent = (T * (1 - Math.pow(1 - p, 3))).toFixed(3); if (p < 1 && num.isConnected) requestAnimationFrame(step); }; step(); }
+    n.scrollIntoView({ block: 'start', behavior: reduced() ? 'auto' : 'smooth' });
+  }
+  function summary() {
+    const r = res; if (!r) return '';
+    const L = [`曲：${song ? `${song.title}（${song.sub}）` : `YouTube「${yt.title}」`}`, `パート：${r.part}${r.mode === 'guide' ? `、キー ${r.key > 0 ? '+' : ''}${r.key}、テンポ ${Math.round(P.tempo * 100)}%` : ''}`, `総合：${r.total.toFixed(3)}点`, `音程 ${r.pitch}／${r.rhythm != null ? `リズム ${r.rhythm}／` : ''}安定性 ${r.stab}／ロングトーン ${r.long}／抑揚 ${r.expr}（各100点満点）、ビブラート ${r.vib}回、声が出ていた割合 ${r.cov}%`];
+    if (r.range) L.push(`歌った音域：${kNameJa(r.range[0])}（${kName(r.range[0])}）〜${kNameJa(r.range[1])}（${kName(r.range[1])}）`);
+    if (r.lines) L.push('フレーズごと（音程の正確さ%、ずれの傾向：プラスは高め・マイナスは低め［セント］、出だし：プラスは遅れ［ミリ秒］）：', ...r.lines.map(l => `・「${l.text}」 ${l.sung ? `${l.acc}%、ずれ ${l.err > 0 ? '+' : ''}${l.err}、出だし ${l.early > 0 ? '+' : ''}${l.early}` : '歌っていない'}`));
+    return L.join('\n');
+  }
+  async function coach() {
+    if (!engineReady() || coachBusy || !res) return;
+    coachBusy = true; showResult();
+    try {
+      const prompt = `あなたは、やさしくて具体的に教えるボイストレーナー（カラオケの先生）です。生徒がカラオケで歌い、アプリが自動で採点しました。結果を見て、日本語でアドバイスしてください。\n\n${summary()}\n\n書き方：\n1. ひとことで総評（ほめるところから）\n2. 良かったところを1〜2個\n3. 点数が上がる直し方を2〜3個。どのフレーズを、どう歌えばよいかを具体的に（例：「〇〇」のところは低めなので、上の音を少し上からねらう、口を縦に開ける、など）\n4. 次にやると良い練習を1つ\n全部で250〜350字くらい。箇条書きを使ってよい。数値を並べ直すだけにしない。`;
+      coachTxt = (await (Engine.kind === 'sample' ? Engine.sample(prompt, { modelTier: 'default', cache: false }).then(r => r.text) : callApi({ conv: { system: 'あなたはやさしいボイストレーナーです。', msgs: [{ role: 'user', text: prompt, m: null }], imgs: [], native: new Set() }, model: 'claude-haiku-5-5', effort: 'low', think: false, maxTokens: 1200 }).then(r => r.text))).trim() || '';
+    } catch (e) { coachTxt = ''; toast('AIのアドバイスをもらえませんでした', { err: true }); }
+    coachBusy = false; if (view === 'sing') showResult();
+  }
+  function toChat() {
+    const t = `カラオケで歌いました。採点結果を見て、もっと上手に歌うためのアドバイスをください。\n\n${summary()}`;
+    close(); newChat(); setTimeout(() => { if (engineReady()) sendMessage(t, []); else { input.value = t; autosize(); renderComposer(); } }, 60);
+  }
+
+  /* ---------- 操作 ---------- */
+  function onClick(e) {
+    const b = e.target.closest('[data-k]'); if (!b || b.tagName === 'FORM') return;
+    const k = b.dataset.k;
+    if (k === 'close') close();
+    else if (k === 'back') back();
+    else if (k === 'song') { const s = KARA_SONGS.find(x => x.id === b.dataset.id); if (!s) return; yt = null; song = kParse(s); res = null; coachTxt = ''; renderSing(); }
+    else if (k === 'yt') { const v = searchRes && searchRes.items[+b.dataset.i]; if (v) pickYT(v); }
+    else if (k === 'go') { if (playing) stop(true); else { const rn = $('.k-result', el); if (rn) rn.hidden = true; start(); } }
+    else if (k === 'part') { if (playing) return; P.part = b.dataset.p; P.key = 0; saveP(); renderSing(); }
+    else if (k === 'key') { if (playing) return; P.key = clamp(P.key + +b.dataset.d, -7, 7); saveP(); renderSing(); }
+    else if (k === 'lyr') { P.lyr = b.dataset.v; saveP(); renderSing(); }
+    else if (k === 'rclose') { const rn = $('.k-result', el); if (rn) rn.hidden = true; }
+    else if (k === 'coach') coach();
+    else if (k === 'chat') toChat();
+  }
+  return {
+    open, close, get on() { return !!(el && !el.hidden); }, get playing() { return playing; }, get res() { return res; }, get view() { return view; },
+    test: { target() { if (!playing || !song || !ctx) return null; const beat = (ctx.currentTime - t0 - lat) / spb, i = noteAt(beat); return i >= 0 ? song.notes[i].m + shift() : null; }, shift, P, score, yin, kParse, get hist() { return hist; } },
+  };
+})();
+
+/* ---- 89k_songs.js ---- */
+/* ========== カラオケの内蔵曲（作詞・作曲とも著作権の切れた曲だけ。メロディ・歌詞・伴奏のコードはここで書いたもの） ========== */
+const KARA_SONGS = [
+  { id: 'sakura', title: 'さくらさくら', sub: '日本古謡', bpm: 66, sig: 4, style: 'koto', lang: 'ja', lines: [
+    ['さくら さくら', 'A4:1:さ A4:1:く B4:2:ら A4:1:さ A4:1:く B4:2:ら', [['Am', 8]]],
+    ['やよいの空は', 'A4:1:や B4:1:よ C5:1:い B4:1:の A4:1:そ B4:.5:ら A4:.5:~ F4:2:は', [['Am', 4], ['F', 4]]],
+    ['見わたす限り', 'E4:1:み C4:1:わ E4:1:た F4:1:す E4:1:か E4:.5:ぎ C4:.5:~ B3:2:り', [['Am', 4], ['E', 4]]],
+    ['かすみか雲か', 'A4:1:か B4:1:す C5:1:み B4:1:か A4:1:く B4:.5:も A4:.5:~ F4:2:か', [['Am', 4], ['F', 4]]],
+    ['匂いぞ出ずる', 'E4:1:に C4:1:お E4:1:い F4:1:ぞ E4:1:い E4:.5:ず C4:.5:~ B3:2:る', [['Am', 4], ['E', 4]]],
+    ['いざや いざや', 'A4:1:い A4:1:ざ B4:2:や A4:1:い A4:1:ざ B4:2:や', [['Am', 8]]],
+    ['見にゆかん', 'E4:1:み F4:1:に B4:.5:ゆ A4:.5:~ F4:1:か E4:4:ん', [['F', 4], ['E', 4]]],
+  ] },
+  { id: 'twinkle', title: 'きらきら星', sub: 'Twinkle, Twinkle, Little Star（英語）', bpm: 100, sig: 4, style: 'pop', lang: 'en', lines: [
+    ['Twinkle, twinkle, little star,', 'C4:1:Twin- C4:1:kle G4:1:twin- G4:1:kle A4:1:lit- A4:1:tle G4:2:star,', [['C', 4], ['F', 2], ['C', 2]]],
+    ['How I wonder what you are!', 'F4:1:How F4:1:I E4:1:won- E4:1:der D4:1:what D4:1:you C4:2:are!', [['F', 2], ['C', 2], ['G', 2], ['C', 2]]],
+    ['Up above the world so high,', 'G4:1:Up G4:1:a- F4:1:bove F4:1:the E4:1:world E4:1:so D4:2:high,', [['C', 2], ['F', 2], ['C', 2], ['G', 2]]],
+    ['Like a diamond in the sky.', 'G4:1:Like G4:1:a F4:1:dia- F4:1:mond E4:1:in E4:1:the D4:2:sky.', [['C', 2], ['F', 2], ['C', 2], ['G', 2]]],
+    ['Twinkle, twinkle, little star,', 'C4:1:Twin- C4:1:kle G4:1:twin- G4:1:kle A4:1:lit- A4:1:tle G4:2:star,', [['C', 4], ['F', 2], ['C', 2]]],
+    ['How I wonder what you are!', 'F4:1:How F4:1:I E4:1:won- E4:1:der D4:1:what D4:1:you C4:2:are!', [['F', 2], ['C', 2], ['G', 2], ['C', 2]]],
+  ] },
+  { id: 'joy', title: '歓喜の歌', sub: 'ベートーヴェン「第九」より（ドイツ語）', bpm: 108, sig: 4, style: 'pop', lang: 'de', lines: [
+    ['Freude, schöner Götterfunken,', 'E4:1:Freu- E4:1:de, F4:1:schö- G4:1:ner G4:1:Göt- F4:1:ter- E4:1:fun- D4:1:ken,', [['C', 4], ['G', 4]]],
+    ['Tochter aus Elysium,', 'C4:1:Toch- C4:1:ter D4:1:aus E4:1:E- E4:1.5:ly- D4:.5:si- D4:2:um,', [['C', 4], ['G', 4]]],
+    ['Wir betreten feuertrunken,', 'E4:1:Wir E4:1:be- F4:1:tre- G4:1:ten G4:1:feu- F4:1:er- E4:1:trun- D4:1:ken,', [['C', 4], ['G', 4]]],
+    ['Himmlische, dein Heiligtum!', 'C4:1:Himm- C4:1:li- D4:1:sche, E4:1:dein D4:1.5:Hei- C4:.5:lig- C4:2:tum!', [['C', 4], ['G', 2], ['C', 2]]],
+    ['Deine Zauber binden wieder,', 'D4:1:Dei- D4:1:ne E4:1:Zau- C4:1:ber D4:1:bin- E4:.5:den F4:.5:~ E4:1:wie- C4:1:der,', [['G', 2], ['C', 2], ['G', 2], ['C', 2]]],
+    ['was die Mode streng geteilt;', 'D4:1:was E4:.5:die F4:.5:~ E4:1:Mo- D4:1:de C4:1:streng D4:1:ge- G3:2:teilt;', [['G', 2], ['C', 2], ['D7', 2], ['G', 2]]],
+    ['alle Menschen werden Brüder,', 'E4:1:al- E4:1:le F4:1:Men- G4:1:schen G4:1:wer- F4:1:den E4:1:Brü- D4:1:der,', [['C', 4], ['G', 4]]],
+    ['wo dein sanfter Flügel weilt.', 'C4:1:wo C4:1:dein D4:1:sanf- E4:1:ter D4:1.5:Flü- C4:.5:gel C4:2:weilt.', [['C', 4], ['G', 2], ['C', 2]]],
+  ] },
+  { id: 'birthday', title: 'ハッピーバースデー', sub: 'Happy Birthday to You（英語）', bpm: 96, sig: 3, pick: 1, style: 'waltz', lang: 'en', lines: [
+    ['Happy birthday to you,', 'G4:.75:Hap- G4:.25:py A4:1:birth- G4:1:day C5:1:to B4:2:you,', [['C', 4], ['G', 2]]],
+    ['Happy birthday to you,', 'G4:.75:Hap- G4:.25:py A4:1:birth- G4:1:day D5:1:to C5:2:you,', [['G', 4], ['C', 2]]],
+    ['Happy birthday, dear friend,', 'G4:.75:Hap- G4:.25:py G5:1:birth- E5:1:day, C5:1:dear B4:1:friend, A4:2:~', [['C', 4], ['F', 3]]],
+    ['Happy birthday to you!', 'F5:.75:Hap- F5:.25:py E5:1:birth- C5:1:day D5:1:to C5:3:you!', [['C', 3], ['G7', 1], ['C', 3]]],
+  ] },
+  { id: 'mary', title: 'メリーさんのひつじ', sub: 'Mary Had a Little Lamb（英語）', bpm: 112, sig: 4, style: 'pop', lang: 'en', lines: [
+    ['Mary had a little lamb,', 'E4:1:Ma- D4:1:ry C4:1:had D4:1:a E4:1:lit- E4:1:tle E4:2:lamb,', [['C', 8]]],
+    ['little lamb, little lamb,', 'D4:1:lit- D4:1:tle D4:2:lamb, E4:1:lit- G4:1:tle G4:2:lamb,', [['G', 4], ['C', 4]]],
+    ['Mary had a little lamb, its', 'E4:1:Ma- D4:1:ry C4:1:had D4:1:a E4:1:lit- E4:1:tle E4:1:lamb, E4:1:its', [['C', 8]]],
+    ['fleece was white as snow.', 'D4:1:fleece D4:1:was E4:1:white D4:1:as C4:4:snow.', [['G', 4], ['C', 4]]],
+  ] },
+  { id: 'london', title: 'ロンドン橋', sub: 'London Bridge Is Falling Down（英語）', bpm: 112, sig: 4, style: 'pop', lang: 'en', lines: [
+    ['London Bridge is falling down,', 'G4:1.5:Lon- A4:.5:don G4:1:Bridge F4:1:is E4:1:fall- F4:1:ing G4:2:down,', [['C', 8]]],
+    ['falling down, falling down.', 'D4:1:fall- E4:1:ing F4:2:down, E4:1:fall- F4:1:ing G4:2:down.', [['G', 4], ['C', 4]]],
+    ['London Bridge is falling down,', 'G4:1.5:Lon- A4:.5:don G4:1:Bridge F4:1:is E4:1:fall- F4:1:ing G4:2:down,', [['C', 8]]],
+    ['my fair lady.', 'D4:2:my G4:2:fair E4:1:la- C4:3:dy.', [['G', 4], ['C', 4]]],
+  ] },
+  { id: 'row', title: 'ロウ・ロウ・ロウ・ユア・ボート', sub: 'Row, Row, Row Your Boat（英語）', bpm: 200, sig: 6, style: 'six8', lang: 'en', lines: [
+    ['Row, row, row your boat,', 'C4:3:Row, C4:3:row, C4:2:row D4:1:your E4:3:boat,', [['C', 12]]],
+    ['gently down the stream.', 'E4:2:gent- D4:1:ly E4:2:down F4:1:the G4:6:stream.', [['C', 12]]],
+    ['Merrily, merrily, merrily, merrily,', 'C5:1:Mer- C5:1:ri- C5:1:ly, G4:1:mer- G4:1:ri- G4:1:ly, E4:1:mer- E4:1:ri- E4:1:ly, C4:1:mer- C4:1:ri- C4:1:ly,', [['C', 12]]],
+    ['life is but a dream.', 'G4:2:life F4:1:is E4:2:but D4:1:a C4:6:dream.', [['G', 6], ['C', 6]]],
+  ] },
+  { id: 'jingle', title: 'ジングルベル（サビ）', sub: 'Jingle Bells（英語）', bpm: 120, sig: 4, style: 'xmas', lang: 'en', lines: [
+    ['Jingle bells, jingle bells,', 'E4:1:Jin- E4:1:gle E4:2:bells, E4:1:jin- E4:1:gle E4:2:bells,', [['C', 8]]],
+    ['jingle all the way!', 'E4:1:jin- G4:1:gle C4:1.5:all D4:.5:the E4:4:way!', [['C', 8]]],
+    ['Oh, what fun it is to ride in a', 'F4:1:Oh, F4:1:what F4:1:fun F4:1:it F4:1:is E4:1:to E4:1:ride E4:.5:in E4:.5:a', [['F', 4], ['C', 4]]],
+    ['one-horse open sleigh, hey!', 'E4:1:one- D4:1:horse D4:1:o- E4:1:pen D4:2:sleigh, G4:2:hey!', [['D7', 4], ['G', 4]]],
+    ['Jingle bells, jingle bells,', 'E4:1:Jin- E4:1:gle E4:2:bells, E4:1:jin- E4:1:gle E4:2:bells,', [['C', 8]]],
+    ['jingle all the way!', 'E4:1:jin- G4:1:gle C4:1.5:all D4:.5:the E4:4:way!', [['C', 8]]],
+    ['Oh, what fun it is to ride in a', 'F4:1:Oh, F4:1:what F4:1:fun F4:1:it F4:1:is E4:1:to E4:1:ride E4:.5:in E4:.5:a', [['F', 4], ['C', 4]]],
+    ['one-horse open sleigh!', 'G4:1:one- G4:1:horse F4:1:o- D4:1:pen C4:4:sleigh!', [['G7', 4], ['C', 4]]],
+  ] },
+  { id: 'scale', title: '発声練習（ドレミ）', sub: 'ドレミの音階を上がって下がる', bpm: 84, sig: 4, style: 'piano', lang: 'ja', ex: true, lines: [
+    ['ド レ ミ ファ', 'C4:2:ド D4:2:レ E4:2:ミ F4:2:ファ', [['C', 4], ['F', 2], ['C', 2]]],
+    ['ソ ラ シ ド', 'G4:2:ソ A4:2:ラ B4:2:シ C5:2:ド', [['C', 2], ['F', 2], ['G', 2], ['C', 2]]],
+    ['ド シ ラ ソ', 'C5:2:ド B4:2:シ A4:2:ラ G4:2:ソ', [['C', 2], ['G', 2], ['F', 2], ['C', 2]]],
+    ['ファ ミ レ ド', 'F4:2:ファ E4:2:ミ D4:2:レ C4:4:ド', [['F', 2], ['C', 2], ['G', 2], ['C', 2]]],
+  ] },
+];
+
+/* ---- 89s_study.js ---- */
+/* ========== 勉強モード: AIが作った暗記カード・問題・漢字の書き取りを、チャットの中でそのまま解く ========== */
+const STUDY_KIND = { cards: '暗記カード', quiz: '問題', kanji: '漢字の書き取り' };
+const STUDY_ICON = { cards: 'cards', quiz: 'edit', kanji: 'pen' };
+const KANJI_FONT = '"UD デジタル 教科書体 N-R","UD Digi Kyokasho N-R","UD デジタル 教科書体 NK-R","YuKyokasho","Yu Kyokasho","Klee","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
+const Study = (() => {
+  const reg = new Map();
+  const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return 's' + h.toString(36) + s.length.toString(36); };
+  const str = v => (v == null ? '' : String(v)).trim();
+  const arr = v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]);
+
+  /* ---- AIの書いたJSONを読む（少しくらい崩れていても直して読む） ---- */
+  function parseJ(src) {
+    let s = String(src || '').trim();
+    const a = s.indexOf('{'), b = s.lastIndexOf('}'); if (a < 0 || b < a) return null;
+    s = s.slice(a, b + 1);
+    try { return JSON.parse(s); } catch (e) {}
+    const t = s.replace(/,\s*([}\]])/g, '$1').replace(/[“”]/g, '"').replace(/\t/g, ' ');
+    try { return JSON.parse(t); } catch (e) {}
+    try { return JSON.parse(t.replace(/\n/g, '\\n').replace(/\\n\s*(?=["}\]])/g, '').replace(/([{,\[])\\n\s*/g, '$1')); } catch (e) {}
+    return null;
+  }
+  function normalize(j) {
+    if (!j || typeof j !== 'object') return null;
+    let type = str(j.type).toLowerCase();
+    const list = j.cards || j.items || j.questions || j.problems || [];
+    if (!type) type = j.cards ? 'cards' : list.some && list.some(x => x && x.kanji) ? 'kanji' : 'quiz';
+    if (/card|単語|暗記/.test(type)) type = 'cards'; else if (/kanji|漢字/.test(type)) type = 'kanji'; else type = 'quiz';
+    const d = { type, title: str(j.title) || STUDY_KIND[type], lang: str(j.lang).toLowerCase(), items: [] };
+    for (const x of Array.isArray(list) ? list.slice(0, 80) : []) {
+      if (!x || typeof x !== 'object') continue;
+      if (type === 'cards') {
+        const q = str(x.q || x.front || x.word || x.term), a = str(x.a || x.back || x.meaning || x.answer);
+        if (q && a) d.items.push({ q, a, hint: str(x.hint), ex: str(x.ex || x.example), exJa: str(x.exJa || x.example_ja || x.exampleJa), read: str(x.read || x.reading || x.pron) });
+      } else if (type === 'kanji') {
+        const k = str(x.kanji || x.answer || x.a).replace(/\s+/g, ''), y = str(x.yomi || x.reading || x.q);
+        if (k && Array.from(k).length <= 6) d.items.push({ kanji: k, yomi: y, sentence: str(x.sentence || x.example), meaning: str(x.meaning), strokes: +x.strokes > 0 ? Math.round(+x.strokes) : 0, hint: str(x.hint) });
+      } else {
+        const q = str(x.q || x.question || x.text); if (!q) continue;
+        const choices = arr(x.choices || x.options).map(str).filter(Boolean).slice(0, 6);
+        let kind = str(x.kind || x.type).toLowerCase(); if (!/choice|input/.test(kind)) kind = choices.length >= 2 ? 'choice' : 'input';
+        if (kind === 'choice' && choices.length < 2) kind = 'input';
+        let ans = x.answer != null ? x.answer : x.answers != null ? x.answers : x.a;
+        let correct = -1;
+        if (kind === 'choice') {
+          if (typeof ans === 'number' || /^\d+$/.test(str(ans))) correct = +ans;
+          else { const t = str(Array.isArray(ans) ? ans[0] : ans); correct = choices.findIndex(c => c === t || c.replace(/^[A-Fa-f①-⑥\d][.)．）:：]\s*/, '') === t.replace(/^[A-Fa-f①-⑥\d][.)．）:：]\s*/, '')); if (correct < 0 && /^[A-Fa-f]$/.test(t)) correct = t.toUpperCase().charCodeAt(0) - 65; }
+          if (!(correct >= 0 && correct < choices.length)) { kind = 'input'; }
+        }
+        const answers = kind === 'choice' ? [choices[correct]] : arr(ans).map(str).filter(Boolean);
+        if (!answers.length) continue;
+        d.items.push({ q, kind, choices: kind === 'choice' ? choices : [], correct, answers, hint: str(x.hint), explain: str(x.explain || x.explanation || x.solution) });
+      }
+    }
+    if (!d.items.length) return null;
+    if (!d.lang && type === 'cards') d.lang = d.items.filter(it => /^[\x00-\x7F’'é-]+$/.test(it.q)).length > d.items.length / 2 ? 'en' : 'ja';
+    return d;
+  }
+
+  /* ---- 答え合わせ（表記のゆれを吸収） ---- */
+  const kata2hira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  function norm(s) {
+    s = String(s == null ? '' : s).normalize('NFKC').toLowerCase();
+    s = kata2hira(s).replace(/[×✕]/g, '*').replace(/÷/g, '/').replace(/[−–—―]/g, '-').replace(/[‘’´`]/g, "'").replace(/[“”]/g, '"');
+    return s.replace(/\s+/g, '').replace(/^(答え|こたえ|answer|ans)[:=]?/, '').replace(/[。.、,!?]+$/, '');
+  }
+  const numVal = s => { let m = s.match(/^(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/); if (m && +m[2]) return +m[1] / +m[2]; m = s.match(/^-?\d+(?:\.\d+)?$/); return m ? +s : null; };
+  const near = (a, b) => a != null && b != null && Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
+  const noVar = s => s.replace(/^[a-z]{1,2}=/, '');
+  function checkAns(user, answers) {
+    const u = noVar(norm(user)); if (!u) return { ok: false, empty: true };
+    for (const a0 of answers) {
+      const a = noVar(norm(a0)); if (!a) continue;
+      if (u === a) return { ok: true };
+      if (near(numVal(u), numVal(a))) return { ok: true };
+      const mu = u.match(/^(-?[\d.]+(?:\/[\d.]+)?)(.*)$/), ma = a.match(/^(-?[\d.]+(?:\/[\d.]+)?)(.*)$/);
+      if (mu && ma && ma[2] && near(numVal(mu[1]), numVal(ma[1])) && (!mu[2] || mu[2] === ma[2])) return { ok: true, unit: mu[2] ? '' : ma[2] };
+      const su = u.split(/[,、;]/).filter(Boolean).sort().join(','), sa = a.split(/[,、;]/).filter(Boolean).sort().join(',');
+      if (su.includes(',') && su === sa) return { ok: true };
+    }
+    return { ok: false };
+  }
+  function checkCard(user, a) {
+    const u = norm(user); if (!u) return { ok: false, empty: true };
+    const cands = new Set();
+    for (const p of String(a).split(/[、,，;；\/／・]|\s+or\s+/)) { const t = p.trim(); if (!t) continue; cands.add(norm(t)); cands.add(norm(t.replace(/[（(][^）)]*[）)]/g, ''))); cands.add(norm(t.replace(/^(to|a|an|the)\s+/i, ''))); }
+    cands.add(norm(a));
+    for (const c of cands) { if (!c) continue; if (u === c) return { ok: true }; if (u.length >= 2 && c.includes(u) && u.length >= c.length * 0.6) return { ok: true }; if (c.length >= 2 && u.includes(c) && c.length >= u.length * 0.6) return { ok: true }; }
+    return { ok: false };
+  }
+
+  /* ---- 表示 ---- */
+  const fmtQ = t => String(t || '').split('\n').map(l => MD.inline(l).replace(/\^(\d{1,3}|\{[^}<]{1,8}\})/g, (m, g) => '<sup>' + g.replace(/[{}]/g, '') + '</sup>')).join('<br>');
+  const fmtSent = t => esc(t).replace(/[（(]([^）)]{1,12})[）)]/g, '<b class="st-hl">（$1）</b>');
+  function html(src, open) {
+    if (open) return `<div class="study wait"><span class="dots"><i></i><i></i><i></i></span><span>問題を作っています…</span></div>`;
+    const d = normalize(parseJ(src));
+    if (!d) return `<div class="study bad">${ic('alert')}<span>問題をうまく読み込めませんでした。「作り直す」か、もう一度頼んでみてください。</span></div>`;
+    const sid = hash(src); reg.set(sid, d);
+    return `<div class="study st-${d.type}" data-sid="${sid}"><div class="st-load"><span class="dots"><i></i><i></i><i></i></span></div></div>`;
+  }
+  function mount(scope) {
+    for (const n of $$('.study[data-sid]:not([data-on])', scope)) {
+      const d = reg.get(n.dataset.sid); if (!d) continue;
+      n.dataset.on = '1';
+      try { new Widget(n, d, msgCtx(n)); } catch (e) { console.warn(e); }
+    }
+  }
+  const saveSoon = debounce(c => persistChat(c, { touch: false }), 700);
+  const sfx = ok => { if (!SET.sounds) return; const c = Audio8.get(); if (!c) return; let t = c.currentTime + 0.01; for (const [f, d] of ok === 'end' ? [[523, .08], [659, .08], [784, .08], [1046, .2]] : ok ? [[880, .06], [1319, .12]] : [[330, .09], [247, .16]]) { Audio8.tone(f, t, d, { type: 'triangle', vol: 0.06 }); t += d * 0.9; } };
+  const canAI = img => engineReady() && (!img || Engine.kind === 'api' || Engine.imgMax > 0);
+  async function askOnce(prompt, o = {}) {
+    if (!engineReady()) throw { code: 'no_engine' };
+    if (Engine.kind === 'sample') {
+      const opts = { modelTier: o.tier || 'quick', cache: false };
+      if (o.images && o.images.length) opts.images = o.images.slice(0, Math.max(1, Engine.imgMax || 1));
+      const r = await Engine.sample(prompt, opts); return r.text || '';
+    }
+    const r = await callApi({ conv: { system: 'あなたは正確で親切な採点係です。指示された形式だけで答えます。', msgs: [{ role: 'user', text: prompt, m: null }], imgs: [], native: new Set() }, model: 'claude-haiku-5-5', effort: 'low', think: false, maxTokens: 600, extraImages: o.images });
+    return r.text || '';
+  }
+  const jsonOf = t => { const m = String(t || '').match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch (e) { return null; } };
+  function sayWord(t, lang) {
+    if (!t) return;
+    if (lang === 'en' && win.speechSynthesis) {
+      try { TTS.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; const v = TTS.en && TTS.en.length ? TTS.pickFor(TTS.en, voicePreset('std')) : null; if (v) u.voice = v; u.rate = 0.9; speechSynthesis.speak(u); return; } catch (e) {}
+    }
+    TTS.unlock && TTS.unlock(); TTS.sayAll(t);
+  }
+
+  class Widget {
+    constructor(n, d, ctx) {
+      this.n = n; this.d = d; this.sid = n.dataset.sid; this.c = ctx && ctx.c; this.ink = {}; this.trace = false;
+      const saved = this.c && this.c.study && this.c.study[this.sid];
+      this.st = saved && Array.isArray(saved.order) && saved.order.every(k => k < d.items.length) ? clone(saved) : this.fresh();
+      n.addEventListener('click', e => this.onClick(e));
+      n.addEventListener('submit', e => { e.preventDefault(); this.onSubmit(e.target); });
+      n.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && e.target.closest && e.target.closest('.st-card')) { e.preventDefault(); this.flip(); } });
+      this.render();
+    }
+    fresh(only, shuffle) {
+      let order = only ? only.slice() : this.d.items.map((_, k) => k);
+      if (shuffle) order = order.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+      return { order, i: 0, res: {}, qs: {}, done: false, dir: this.st ? this.st.dir || 0 : 0, flip: false, round: ((this.st && this.st.round) || 0) + (only ? 1 : 0) };
+    }
+    save() { if (!this.c || this.c.sample) return; this.c.study = this.c.study || {}; this.c.study[this.sid] = this.st; saveSoon(this.c); }
+    get it() { return this.d.items[this.st.order[this.st.i]]; }
+    get k() { return this.st.order[this.st.i]; }
+    q(k = this.k) { return this.st.qs[k] || (this.st.qs[k] = {}); }
+    render(focus) {
+      const d = this.d, st = this.st, n = st.order.length;
+      const okN = Object.values(st.res).filter(v => v === 1).length;
+      const answered = st.done ? n : st.i + (this.answered() ? 1 : 0);
+      const head = `<div class="st-top"><span class="st-badge">${ic(STUDY_ICON[d.type])}${STUDY_KIND[d.type]}</span><b class="st-title">${esc(d.title)}</b><span class="st-prog">${st.done ? '結果' : `${Math.min(st.i + 1, n)} / ${n}`}${okN ? `<em>${d.type === 'cards' ? '覚えた' : '正解'} ${okN}</em>` : ''}</span></div><div class="st-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${answered}"><i style="width:${Math.round(answered / n * 100)}%"></i></div>`;
+      let body = st.done ? this.endHTML() : d.type === 'cards' ? this.cardHTML() : d.type === 'kanji' ? this.kanjiHTML() : this.quizHTML();
+      this.n.innerHTML = head + `<div class="st-body">${body}</div>`;
+      if (d.type === 'kanji' && !st.done) this.setupCanvas();
+      if (focus && !COARSE) { const f = $(focus, this.n); if (f) f.focus({ preventScroll: true }); }
+    }
+    answered() { const q = this.st.qs[this.k] || {}; return this.d.type === 'cards' ? this.st.res[this.k] != null : q.fin; }
+
+    /* --- 暗記カード --- */
+    cardHTML() {
+      const it = this.it, st = this.st, q = this.q();
+      const front = st.dir ? it.a : it.q, back = st.dir ? it.q : it.a;
+      const lab = this.d.lang === 'en' ? (st.dir ? ['日本語', '英語'] : ['英語', '日本語']) : (st.dir ? ['答え', '問題'] : ['問題', '答え']);
+      return `<div class="st-card${st.flip ? ' flip' : ''}" role="button" tabindex="0" aria-label="カードをめくる"><div class="st-in">
+          <div class="st-face st-front"><span class="st-side">${lab[0]}</span><div class="st-big${front.length > 18 ? ' long' : ''}">${esc(front)}</div>${!st.dir && it.read ? `<small class="st-read">${esc(it.read)}</small>` : ''}<small class="st-tap">タップでめくる</small></div>
+          <div class="st-face st-back"><span class="st-side">${lab[1]}</span><div class="st-big${back.length > 18 ? ' long' : ''}">${esc(back)}</div>${it.ex ? `<p class="st-ex">${esc(it.ex)}${it.exJa ? `<br><small>${esc(it.exJa)}</small>` : ''}</p>` : ''}</div>
+        </div></div>
+        ${q.r ? `<p class="st-fb ${q.r === 1 ? 'ok' : 'ng'}">${q.r === 1 ? `${ic('check')}正解！「${esc(q.a)}」` : `あなたの答え：「${esc(q.a)}」`}</p>` : ''}
+        ${st.flip ? `<div class="st-judge"><button type="button" class="btn st-ng" data-sa="no">${ic('x')}まだ</button><button type="button" class="btn st-ok" data-sa="yes">${ic('check')}覚えた</button></div>`
+          : `<form class="st-ans"><input type="text" name="a" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${this.d.lang === 'en' && st.dir ? '英語で答えを入力' : '答えを入力'}" aria-label="答え"><button class="btn primary">答える</button></form>`}
+        <div class="st-tools"><button type="button" class="btn sm" data-sa="say">${ic('speaker')}読み上げ</button>${it.hint && !st.flip ? `<button type="button" class="btn sm" data-sa="hint">${ic('bulb')}ヒント</button>` : ''}<button type="button" class="btn sm" data-sa="dir">${ic('flip')}${this.d.lang === 'en' ? (st.dir ? '英→日にする' : '日→英にする') : '表と裏を入れかえ'}</button><button type="button" class="btn sm" data-sa="shuffle">${ic('shuffle')}シャッフル</button></div>
+        ${q.hint ? `<p class="st-hint">${ic('bulb')}${esc(it.hint)}</p>` : ''}`;
+    }
+    flip() { this.st.flip = !this.st.flip; this.render(this.st.flip ? '[data-sa="yes"]' : '.st-ans input'); }
+
+    /* --- 問題 --- */
+    quizHTML() {
+      const it = this.it, q = this.q(), no = this.st.i + 1;
+      let h = `<div class="st-q"><span class="st-qn">第${no}問</span><div class="st-qt">${fmtQ(it.q)}</div></div>`;
+      if (it.kind === 'choice') {
+        h += `<div class="st-choices">${it.choices.map((c, j) => { const cls = q.fin ? (j === it.correct ? ' right' : j === q.pick ? ' wrong' : '') : ''; return `<button type="button" class="st-ch${cls}" data-sa="pick" data-j="${j}"${q.fin ? ' disabled' : ''}><span class="st-cl">${'ABCDEF'[j]}</span><span>${fmtQ(c)}</span></button>`; }).join('')}</div>`;
+      } else {
+        h += `<form class="st-ans"><input type="text" name="a" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="${it.answers.every(a => numVal(noVar(norm(a))) != null) ? 'decimal' : 'text'}" placeholder="答えを入力" aria-label="答え" value="${esc(q.a || '')}"${q.fin ? ' disabled' : ''}><button class="btn primary"${q.fin ? ' disabled' : ''}>答える</button></form>`;
+      }
+      if (!q.fin && it.hint && !q.hint && !q.tries) h += `<div class="st-tools"><button type="button" class="btn sm" data-sa="hint">${ic('bulb')}ヒント</button></div>`;
+      if ((q.hint || q.tries) && it.hint && !q.fin) h += `<p class="st-hint">${ic('bulb')}${fmtQ(it.hint)}</p>`;
+      if (q.tries && !q.fin) h += `<div class="st-fb ng"><p><b>おしい！</b>${q.ai ? esc(q.ai) : 'もう一度考えてみよう。'}</p><div class="st-row">${canAI() && !q.aiAsked ? `<button type="button" class="btn sm" data-sa="ai-q">${ic('sparkle')}AIに判定してもらう</button>` : ''}<button type="button" class="btn sm" data-sa="reveal">答えを見る</button></div></div>`;
+      if (q.fin) {
+        const ok = this.st.res[this.k] === 1;
+        h += `<div class="st-fb ${ok ? 'ok' : 'ng'}"><p><b>${ok ? `${ic('check')}正解！` : 'ざんねん…'}</b>${ok && q.unit ? `（単位「${esc(q.unit)}」も書けるとカンペキ）` : ''}${ok && q.ai ? esc(q.ai) : ''}</p>${ok && it.kind === 'input' && q.a && norm(q.a) !== norm(it.answers[0]) ? `<p class="st-exp-a">模範解答：<b>${fmtQ(it.answers[0])}</b></p>` : ''}${!ok ? `<p class="st-exp-a">正解：<b>${fmtQ(it.kind === 'choice' ? 'ABCDEF'[it.correct] + '　' + it.choices[it.correct] : it.answers[0])}</b></p>` : ''}${it.explain ? `<div class="st-exp"><span>解き方</span>${fmtQ(it.explain)}</div>` : ''}</div>`;
+        h += `<div class="st-next"><button type="button" class="btn primary" data-sa="next">${this.st.i + 1 >= this.st.order.length ? '結果を見る' : '次の問題へ'}${ic('chevR')}</button></div>`;
+      }
+      return h;
+    }
+    finish(ok) { const q = this.q(); q.fin = 1; this.st.res[this.k] = ok ? 1 : 0; sfx(ok); this.save(); this.render('[data-sa="next"]'); }
+
+    /* --- 漢字の書き取り --- */
+    kanjiHTML() {
+      const it = this.it, q = this.q(), chars = Array.from(it.kanji);
+      let h = `<div class="st-kq"><div class="st-yomi">${esc(it.yomi)}</div>${it.sentence ? `<div class="st-sent">${fmtSent(it.sentence)}</div>` : ''}<div class="st-meta">${it.meaning ? `<span>意味：${esc(it.meaning)}</span>` : ''}<span>${chars.length}文字${it.strokes ? `・全部で${it.strokes}画` : ''}</span></div></div>`;
+      h += `<div class="st-boxes" style="--n:${chars.length}">${chars.map((ch, b) => `<div class="st-box"><canvas data-b="${b}" aria-label="${b + 1}文字目を書く"></canvas></div>`).join('')}</div>`;
+      if (!q.fin && !q.chk) h += `<div class="st-tools"><button type="button" class="btn sm" data-sa="undo">${ic('undo')}1画もどす</button><button type="button" class="btn sm" data-sa="clear">${ic('trash')}消す</button><button type="button" class="btn sm${this.trace ? ' on' : ''}" data-sa="trace" aria-pressed="${this.trace}">${ic('eye')}お手本をなぞる</button>${it.hint ? `<button type="button" class="btn sm" data-sa="hint">${ic('bulb')}ヒント</button>` : ''}</div>${q.hint && it.hint ? `<p class="st-hint">${ic('bulb')}${esc(it.hint)}</p>` : ''}<div class="st-next"><button type="button" class="btn primary" data-sa="check">${ic('check')}答え合わせ</button></div>`;
+      if (q.chk) {
+        h += `<div class="st-model-row"><span>正解</span><div class="st-models" style="--n:${chars.length}">${chars.map(ch => `<span class="st-model">${esc(ch)}</span>`).join('')}</div></div>`;
+        if (q.ai) h += `<div class="st-fb ${q.aiOk ? 'ok' : 'ng'}"><p><b>AIの採点${q.aiScore != null ? `：${q.aiScore}点` : ''}</b>${esc(q.ai)}</p></div>`;
+        if (!q.fin) h += `<p class="st-ask">お手本とくらべて、書けたかな？</p><div class="st-judge"><button type="button" class="btn st-ng" data-sa="no">${ic('x')}まちがえた</button><button type="button" class="btn st-ok" data-sa="yes">${ic('check')}書けた</button></div>${canAI(true) && !q.ai ? `<div class="st-tools"><button type="button" class="btn sm" data-sa="ai-k"${q.aiBusy ? ' disabled' : ''}>${ic('sparkle')}${q.aiBusy ? 'AIが見ています…' : 'AIに採点してもらう'}</button></div>` : ''}`;
+        else h += `<div class="st-fb ${this.st.res[this.k] === 1 ? 'ok' : 'ng'}"><p><b>${this.st.res[this.k] === 1 ? `${ic('check')}よく書けました！` : 'もう一度練習しよう'}</b></p></div><div class="st-next"><button type="button" class="btn sm" data-sa="again-k">${ic('refresh')}もう一回書く</button><button type="button" class="btn primary" data-sa="next">${this.st.i + 1 >= this.st.order.length ? '結果を見る' : '次の漢字へ'}${ic('chevR')}</button></div>`;
+      }
+      return h;
+    }
+    strokes(b) { const k = this.k; this.ink[k] = this.ink[k] || {}; return this.ink[k][b] || (this.ink[k][b] = []); }
+    ordOf() { const k = this.k; this.ink[k] = this.ink[k] || {}; return this.ink[k].ord || (this.ink[k].ord = []); }
+    setupCanvas() {
+      const chars = Array.from(this.it.kanji), cs = getComputedStyle(this.n);
+      this.col = { grid: cs.getPropertyValue('--st-grid').trim() || 'rgba(128,128,128,.35)', ink: cs.getPropertyValue('--st-ink').trim() || '#1b1b1b', trace: cs.getPropertyValue('--st-trace').trim() || 'rgba(128,128,128,.22)' };
+      for (const cv of $$('canvas[data-b]', this.n)) {
+        const b = +cv.dataset.b, box = cv.parentElement;
+        const size = () => { const r = box.getBoundingClientRect(); const dpr = Math.min(3, win.devicePixelRatio || 1); cv.width = Math.max(10, Math.round(r.width * dpr)); cv.height = Math.max(10, Math.round(r.height * dpr)); this.draw(cv, b, chars[b]); };
+        size();
+        if (win.ResizeObserver) { const ro = new ResizeObserver(() => { if (!cv.isConnected) { ro.disconnect(); return; } size(); }); ro.observe(box); }
+        if (this.q().chk) continue;
+        let cur = null;
+        const pt = e => { const r = cv.getBoundingClientRect(); return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)]; };
+        cv.addEventListener('pointerdown', e => { if (e.button > 0) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {} cur = [pt(e)]; this.strokes(b).push(cur); this.ordOf().push(b); this.draw(cv, b, chars[b]); });
+        cv.addEventListener('pointermove', e => { if (!cur) return; e.preventDefault(); const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; for (const x of evs.length ? evs : [e]) cur.push(pt(x)); this.draw(cv, b, chars[b]); });
+        const end = () => { if (cur && cur.length === 1) cur.push([cur[0][0] + 0.002, cur[0][1] + 0.002]); cur = null; };
+        cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end); cv.addEventListener('lostpointercapture', end);
+      }
+    }
+    draw(cv, b, ch) {
+      const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+      g.clearRect(0, 0, W, H);
+      const C = this.col || {}, grid = C.grid || 'rgba(128,128,128,.35)', ink = C.ink || '#1b1b1b';
+      g.save(); g.strokeStyle = grid; g.lineWidth = Math.max(1, W / 220); g.setLineDash([W / 40, W / 40]);
+      g.beginPath(); g.moveTo(W / 2, 0); g.lineTo(W / 2, H); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke(); g.restore();
+      if (this.trace && ch && !this.q().chk) { g.save(); g.fillStyle = C.trace || 'rgba(128,128,128,.22)'; g.font = `${Math.round(H * 0.82)}px ${KANJI_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, W / 2, H * 0.53); g.restore(); }
+      this.ink1(g, W, H, this.strokes(b), ink);
+    }
+    ink1(g, W, H, list, color) {
+      g.save(); g.strokeStyle = color; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = Math.max(2, W * 0.055);
+      for (const s of list) {
+        if (!s.length) continue; g.beginPath(); g.moveTo(s[0][0] * W, s[0][1] * H);
+        for (let i = 1; i < s.length - 1; i++) { const mx = (s[i][0] + s[i + 1][0]) / 2, my = (s[i][1] + s[i + 1][1]) / 2; g.quadraticCurveTo(s[i][0] * W, s[i][1] * H, mx * W, my * H); }
+        const L = s[s.length - 1]; g.lineTo(L[0] * W, L[1] * H); g.stroke();
+      }
+      g.restore();
+    }
+    hasInk() { const m = this.ink[this.k] || {}; return Object.keys(m).some(b => b !== 'ord' && m[b].length); }
+    async inkPNG() {
+      const n = Array.from(this.it.kanji).length, S0 = 256, c = doc.createElement('canvas'); c.width = S0 * n + 16 * (n - 1); c.height = S0;
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      for (let b = 0; b < n; b++) { g.save(); g.translate(b * (S0 + 16), 0); g.strokeStyle = '#ddd'; g.lineWidth = 2; g.strokeRect(1, 1, S0 - 2, S0 - 2); this.ink1(g, S0, S0, this.strokes(b), '#111'); g.restore(); }
+      return canvasBlob(c, 'image/png');
+    }
+
+    /* --- 結果 --- */
+    endHTML() {
+      const d = this.d, st = this.st, n = st.order.length;
+      const okN = st.order.filter(k => st.res[k] === 1).length, wrong = st.order.filter(k => st.res[k] !== 1);
+      const pct = Math.round(okN / n * 100);
+      const msg = pct === 100 ? 'パーフェクト！すばらしい！' : pct >= 80 ? 'よくできました！あと少しで満点です' : pct >= 50 ? 'いい調子！まちがえたところを復習しよう' : 'ここから伸びます！まちがえたものをもう一度やってみよう';
+      const label = k => { const it = d.items[k]; return d.type === 'cards' ? `<b>${esc(it.q)}</b><span>${esc(it.a)}</span>` : d.type === 'kanji' ? `<b class="st-kk">${esc(it.kanji)}</b><span>${esc(it.yomi)}</span>` : `<b>${fmtQ(it.q.length > 60 ? it.q.slice(0, 58) + '…' : it.q)}</b><span>正解：${fmtQ(it.kind === 'choice' ? it.choices[it.correct] : it.answers[0])}${(st.qs[k] || {}).a ? `／あなた：${esc(st.qs[k].a)}` : ''}</span>`; };
+      return `<div class="st-end"><div class="st-score" style="--p:${pct}"><div><b>${okN}</b><span>/ ${n}</span></div></div><p class="st-msg">${esc(msg)}</p>
+        ${wrong.length ? `<details class="st-wrong"${wrong.length <= 6 ? ' open' : ''}><summary>${d.type === 'cards' ? 'まだ覚えていない' : 'まちがえた'}もの（${wrong.length}）</summary><ul>${wrong.map(k => `<li>${label(k)}</li>`).join('')}</ul></details>` : ''}
+        <div class="st-acts">${wrong.length ? `<button type="button" class="btn primary" data-sa="retry-wrong">${ic('refresh')}${d.type === 'cards' ? 'まだのカード' : 'まちがえたもの'}だけもう一度</button>` : ''}<button type="button" class="btn${wrong.length ? '' : ' primary'}" data-sa="restart">${ic('refresh')}最初から</button><button type="button" class="btn" data-sa="more">${ic('sparkle')}新しい${d.type === 'cards' ? 'カード' : d.type === 'kanji' ? '漢字' : '問題'}を作る</button><button type="button" class="btn" data-sa="report">${ic('send')}結果をAIに見せる</button></div></div>`;
+    }
+    send(text) {
+      if (S.busy || S.sending) { toast('いまは回答中です。終わってからもう一度押してください'); return; }
+      if (!engineReady()) { showEngineHelp(); return; }
+      sendMessage(text, []);
+    }
+
+    /* --- 操作 --- */
+    async onClick(e) {
+      const b = e.target.closest('[data-sa]');
+      if (!b) { if (e.target.closest('.st-card')) this.flip(); return; }
+      const a = b.dataset.sa, st = this.st, it = this.it, q = st.done ? {} : this.q();
+      if (a === 'flip') this.flip();
+      else if (a === 'yes' || a === 'no') {
+        st.res[this.k] = a === 'yes' ? 1 : 0; if (this.d.type === 'kanji') { q.fin = 1; sfx(a === 'yes'); this.save(); this.render('[data-sa="next"]'); return; }
+        sfx(a === 'yes'); this.next();
+      }
+      else if (a === 'say') { const showQ = st.flip ? !!st.dir : !st.dir; sayWord(showQ ? it.q : it.a, showQ && this.d.lang === 'en' ? 'en' : 'ja'); }
+      else if (a === 'hint') { q.hint = 1; this.render(); }
+      else if (a === 'dir') { st.dir = st.dir ? 0 : 1; st.flip = false; this.save(); this.render('.st-ans input'); }
+      else if (a === 'shuffle') { const rest = st.order.slice(st.i); for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; } st.order = st.order.slice(0, st.i).concat(rest); st.flip = false; this.save(); this.render(); toast('カードをシャッフルしました', { ms: 1400 }); }
+      else if (a === 'pick') { if (q.fin) return; q.pick = +b.dataset.j; q.a = it.choices[q.pick]; this.finish(q.pick === it.correct); }
+      else if (a === 'reveal') { this.finish(false); }
+      else if (a === 'next') this.next();
+      else if (a === 'ai-q') {
+        q.aiAsked = 1; b.disabled = true; b.textContent = 'AIが判定しています…';
+        try {
+          const j = jsonOf(await askOnce(`次の問題に対する生徒の答えが正しいか判定してください。\n問題：${it.q}\n模範解答：${it.answers.join(' / ')}\n生徒の答え：${q.a}\n表記のゆれ（ひらがな・カタカナ・漢字、全角・半角、同じ意味の言い換え、数式として同じ値や同値な形）は正解にします。意味や値がちがえば不正解です。\n次のJSONだけを出力してください：{"ok":true または false,"comment":"生徒へのひとこと（やさしい日本語で1文）"}`));
+          if (!j) throw 0;
+          q.ai = str(j.comment).slice(0, 160);
+          if (j.ok === true) { this.finish(true); return; }
+        } catch (er) { toast('AIに判定してもらえませんでした', { err: true }); }
+        this.save(); this.render();
+      }
+      else if (a === 'undo') { const ord = this.ordOf(); const bb = ord.pop(); if (bb != null) { this.strokes(bb).pop(); this.redraw(); } }
+      else if (a === 'clear') { this.ink[this.k] = {}; this.redraw(); }
+      else if (a === 'trace') { this.trace = !this.trace; this.render(); }
+      else if (a === 'check') { if (!this.hasInk() && !(await confirmBox('答え合わせ', 'まだ何も書いていません。答えを見ますか？', '答えを見る'))) return; q.chk = 1; this.save(); this.render('[data-sa="yes"]'); }
+      else if (a === 'again-k') { this.ink[this.k] = {}; q.chk = 0; q.fin = 0; delete q.ai; delete st.res[this.k]; this.trace = true; this.save(); this.render(); }
+      else if (a === 'ai-k') {
+        if (!this.hasInk()) { toast('先に漢字を書いてください'); return; }
+        q.aiBusy = 1; this.render();
+        try {
+          const png = await this.inkPNG();
+          const j = jsonOf(await askOnce(`これは漢字の書き取り練習です。生徒が「${it.yomi}」を漢字で手書きしました（画像。1マスに1文字）。正しい答えは「${it.kanji}」です。\n画像の手書きの字を見て、正しく書けているか判定してください。とめ・はね・はらいの細かさや字のうまさより、字の形（部首、画の数、点や線の位置、長さの関係）が合っているかを重視します。ちがう字や、画が足りない・多い字は不正解です。\n次のJSONだけを出力してください：{"ok":true または false,"score":0から100の数,"comment":"どこが良くて、どこを直すとよいか（やさしい日本語で1〜2文）"}`, { images: png ? [png] : [], tier: 'default' }));
+          if (!j) throw 0;
+          q.ai = str(j.comment).slice(0, 200) || (j.ok ? 'よく書けています。' : 'お手本とくらべてみよう。'); q.aiOk = !!j.ok; q.aiScore = j.score != null && isFinite(+j.score) ? Math.round(+j.score) : null;
+        } catch (er) { toast('AIに採点してもらえませんでした。自分で答え合わせしてください', { err: true, ms: 3600 }); }
+        q.aiBusy = 0; this.save(); this.render();
+      }
+      else if (a === 'retry-wrong') { const w = st.order.filter(k => st.res[k] !== 1); this.ink = {}; this.st = this.fresh(w, this.d.type === 'cards'); this.save(); this.render(this.d.type === 'quiz' ? '.st-ans input' : null); this.n.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'auto' : 'smooth' }); }
+      else if (a === 'restart') { this.ink = {}; this.st = this.fresh(); this.st.round = 0; this.save(); this.render(); this.n.scrollIntoView({ block: 'nearest', behavior: reduced() ? 'auto' : 'smooth' }); }
+      else if (a === 'more') { const d = this.d, n = d.items.length; this.send(`「${d.title}」の続きで、新しい${d.type === 'cards' ? '暗記カード' : d.type === 'kanji' ? '漢字の書き取り' : '問題'}を${n}${d.type === 'cards' ? '枚' : '問'}作ってください。前に出たものとは別のものにして、レベルは同じくらいで。`); }
+      else if (a === 'report') this.send(this.report());
+    }
+    redraw() { const chars = Array.from(this.it.kanji); for (const cv of $$('canvas[data-b]', this.n)) this.draw(cv, +cv.dataset.b, chars[+cv.dataset.b]); }
+    onSubmit(form) {
+      const inp = form.querySelector('input'); const v = inp ? inp.value : '';
+      const it = this.it, q = this.q();
+      if (this.d.type === 'cards') {
+        if (!v.trim()) { this.flip(); return; }
+        const r = checkCard(v, this.st.dir ? it.q : it.a); q.a = v.trim(); q.r = r.ok ? 1 : 2; sfx(r.ok);
+        this.st.flip = true; this.save(); this.render(r.ok ? '[data-sa="yes"]' : '[data-sa="no"]');
+        return;
+      }
+      if (q.fin) return;
+      if (!v.trim()) { toast('答えを入力してください', { ms: 1600 }); return; }
+      q.a = v.trim(); delete q.ai; q.aiAsked = 0;
+      const r = checkAns(v, it.answers);
+      if (r.ok) { q.unit = r.unit || ''; this.finish(true); return; }
+      q.tries = (q.tries || 0) + 1; sfx(false);
+      if (q.tries >= 3) { this.finish(false); return; }
+      this.save(); this.render('.st-ans input');
+      const inp2 = $('.st-ans input', this.n); if (inp2) { inp2.select && inp2.select(); inp2.classList.add('shake'); }
+    }
+    next() {
+      const st = this.st; st.flip = false; st.i++;
+      if (st.i >= st.order.length) { st.done = true; st.i = st.order.length - 1; sfx('end'); }
+      this.save(); this.render(st.done ? '[data-sa="retry-wrong"], [data-sa="restart"]' : this.d.type === 'quiz' ? '.st-ans input' : this.d.type === 'cards' ? '.st-ans input' : null);
+      if (this.d.type !== 'cards') { const r = this.n.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * 0.6) this.n.scrollIntoView({ block: 'start', behavior: reduced() ? 'auto' : 'smooth' }); }
+    }
+    report() {
+      const d = this.d, st = this.st, n = st.order.length, okN = st.order.filter(k => st.res[k] === 1).length, wrong = st.order.filter(k => st.res[k] !== 1);
+      if (d.type === 'cards') return `【暗記カードの結果】「${d.title}」${n}枚中 ${okN}枚 覚えました。\n${wrong.length ? `まだ覚えていないカード：${wrong.map(k => `${d.items[k].q}（${d.items[k].a}）`).join('、')}\nこれらの覚え方のコツを教えて、苦手なものを中心にした新しいカードも作ってください。` : '全部覚えました！次のレベルのカードを作ってください。'}`;
+      if (d.type === 'kanji') return `【漢字の書き取りの結果】「${d.title}」${n}問中 ${okN}問 書けました。\n${wrong.length ? `書けなかった漢字：${wrong.map(k => `${d.items[k].kanji}（${d.items[k].yomi}）`).join('、')}\nこれらの覚え方のコツ（部首や形の分け方など）を教えて、苦手なものを練習できる新しい書き取りも作ってください。` : '全部書けました！次のレベルの書き取りを作ってください。'}`;
+      return `【問題の結果】「${d.title}」${n}問中 ${okN}問 正解でした。\n${wrong.length ? `まちがえた問題：\n${wrong.map(k => { const it = d.items[k], q = st.qs[k] || {}; return `・${it.q.replace(/\n/g, ' ').slice(0, 120)}（私の答え：${q.a || 'なし'}／正解：${it.kind === 'choice' ? it.choices[it.correct] : it.answers[0]}）`; }).join('\n')}\nどこでまちがえやすいのかを教えて、苦手なところを練習できる問題を作ってください。` : '全問正解！もう少しむずかしい問題を作ってください。'}`;
+    }
+  }
+
+  /* ---- AIへの指示 ---- */
+  const WANT = /カード|単語|書き取り|書きとり|かきとり|問題|テスト|クイズ|ドリル|練習|暗記|漢字|勉強|復習|宿題|計算|英検|受験|study|quiz|flash ?cards?|vocab/i;
+  function want(chat) {
+    if (SET.study) return true;
+    const ms = (chat && chat.msgs) || [];
+    for (let k = ms.length - 1; k >= 0; k--) if (ms[k].role === 'user') { if (WANT.test(ms[k].text || '')) return true; break; }
+    return ms.some(m => m.role === 'assistant' && (m.alts || []).some(a => /```study/.test(a.text || '')));
+  }
+  function promptLines() {
+    return ['【勉強ウィジェット】',
+      'ユーザーが暗記カード・単語カード・問題・テスト・クイズ・ドリル・練習問題・漢字の書き取りなどを頼んだら、アプリの中でそのまま解ける「勉強ウィジェット」を作れます。言語名を study にしたコードブロックに、JSONを1つだけ書いてください（1回の返答でウィジェットは1つ）。種類は3つです。',
+      '1) 暗記カード（英単語・用語・年号・元素記号など）\n```study\n{"type":"cards","title":"中2の英単語","lang":"en","cards":[{"q":"borrow","a":"借りる","read":"ボロウ","hint":"lend の反対","ex":"Can I borrow your pen?","exJa":"ペンを借りてもいい？"}]}\n```\nq は表（問題側）、a は裏（答え側）。英単語なら q に英語、a に日本語の意味（意味が複数なら「、」で区切る）。lang は表の言語（英語なら "en"、日本語なら "ja"。読み上げに使う）。read（読み・発音のカタカナ）、hint、ex（例文）、exJa（例文の訳）はあれば。指定がなければ10枚（5〜30枚）。',
+      '2) 問題（数学・算数・理科・社会・英文法など）\n```study\n{"type":"quiz","title":"一次方程式","items":[{"q":"2x + 3 = 11 のとき、x の値を求めなさい。","kind":"input","answer":["4","x=4"],"hint":"まず両辺から 3 を引いてみよう","explain":"2x + 3 = 11\\n2x = 8\\nx = 4"},{"q":"日本でいちばん長い川は？","kind":"choice","choices":["利根川","信濃川","石狩川","北上川"],"answer":1,"explain":"信濃川（約367km）がいちばん長い。"}]}\n```\nkind は "input"（答えを書く）か "choice"（選ぶ。answer は正しい選択肢の番号で、0から数える）。input の answer には正解として認める書き方をいくつか入れる（「4」「x=4」など。全角・半角、空白、ひらがな・カタカナ、大文字・小文字、分数と小数のちがいはアプリが吸収する）。答えはなるべく数や短い語句で1つに決まる形にする（文章で答える問題は choice にするか、短く答えられる聞き方にする）。分数は 3/4、累乗は x^2、√ は √2 のように、ふつうの文字で書く（LaTeX は使わない）。hint（ヒント。答えは書かない）と explain（解き方。途中式を省略せず、改行は \\n）は必ず書く。指定がなければ5問（3〜15問）。',
+      '3) 漢字の書き取り\n```study\n{"type":"kanji","title":"小3の漢字","items":[{"kanji":"森林","yomi":"しんりん","sentence":"（しんりん）の中を歩く。","meaning":"木がたくさん生えている所","strokes":20,"hint":"木が5つ"}]}\n```\nkanji は書く漢字（1〜4文字の語）、yomi は読み（ひらがな）、sentence はその読みを（ ）で示した短い例文、strokes は全部の画数（わかるときだけ）。指定がなければ8問（5〜15問）。',
+      'ルール：',
+      '・JSONは正しい形で（ダブルクォート、最後の要素のあとにカンマを付けない）。コードブロックの前に1〜2文で何を作ったかを書く。答えはJSONの中だけに書き、本文には書かない（ユーザーが自分で解くため）。',
+      '・学年・レベル・範囲・数がわかれば合わせる。わからなければ中学生くらいにして、最後に「レベルや数を変えたいときは言ってね」のように一言添える。',
+      '・正確さが最優先。答え・読み・意味・画数がまちがっていないか、出す前に必ず確かめる。選択肢の問題は正解が1つだけになるようにする。',
+      '・「もっと」「新しい問題」「続き」と言われたら、前に出したものと重ならない新しいもので作る。',
+      '・ユーザーが【〜の結果】を送ってきたら、まちがいの傾向を短く分析して励まし、頼まれたら苦手なところを練習するウィジェットを作る。',
+      '・ふつうの質問や説明を頼まれただけのときは、ウィジェットは作らずに答える。'];
+  }
+
+  /* ---- はじめるシート ---- */
+  const TYPES = [['en', '英単語カード', 'cards'], ['card', '暗記カード', 'cards'], ['math', '数学・算数', 'quiz'], ['quiz', 'ほかの教科の問題', 'quiz'], ['kanji', '漢字の書き取り', 'kanji']];
+  const PH = { en: '例：中2の教科書 Unit 3／動物の名前／英検3級', card: '例：元素記号／歴史の年号／都道府県の県庁所在地', math: '例：一次方程式／分数のかけ算／二次関数のグラフ', quiz: '例：理科の天気の単元／日本の地理／英語の過去形', kanji: '例：小3で習う漢字／中学の熟語／四字熟語' };
+  const LV = ['小学生', '中学生', '高校生', '大人'];
+  async function openSheet(type0) {
+    let t = type0 || LS.get('studyType', 'en'), lv = LS.get('studyLv', '中学生'), num = LS.get('studyNum', 10);
+    const body = () => `<p class="help-p">作りたいものを選ぶと、AIがその場で解けるカードや問題を作ります。チャットで「英単語カードを作って」のように頼んでもOKです。</p>
+      <div class="ms-h" style="margin-top:12px">種類</div><div class="st-types">${TYPES.map(([id, nm, k]) => `<button type="button" class="st-type${id === t ? ' on' : ''}" data-ty="${id}">${ic(STUDY_ICON[k])}<span>${nm}</span></button>`).join('')}</div>
+      <label class="field" style="margin-top:12px"><span>範囲・テーマ（なくてもOK）</span><input type="text" id="st-topic" placeholder="${esc(PH[t])}" value="${esc(LS.get('studyTopic:' + t, ''))}" autocomplete="off"></label>
+      <div class="ms-h" style="margin-top:12px">レベル</div><div class="seg">${LV.map(x => `<button type="button" data-lv="${x}" class="${x === lv ? 'on' : ''}">${x}</button>`).join('')}</div>
+      <div class="ms-h" style="margin-top:12px">数</div><div class="seg">${[5, 10, 15, 20].map(x => `<button type="button" data-num="${x}" class="${x === num ? 'on' : ''}">${x}</button>`).join('')}</div>
+      <div class="row-set" style="margin-top:12px"><span class="rl"><b>勉強モードをオンにする</b><small>チャットで頼むだけで、いつでも解けるカードや問題にします</small></span><label class="sw"><input type="checkbox" id="st-mode"${SET.study ? ' checked' : ''}><span></span></label></div>`;
+    const v = await dialog({
+      title: '勉強する', cls: 'st-dlg', body: body(),
+      actions: [{ label: 'キャンセル', value: null }, { label: '作る', primary: true, value: n => ({ topic: $('#st-topic', n).value.trim(), mode: $('#st-mode', n).checked }) }],
+      onOpen: n => n.addEventListener('click', e => {
+        const ty = e.target.closest('[data-ty]'), l = e.target.closest('[data-lv]'), m = e.target.closest('[data-num]');
+        if (ty) { LS.set('studyTopic:' + t, $('#st-topic', n).value.trim()); t = ty.dataset.ty; const mode = $('#st-mode', n).checked; $('.dlg-b', n).innerHTML = body(); $('#st-mode', n).checked = mode; }
+        if (l) { lv = l.dataset.lv; for (const x of $$('[data-lv]', n)) x.classList.toggle('on', x === l); }
+        if (m) { num = +m.dataset.num; for (const x of $$('[data-num]', n)) x.classList.toggle('on', x === m); }
+      })
+    });
+    if (!v) return;
+    LS.set('studyType', t); LS.set('studyLv', lv); LS.set('studyNum', num); LS.set('studyTopic:' + t, v.topic);
+    if (!!SET.study !== v.mode) { Settings.set({ study: v.mode }); renderComposer(); }
+    const tp = v.topic;
+    const text = t === 'en' ? `英単語カードを${num}枚作ってください。範囲：${tp || 'よく使う大事な単語'}。レベル：${lv}。`
+      : t === 'card' ? `暗記カードを${num}枚作ってください。テーマ：${tp || 'レベルに合った大事な用語'}。レベル：${lv}。`
+      : t === 'math' ? `数学（算数）の問題を${num}問作ってください。範囲：${tp || 'レベルに合った計算問題'}。レベル：${lv}。`
+      : t === 'kanji' ? `漢字の書き取りを${num}問作ってください。範囲：${tp || 'レベルに合った漢字'}。レベル：${lv}。`
+      : `${tp || 'いろいろな教科'}の問題を${num}問作ってください。レベル：${lv}。`;
+    if (S.busy || S.sending) { input.value = text; autosize(); renderComposer(); toast('回答が終わったら送信してください'); return; }
+    if (!engineReady()) { input.value = text; autosize(); renderComposer(); showEngineHelp(); return; }
+    sendMessage(text, []);
+  }
+  function toggle() {
+    const on = !SET.study; Settings.set({ study: on }); renderComposer(); if (!S.view || !S.view.msgs.length) renderThread();
+    toast(on ? '勉強モードをオンにしました。「英単語カードを作って」「方程式の問題を5問」「漢字の書き取り」のように頼むと、その場で解けます' : '勉強モードをオフにしました', { ms: on ? 6000 : 2200 });
+  }
+  return { html, mount, want, promptLines, openSheet, toggle, checkAns, checkCard, normalize, parseJ, reg };
+})();
 
 /* ---- 90_boot.js ---- */
 /* ========== wiring and start-up ========== */
@@ -8153,6 +9530,10 @@ const ACT = {
   'geo': () => toggleGeo(),
   'geo-pin': b => GeoPanel.fromTag('地図', b.dataset.q),
   'geo-route': b => GeoPanel.fromTag('ルート', b.dataset.q),
+  'karaoke': () => { closeSideMobile(); Karaoke.open(); },
+  'study': () => Study.openSheet(),
+  'study-mode': () => Study.toggle(),
+  'study-sg': b => Study.openSheet(b.dataset.ty),
   'copy-code': b => { const c = b.closest('.code'), code = c && $('pre code', c); if (code) copyText(code.textContent, b); },
   'zoom': b => lightbox(b),
   'pend-x': b => { S.pend.splice(+b.dataset.i, 1); renderAttRow(); renderComposer(); },
@@ -8242,6 +9623,7 @@ function wire() {
   /* keyboard */
   doc.addEventListener('keydown', e => {
     const mod = e.ctrlKey || e.metaKey, tag = (e.target && e.target.tagName) || '';
+    if (Karaoke.on && !Layer.top()) return;
     if (e.key === 'Escape') {
       if (Layer.top()) { e.preventDefault(); Layer.close(); return; }
       if (Live.on) { e.preventDefault(); Live.close(); return; }
@@ -8302,7 +9684,7 @@ async function boot() {
   await eng;
   if (S.localCount) toast(`この端末に以前のチャットが${S.localCount}件あります`, { action: 'アカウントに移す', onAction: () => migrateLocal().then(() => { S.localCount = 0; }), ms: 9000 });
 }
-if (win.__KD_TEST) win.__kd = { S, SET, Live, Orb, STT, TTS, Engine, KV, CV, Usage, Tenwa, Cyan, Hiyori, Geo, GeoPanel, GeoNav, CodePrev, zipStore };
+if (win.__KD_TEST) win.__kd = { S, SET, Live, Orb, STT, TTS, Engine, KV, CV, Usage, Tenwa, Cyan, Hiyori, Geo, GeoPanel, GeoNav, Study, Karaoke, CodePrev, zipStore };
 boot();
 
 })();
