@@ -2374,6 +2374,7 @@ async function relayFetchJson(path, init, signal) {
 async function relayResearch(turns, opts) {
   const minutes = Math.max(1, Math.min(600, Math.round(+opts.research || 30)));
   const { id } = await relayFetchJson('/research', { method: 'POST', body: JSON.stringify({ turns, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null, minutes }) }, opts.signal);
+  opts.onJob && opts.onJob(id, 'research');
   const cancel = () => { fetch(relayBase() + '/research/' + id + '/cancel', { method: 'POST', headers: relayHeaders() }).catch(() => {}); };
   if (opts.signal) opts.signal.addEventListener('abort', cancel, { once: true });
   let since = 0, lines = [], fails = 0, lastText = '';
@@ -2401,8 +2402,8 @@ async function relaySample(input, opts = {}) {
   const turns = typeof input === 'string' ? [{ role: 'user', content: input }] : input;
   if (opts.research) return relayResearch(turns, opts);
   /* 見張り: 中継サーバーから75秒なにも届かなければ、つながりが切れたとみなして打ち切る（サーバーは10秒ごとに生存信号を送る） */
-  const W = { last: Date.now(), dead: false, id: 0, ctl: new AbortController() };
-  if (opts.signal) { if (opts.signal.aborted) W.ctl.abort(); else opts.signal.addEventListener('abort', () => W.ctl.abort(), { once: true }); }
+  const W = { last: Date.now(), dead: false, id: 0, ctl: new AbortController(), jobId: '' };
+  if (opts.signal) { if (opts.signal.aborted) W.ctl.abort(); else opts.signal.addEventListener('abort', () => { W.ctl.abort(); if (W.jobId) relayJobCancel(W.jobId); }, { once: true }); }
   W.id = setInterval(() => { if (Date.now() - W.last > 75000) { W.dead = true; W.ctl.abort(); } }, 5000);
   try { return await relayAsk(turns, opts, W); } finally { clearInterval(W.id); }
 }
@@ -2412,7 +2413,7 @@ async function relayAsk(turns, opts, W) {
   let res;
   try {
     res = await fetch(relayBase() + '/ask', { method: 'POST', signal: W.ctl.signal, headers: relayHeaders(),
-      body: JSON.stringify({ turns, images, search: !!opts.search, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
+      body: JSON.stringify({ turns, images, job: !!opts.job, search: !!opts.search, model: opts.model || null, tier: opts.modelTier || 'default', effort: opts.effort || null }) });
   } catch (e) { if (e && e.name === 'AbortError') throw { code: W.dead ? 'relay_down' : 'cancelled' }; throw { code: 'relay_down' }; }
   if (!res.ok) {
     let j = null; try { j = await res.json(); } catch (e) {}
@@ -2424,6 +2425,7 @@ async function relayAsk(turns, opts, W) {
   const handle = line => {
     if (!line.trim()) return; let ev; try { ev = JSON.parse(line); } catch (e) { return; }
     if (ev.type === 'delta') { text += ev.text; opts.onText && opts.onText({ text, delta: ev.text }); }
+    else if (ev.type === 'job' && ev.id) { W.jobId = ev.id; opts.onJob && opts.onJob(ev.id, 'chat'); }
     else if (ev.type === 'limits' && ev.info) Engine.limits = ev.info;
     else if (ev.type === 'status') { statusLines.push(ev.text); if (statusLines.length > 40) statusLines.shift(); opts.onProgress && opts.onProgress({ stage: '検索中', log: statusLines.join('\n') }); }
     else if (ev.type === 'done') { fin = ev; if (ev.limits) Engine.limits = ev.limits; if (ev.usage) Usage.addChat(ev.usage.i, ev.usage.o); } else if (ev.type === 'error') err = ev;
@@ -2436,10 +2438,34 @@ async function relayAsk(turns, opts, W) {
       while ((i = buf.indexOf('\n')) >= 0) { handle(buf.slice(0, i)); buf = buf.slice(i + 1); }
     }
     handle(buf);
-  } catch (e) { if (e && e.name === 'AbortError' && !W.dead) throw { code: 'cancelled', text }; throw { code: 'relay_down', text }; }
+  } catch (e) {
+    /* つながりが切れても、PC側は返信を作り続けている。ジョブの番号があれば、続きを受け取りにいく */
+    if (W.jobId && !(opts.signal && opts.signal.aborted)) return relayJobFollow(W.jobId, opts, text);
+    if (e && e.name === 'AbortError' && !W.dead) throw { code: 'cancelled', text };
+    throw { code: 'relay_down', text };
+  }
   if (err && !text) throw { code: 'relay_error', message: err.message };
+  if (!fin && W.jobId) return relayJobFollow(W.jobId, opts, text);
   if (!fin && !text) throw { code: 'relay_down' };
   return { text, truncated: !!(fin && fin.truncated), modelApplied: (fin && fin.model) || null, modelTierApplied: opts.modelTier || 'default' };
+}
+const sleepMs = ms => new Promise(r => setTimeout(r, ms));
+function relayJobCancel(id) { fetch(relayBase() + '/job/' + id + '/cancel', { method: 'POST', headers: relayHeaders() }).catch(() => {}); }
+/* 返信の続きを、ジョブの番号で受け取る（画面を閉じていた間も、PCは作り続けている） */
+async function relayJobFollow(id, opts, text0 = '') {
+  let text = text0, fails = 0;
+  for (;;) {
+    if (opts.signal && opts.signal.aborted) { relayJobCancel(id); throw { code: 'cancelled', text }; }
+    let j;
+    try { j = await relayFetchJson('/job/' + id + '?from=' + text.length, { method: 'GET' }, opts.signal); fails = 0; }
+    catch (e) { if (e.code === 'cancelled') { relayJobCancel(id); throw e; } if (e.code === 'relay_job_lost' || e.code === 'relay_key' || ++fails > 120) throw e; await sleepMs(2000); continue; }
+    if (j.text) { text += j.text; opts.onText && opts.onText({ text, delta: j.text }); }
+    if (j.limits) Engine.limits = j.limits;
+    if (j.status === 'running') { if (opts.onProgress && j.statusLines && j.statusLines.length) opts.onProgress({ stage: '検索中', log: j.statusLines.join('\n') }); await sleepMs(1200); continue; }
+    if (j.status === 'done') { if (j.usage) Usage.addChat(j.usage.i, j.usage.o); return { text, truncated: !!j.truncated, modelApplied: j.model || null, modelTierApplied: opts.modelTier || 'default' }; }
+    if (j.status === 'cancelled') throw { code: 'cancelled', text };
+    throw { code: 'relay_error', message: j.error };
+  }
 }
 relaySample.limits = async () => ({ images: null });
 const API_URL = 'https://api.anthropic.com/v1/messages';
@@ -2460,6 +2486,7 @@ async function initEngine() {
   if (Engine.kind !== 'sample' && SET.apiKey) Engine.kind = 'api';
   Engine.checked = true;
   renderBanner(); renderComposer();
+  resumeJobs();
 }
 const engineReady = () => (Engine.kind === 'sample' && !Engine.denied) || (Engine.kind === 'api' && !!SET.apiKey);
 
@@ -2603,12 +2630,12 @@ const draftSuffix = plan => `――――\n（あなたが作った回答の準�
 const reviewSuffix = draft => `――――\n次は、あなたがこの依頼のために書いた回答の下書きです。\n<draft>\n${draft}\n</draft>\nこの下書きを厳しく点検してください。事実のまちがい、計算ミス、依頼に答えていない部分、抜けている観点、わかりにくい説明を探します。\nまず <review> と </review> の間に、見つけた問題点と直し方を日本語の箇条書きで書いてください（問題がなければ「大きな問題なし」）。\nそのあとに、点検の結果を反映した最終的な回答だけを書いてください。最終回答では、下書きや点検について触れないでください。`;
 
 /* ---------- calls ---------- */
-async function callSample({ turns, images, model, effort, signal, onText, search, research, onProgress }) {
+async function callSample({ turns, images, model, effort, signal, onText, search, research, onProgress, job, onJob }) {
   const m = modelOf(model);
   const opts = { signal, cache: false, modelTier: m.tier, onText: ({ text }) => onText && onText(text) };
   if (!m.auto) opts.model = m.id;
   if (effort) opts.effort = effort;
-  if (Engine.relay) { if (search) opts.search = true; if (research) opts.research = research; if (onProgress) opts.onProgress = onProgress; }
+  if (Engine.relay) { if (search) opts.search = true; if (research) opts.research = research; if (onProgress) opts.onProgress = onProgress; if (job) { opts.job = true; opts.onJob = onJob; } }
   if (images && images.length && Engine.imgMax) opts.images = images.slice(0, Engine.imgMax);
   const r = await Engine.sample(turns, opts);
   if (!Engine.relay) Usage.addChat(0, 0);
@@ -2712,7 +2739,8 @@ async function generate(chat, am, alt, o = {}) {
       imgs.push(...extraImgs);
       const note = imageNote(conv, extraImgs.length, live ? (Live.imgLabel || (extraImgs.length > 1 ? 'いま2つのカメラ（内カメラと外カメラ）に映っている映像' : 'いまカメラに映っている映像')) : '今回の追加画像');
       const callEff = EFF_RANK[eff] > 2 ? 'high' : eff;
-      const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText, search: useSearch, research: useResearch ? (+SET.researchMin || 30) : 0, onProgress: prog });
+      const jobOK = !live && Engine.relay && !pipe;
+      const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText, search: useSearch, research: useResearch ? (+SET.researchMin || 30) : 0, onProgress: prog, job: jobOK, onJob: jobOK ? (id, kind) => { alt.job = { id, k: kind || 'chat', at: Date.now() }; PendingJobs.add(chat.id, am.id, am.alts.indexOf(alt), id, kind || 'chat'); persistChat(chat, { touch: false }); } : undefined });
       const fin = r => { alt.applied = r.applied; alt.tier = r.tier; alt.trunc = r.trunc; };
       const review = t => { const s = splitTag(t, 'review'); if (s.inner || s.open) setPart('見直し', s.inner); alt.text = s.rest; };
       if (pipe && eff === 'max') {
@@ -2747,6 +2775,7 @@ async function generate(chat, am, alt, o = {}) {
   } finally {
     ended = true; alt.stage = ''; alt.ms = Date.now() - alt.started; delete alt.started;
     S.busy = null;
+    if (alt.job) { PendingJobs.remove(alt.job.id); delete alt.job; }
     persistChat(chat);
     paintMsg(chat, am, true); renderComposer(); renderSidebarSoon();
     if (!alt.err && !alt.stopped) { SFX.play('recv'); if (!live && SET.autoRead && alt.text) TTS.sayAll(alt.text); }
@@ -2754,6 +2783,65 @@ async function generate(chat, am, alt, o = {}) {
     o.onDone && o.onDone(alt);
   }
 }
+
+/* ---- 返信の「あとで受け取り」 ----
+   中継サーバー経由のチャットは、PC側が返信を最後まで作り続ける。ブラウザや画面を閉じたり、通信が切れたりしても、
+   次に開いたとき（中継サーバーにつながったとき）に、続きと結果をここで受け取って、会話に書き込む。 */
+const PendingJobs = {
+  list() { return LS.get('pendingJobs', []); },
+  add(chat, msg, alt, id, k) { const l = this.list().filter(x => x.id !== id); l.push({ chat, msg, alt, id, k, at: Date.now() }); LS.set('pendingJobs', l.slice(-30)); },
+  remove(id) { const l = this.list(), n = l.filter(x => x.id !== id); if (n.length !== l.length) LS.set('pendingJobs', n); },
+};
+function applyJobText(chat, alt, text) {
+  if (chat.think && !Engine.noTag) {
+    const s = splitTag(text, 'thinking');
+    if (s.inner || s.open) { alt.think = alt.think || []; let p = alt.think.find(x => x.l === '思考'); if (!p) { p = { l: '思考', t: '' }; alt.think.push(p); } p.t = s.inner; }
+    alt.text = s.rest;
+  } else alt.text = stripTags(text);
+}
+const resumingJobs = new Set();
+async function resumeOne(p) {
+  if (resumingJobs.has(p.id)) return;
+  if (S.busy && S.busy.alt && S.busy.alt.job && S.busy.alt.job.id === p.id) return; /* このページで受け取り中のもの */
+  resumingJobs.add(p.id);
+  try {
+    const chat = await getChat(p.chat);
+    const m = chat && chat.msgs.find(x => x.id === p.msg), alt = m && m.alts && m.alts[p.alt];
+    if (!alt || !alt.job || alt.job.id !== p.id) { PendingJobs.remove(p.id); return; }
+    const repaint = fin => { if (S.view && S.view.id === chat.id) paintMsg(chat, m, fin); };
+    const research = p.k === 'research';
+    let got = '', since = 0, fails = 0; const lines = [];
+    alt.stage = '返信の受け取り'; repaint(false);
+    try {
+      if (Date.now() - (p.at || 0) > 24 * 3600 * 1000) throw { code: 'relay_job_lost' };
+      for (;;) {
+        let j;
+        try { j = await relayFetchJson(research ? '/research/' + p.id + '?since=' + since : '/job/' + p.id + '?from=' + got.length, { method: 'GET' }); fails = 0; }
+        catch (e) { if (e.code === 'relay_job_lost') throw e; if (e.code === 'relay_key' || ++fails > 60 || !Engine.relay) return; /* つながったら、またここから */ await sleepMs(3000); continue; }
+        if (research) { since = j.logTotal; for (const l of j.log) lines.push(`[${Math.floor(l.t / 60000)}:${String(Math.floor(l.t / 1000) % 60).padStart(2, '0')}] ${l.text}`); if (j.finalText) got = j.finalText; if (lines.length) { alt.think = alt.think || []; let q = alt.think.find(x => x.l === '調べた内容'); if (!q) { q = { l: '調べた内容', t: '' }; alt.think.push(q); } q.t = lines.slice(-300).join('\n'); } }
+        else if (j.text) got += j.text;
+        if (got) applyJobText(chat, alt, got);
+        if (j.limits) Engine.limits = j.limits;
+        if (j.status === 'running' || j.status === 'synthesizing') { repaint(false); await sleepMs(research ? 3000 : 1500); continue; }
+        if (j.status === 'done') {
+          if (got) applyJobText(chat, alt, got);
+          alt.applied = j.model || null; alt.trunc = !!j.truncated; if (j.usage) { alt.tok = j.usage; Usage.addChat(j.usage.i, j.usage.o); }
+          alt.ms = j.elapsed || (research ? j.elapsed : 0);
+        } else if (j.status === 'cancelled') alt.stopped = true;
+        else alt.err = { code: 'relay_error', msg: errText({ code: 'relay_error', message: j.error }) };
+        break;
+      }
+    } catch (e) { alt.err = { code: (e && e.code) || 'relay_job_lost', msg: errText(e) }; }
+    alt.stage = ''; delete alt.job; delete alt.started; PendingJobs.remove(p.id);
+    persistChat(chat); repaint(true); renderSidebarSoon();
+    if (!alt.err && !alt.stopped) {
+      SFX.play('recv');
+      toast(`返信が届きました：${chat.title || '新しいチャット'}`, { action: S.view && S.view.id === chat.id ? undefined : '開く', onAction: () => openChat(chat.id), ms: 6000 });
+      if (!chat.title && !chat.titling) autoTitle(chat);
+    }
+  } finally { resumingJobs.delete(p.id); }
+}
+function resumeJobs() { if (!Engine.relay || !S.ready) return; for (const p of PendingJobs.list()) resumeOne(p).catch(() => {}); }
 
 async function autoTitle(chat) {
   const first = chat.msgs.find(m => m.role === 'user'); if (!first) return;
@@ -3389,7 +3477,7 @@ function thinkHTML(m, a, busy) {
 const cleanAI = t => String(t || '').replace(/\[\[(速さ|声|表情|動き|地図|ルート)[:：][^\]]*\]\]\s?/g, '').replace(/\[\[(速さ|声|表情|動き|地図|ルート)?[:：]?[^\]]{0,24}$/, '').trimEnd();
 const geoTags = t => { const out = [], seen = new Set(); for (const m of String(t || '').matchAll(/\[\[(地図|ルート)[:：]\s*([^\]]+?)\s*\]\]/g)) { const k = m[1] + m[2]; if (!seen.has(k)) { seen.add(k); out.push([m[1], m[2]]); } } return out.slice(0, 8); };
 function aiInner(c, m, old) {
-  const a = curAlt(m) || {}; const busy = S.busy && S.busy.msgId === m.id;
+  const a = curAlt(m) || {}; const busy = (S.busy && S.busy.msgId === m.id) || !!a.job;
   let h = `<div class="ai-meta"><b>${esc(aiName())}</b>${a.model ? `<span class="mchip">${esc(modelChipText(a))}</span>` : ''}${a.live ? '<span class="mchip is-live">LIVE</span>' : ''}</div>`;
   h += thinkHTML(m, a, busy);
   const text = cleanAI(a.text);
@@ -12643,6 +12731,7 @@ async function boot() {
   if (last && S.index[last]) await openChat(last); else setView(null);
   S.ready = true;
   await eng;
+  resumeJobs();
   if (S.localCount) toast(`この端末に以前のチャットが${S.localCount}件あります`, { action: 'アカウントに移す', onAction: () => migrateLocal().then(() => { S.localCount = 0; }), ms: 9000 });
 }
 if (win.__KD_TEST) win.__kd = { S, SET, Live, Orb, STT, TTS, Engine, KV, CV, Usage, Tenwa, Cyan, Hiyori, Riku, Riku3D, RikuStage, Geo, GeoPanel, GeoNav, Study, Karaoke, Note, NotePanel, Pomo, AICam, CodePrev, zipStore };

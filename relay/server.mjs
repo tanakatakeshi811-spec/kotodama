@@ -349,7 +349,7 @@ async function runJob(job) {
     job.model = f.model || useModel; job.truncated = !!f.truncated; job.status = 'done';
   } catch (e) {
     if (job.cancelled) job.status = 'cancelled'; else { job.status = 'error'; job.error = String((e && e.message) || e).slice(0, 300); }
-  } finally { job.endedAt = Date.now(); job.child = null; }
+  } finally { job.endedAt = Date.now(); job.child = null; saveJobsSoon(); }
 }
 
 function startResearch(body) {
@@ -365,7 +365,64 @@ function startResearch(body) {
   return job;
 }
 const activeJob = () => [...jobs.values()].find(j => j.status === 'running' || j.status === 'synthesizing');
-setInterval(() => { for (const [id, j] of jobs) if (j.endedAt && Date.now() - j.endedAt > 6 * 3600 * 1000) jobs.delete(id); }, 600000).unref();
+setInterval(() => { for (const [id, j] of jobs) if (j.endedAt && Date.now() - j.endedAt > 24 * 3600 * 1000) jobs.delete(id); }, 600000).unref();
+
+/* ================= 返信をあとで受け取れる「チャットのジョブ」 =================
+   ブラウザや画面を閉じても、このPCの中継サーバーが返信を最後まで作り続ける。
+   ブラウザは次に開いたときに、ジョブの番号で続きと結果を受け取る。終わった結果は24時間、ファイルにも残す（再起動しても受け取れる）。 */
+const chatJobs = new Map();
+const JOBS_FILE = path.join(HERE, 'jobs-store.json');
+const JOB_KEEP_MS = 24 * 3600 * 1000;
+function saveJobs() {
+  try {
+    const out = [];
+    for (const j of chatJobs.values()) if (j.endedAt && Date.now() - j.endedAt < JOB_KEEP_MS && j.status !== 'cancelled') out.push({ kind: 'chat', id: j.id, status: j.status, text: j.text, model: j.model, usage: j.usage, truncated: j.truncated, error: j.error, t0: j.t0, endedAt: j.endedAt });
+    for (const j of jobs.values()) if (j.endedAt && Date.now() - j.endedAt < JOB_KEEP_MS && j.status === 'done') out.push({ kind: 'research', id: j.id, status: j.status, finalText: j.finalText, model: j.model, usage: j.usage, truncated: j.truncated, minMs: j.minMs, round: j.round, t0: j.t0, endedAt: j.endedAt });
+    fs.writeFileSync(JOBS_FILE, JSON.stringify(out.slice(-60)));
+  } catch (e) {}
+}
+const saveJobsSoon = (() => { let t = 0; return () => { clearTimeout(t); t = setTimeout(saveJobs, 800); }; })();
+(function loadJobs() {
+  try {
+    for (const o of JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8'))) {
+      if (!o || Date.now() - o.endedAt > JOB_KEEP_MS) continue;
+      if (o.kind === 'chat') chatJobs.set(o.id, { ...o, statusLines: [], clients: new Set(), child: null, cancelled: false });
+      else jobs.set(o.id, { id: o.id, status: o.status, t0: o.t0 || o.endedAt, minMs: o.minMs || 0, round: o.round || 0, notes: [], log: [], logTotal: 0, finalText: o.finalText || '', turns: null, model: o.model, effort: null, usage: o.usage || { i: 0, o: 0 }, limits: null, error: '', cancelled: false, finishEarly: false, child: null, endedAt: o.endedAt, truncated: !!o.truncated });
+    }
+  } catch (e) {}
+})();
+
+function startChatJob(res, body, prompt, images, alias, effort) {
+  const id = crypto.randomBytes(9).toString('base64url');
+  const job = { id, status: 'running', text: '', statusLines: [], usage: null, truncated: false, model: null, error: '', t0: Date.now(), endedAt: 0, clients: new Set(), child: null, cancelled: false };
+  chatJobs.set(id, job);
+  if (chatJobs.size > 80) { const old = [...chatJobs.values()].filter(j => j.endedAt).sort((a, b) => a.endedAt - b.endedAt)[0]; if (old) chatJobs.delete(old.id); }
+  running++;
+  const emit = o => {
+    if (o.type === 'delta') job.text += o.text;
+    else if (o.type === 'status') { job.statusLines.push(o.text); if (job.statusLines.length > 40) job.statusLines.shift(); }
+    for (const r of job.clients) if (!r.writableEnded) { try { r.write(JSON.stringify(o) + '\n'); } catch (e) {} }
+  };
+  job.clients.add(res);
+  res.on('close', () => job.clients.delete(res));
+  const hb = setInterval(() => emit({ type: 'ping' }), 10000);
+  emit({ type: 'job', id });
+  const attempt = (eff, retry) => {
+    job.child = runClaude({ prompt, model: alias, effort: eff, images, search: body.search === true }, t => emit({ type: 'delta', text: t }), r => {
+      if (!r.ok && !r.got && retry && !job.cancelled) return attempt(null, false);
+      if (job.cancelled) job.status = 'cancelled';
+      else if (r.ok) { job.status = 'done'; job.model = r.model; job.truncated = !!r.truncated; job.usage = r.usage; emit({ type: 'done', model: r.model, truncated: r.truncated, usage: r.usage, limits: lastLimits }); }
+      else { job.status = 'error'; job.error = String(r.error || '').slice(0, 300); emit({ type: 'error', message: job.error }); }
+      job.endedAt = Date.now(); job.child = null; running--; clearInterval(hb);
+      for (const c of job.clients) { try { c.end(); } catch (e) {} }
+      job.clients.clear(); saveJobsSoon();
+    }, lim => emit({ type: 'limits', info: lim }), s => emit({ type: 'status', text: s }));
+  };
+  attempt(effort, !!effort);
+  return job;
+}
+setInterval(() => { for (const [id, j] of chatJobs) if (j.endedAt && Date.now() - j.endedAt > JOB_KEEP_MS) chatJobs.delete(id); }, 600000).unref();
+process.on('exit', saveJobs);
 
 const server = http.createServer(async (req, res) => {
   const allowed = cors(req, res);
@@ -375,7 +432,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url === '/ping') {
     const a = checkAuth(req);
-    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 5, features: ['search', 'research', 'voicevox'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
+    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 6, features: ['search', 'research', 'voicevox', 'jobs'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
   }
 
   if (req.method === 'POST' && url === '/ask') {
@@ -392,6 +449,7 @@ const server = http.createServer(async (req, res) => {
     const effort = ['low', 'medium', 'high', 'xhigh', 'max'].includes(body.effort) ? body.effort : null;
 
     res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store, no-transform', 'x-accel-buffering': 'no' }); res.flushHeaders();
+    if (body.job === true) { startChatJob(res, body, prompt, images, alias, effort); return; }
     const send = o => { if (!res.writableEnded) res.write(JSON.stringify(o) + '\n'); };
     running++;
     let child = null, closed = false;
@@ -440,6 +498,18 @@ const server = http.createServer(async (req, res) => {
     if (!buildPrompt(body.turns).trim()) return json(res, 400, { error: 'empty' });
     const job = startResearch(body);
     return json(res, 200, { id: job.id });
+  }
+  const cm = url.match(/^\/job\/([A-Za-z0-9_-]+)(\/cancel)?$/);
+  if (cm) {
+    const a = checkAuth(req);
+    if (a !== 'ok') return json(res, a === 'locked' ? 429 : 401, { error: 'auth_' + a });
+    const job = chatJobs.get(cm[1]);
+    if (!job) return json(res, 404, { error: 'no_job' });
+    if (req.method === 'POST' && cm[2]) { job.cancelled = true; try { job.child && job.child.kill(); } catch (e) {} return json(res, 200, { ok: true }); }
+    if (req.method === 'GET' && !cm[2]) {
+      const from = Math.max(0, parseInt((req.url.split('from=')[1] || '0'), 10) || 0);
+      return json(res, 200, { status: job.status, text: job.text.slice(from), total: job.text.length, statusLines: job.statusLines, model: job.model, truncated: job.truncated, usage: job.usage, error: job.error, limits: lastLimits, elapsed: (job.endedAt || Date.now()) - job.t0 });
+    }
   }
   const rm = url.match(/^\/research\/([A-Za-z0-9_-]+)(\/cancel|\/finish)?$/);
   if (rm) {
