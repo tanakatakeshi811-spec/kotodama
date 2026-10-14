@@ -690,6 +690,13 @@ section.live { inset: auto; left: 0; right: 0; top: var(--vvt, 0px); height: var
 .lv-remic { align-self: center; display: inline-flex; align-items: center; gap: 8px; margin: 6px auto 0; padding: 11px 20px; border-radius: 999px; background: var(--accent-live, #4fc6a3); color: #04201a; font-weight: 700; font-size: 14px; box-shadow: 0 6px 22px rgba(0,0,0,.35); z-index: 3; }
 .lv-remic[hidden] { display: none; }
 .lv-remic .ic { width: 18px; height: 18px; }
+/* キャラ会議 */
+.mt-cast { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 14px; }
+.mt-c { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; }
+.mt-c:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.mt-c input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.mt-c b { display: block; font-size: 14px; }
+.mt-c small { display: block; color: var(--ink-3); font-size: 11.5px; line-height: 1.4; }
 .price-list { display: grid; gap: 8px; }
 .price-list > div { display: grid; gap: 2px; padding: 9px 12px; border: 1px solid var(--line, rgba(128,128,128,.25)); border-radius: 12px; }
 .price-list b { font-size: .92em; } .price-list span { font-size: .85em; opacity: .8; line-height: 1.55; }
@@ -1465,6 +1472,15 @@ const MAGA_D = "M72 40C72 70 56 88 26 94C40 84 44 76 42 70A30 30 0 1 1 72 40Z";
 let SPRITE_URL = '';
 let TW_ICON = '', TW_HERO = '', CY_ICON = '', CY_HERO = '', HY_ICON = '', HY_HERO = '', RK_ICON = '', RK_HERO = '';
 const charIcon = () => (typeof SET === 'undefined' ? '' : SET.angel ? TW_ICON : SET.cyan ? CY_ICON : SET.hiyori ? HY_ICON : SET.riku ? RK_ICON : '');
+/* ---- キャラ会議：参加できるキャラ。発言ごとの話者(m.who)の名前・アバター・人格 ---- */
+const WHO = {
+  tenwa: { name: '天和', cls: '', icon: () => TW_ICON, persona: () => TENWA_PERSONA },
+  cyan: { name: 'シアン', cls: 'cy ', icon: () => CY_ICON, persona: () => CYAN_PERSONA },
+  hiyori: { name: 'ひより', cls: 'hy ', icon: () => HY_ICON, persona: () => HIYORI_PERSONA },
+  riku: { name: 'リク', cls: 'rk ', icon: () => RK_ICON, persona: () => RIKU_PERSONA },
+  moderator: { name: '司会（コトダマ）', cls: '', icon: () => '', persona: () => ({ prompt: '会議の司会として、公平に、短くわかりやすくまとめます。親切で率直な口調で話します。' }) },
+};
+const mgHTMLFor = who => { const w = WHO[who]; const src = w && w.icon(); return src ? `<img class="mg tw ${w.cls}" src="${src}" alt="">` : `<svg class="mg" viewBox="0 0 100 100" aria-hidden="true">${MAGA}</svg>`; };
 const mgHTML = (cls = '') => charIcon() ? `<img class="mg tw ${SET.angel ? '' : SET.cyan ? 'cy ' : SET.hiyori ? 'hy ' : 'rk '}${cls}" src="${charIcon()}" alt="">` : `<svg class="mg ${cls}" viewBox="0 0 100 100" aria-hidden="true">${MAGA}</svg>${SPRITE_URL ? `<img class="mg-px ${cls}" src="${SPRITE_URL}" alt="">` : ''}`;
 
 /* per-viewer browser storage — conveniences and the local fallback only */
@@ -1726,6 +1742,7 @@ const SLASH = [
   { k: '新規', d: '新しいチャット', act: 'new' },
   { k: 'live', d: 'LIVEモードを開く', act: 'live' },
   { k: '設定', d: '設定を開く', act: 'settings' },
+  { k: '会議', d: 'キャラ会議を開く', act: 'meeting' },
   { k: 'ドット', d: 'ドット絵モードを切り替える', act: 'pixel' },
   { k: '天使', d: '天使モード（天和）を切り替える', act: 'angel' },
   { k: 'シアン', d: 'シアンモードを切り替える', act: 'cyan' },
@@ -2593,6 +2610,36 @@ async function buildConv(chat, upto, o = {}) {
   }
   return { system, msgs: out, imgs, native, dropped };
 }
+/* ---------- キャラ会議：発言1つぶんの会話を組み立てる ---------- */
+function meetingSystem(meet) {
+  const w = WHO[meet.who], P = w.persona();
+  const L = [];
+  L.push('あなたはチャットアプリ「コトダマ」で開かれている「キャラ会議」の参加者です（中身はAnthropicのClaude）。');
+  L.push(`現在の日時：${nowJa()}`);
+  L.push('ユーザーと同じ言語（ふだんは日本語）で話してください。');
+  L.push('', '【会議のしくみ】', `参加者：${meet.cast.map(x => WHO[x].name).join('、')}、そしてまとめ役の司会。ユーザーが出したテーマについて、キャラクターが順番に発言して話し合います。`,
+    'あなたは割り当てられたキャラクターとして、そのキャラクターの性格・口調・考え方で発言します。ほかのキャラクターのふりをしたり、ほかの人の発言を代わりに書いたりしません。',
+    '発言は声で読み上げられます。1〜3文（80〜120字ほど）の話し言葉で。記号・箇条書き・絵文字・見出し・名前の頭書き（「天和：」など）は付けません。内容は正確で、役に立つものにします。');
+  L.push('', '【あなたの役割】', `名前：${w.name}`, P.prompt);
+  if (SET.instr.trim()) L.push('', '【ユーザーからの指示（いつも守ること）】', SET.instr.trim());
+  const mem = SET.memory.split('\n').map(x => x.trim()).filter(Boolean);
+  if (mem.length) L.push('', '【ユーザーについて覚えておくこと】', ...mem.map(x => '・' + x));
+  return L.join('\n');
+}
+async function meetingConv(chat, am, meet) {
+  const idx = chat.msgs.indexOf(am);
+  let ui = -1; for (let k = idx - 1; k >= 0; k--) if (chat.msgs[k].role === 'user') { ui = k; break; }
+  const um = chat.msgs[ui], topic = (um && (um.topic || um.text)) || '';
+  const said = [];
+  for (const m of chat.msgs.slice(ui + 1, idx)) { if (m.role !== 'assistant' || !m.who || !WHO[m.who]) continue; const t = cleanAI((curAlt(m) || {}).text).replace(/\s+/g, ' ').trim(); if (t) said.push(`${WHO[m.who].name}：${t}`); }
+  const me = WHO[meet.who].name;
+  const ins = meet.who === 'moderator'
+    ? 'あなたは司会です。ここまでの議論を2〜3文で整理し、それぞれの考えの違いにも触れたうえで、最後に「結論は、…」と一言でまとめてください。'
+    : meet.round <= 1 ? `いまはラウンド1です。${me}さんの番です。テーマについて、あなたのキャラクターらしい意見を述べてください。`
+      : `いまはラウンド${meet.round}です。${me}さんの番です。ほかの人の発言に、名前で呼びかけて反応（賛成・反論・補足）しながら、あなたの意見を述べてください。`;
+  const text = [`【テーマ】${topic}`, '', '【ここまでの発言】', said.length ? said.join('\n') : '（まだ誰も発言していません。あなたが最初です）', '', '――――', ins, '発言の中身だけを書いてください。'].join('\n');
+  return { system: meetingSystem(meet), msgs: [{ role: 'user', text, m: null }], imgs: [], native: new Set(), dropped: 0 };
+}
 function sampleTurns(conv, suffix = '', note = '') {
   const t = [{ role: 'user', content: conv.system }];
   for (const x of conv.msgs) t.push({ role: x.role, content: (x.text || '').trim() || '（空）' });
@@ -2706,11 +2753,11 @@ async function callApi({ conv, model, effort, think, signal, onThink, onText, ex
 async function generate(chat, am, alt, o = {}) {
   const live = !!o.live;
   const model = o.model || (live && SET.liveModel !== 'same' ? SET.liveModel : chat.model);
-  let eff = live ? 'low' : (o.effort || chat.effort);
-  const useResearch = !live && !!SET.research && Engine.relay;
-  const useSearch = !live && !!(SET.webSearch || SET.research) && (Engine.relay || Engine.kind === 'api');
-  const pipe = !live && !useResearch && Engine.kind === 'sample' && (eff === 'xhigh' || eff === 'max');
-  const showThink = !live && chat.think;
+  let eff = live ? 'low' : (o.meet ? 'low' : (o.effort || chat.effort));
+  const useResearch = !live && !o.meet && !!SET.research && Engine.relay;
+  const useSearch = !live && !o.meet && !!(SET.webSearch || SET.research) && (Engine.relay || Engine.kind === 'api');
+  const pipe = !live && !o.meet && !useResearch && Engine.kind === 'sample' && (eff === 'xhigh' || eff === 'max');
+  const showThink = !live && !o.meet && chat.think;
   Object.assign(alt, { model, effort: eff, text: '', think: [], err: null, trunc: false, applied: null, tier: null, stopped: false, stage: '', started: Date.now(), live: live ? 1 : 0 });
   delete alt.ms;
   const ctl = new AbortController();
@@ -2726,7 +2773,7 @@ async function generate(chat, am, alt, o = {}) {
     const idx = chat.msgs.indexOf(am);
     const extraImgs = (o.images || []).slice(0, Engine.kind === 'api' ? 4 : Engine.imgMax);
     const buildC = noTag => buildConv(chat, idx, { live, think: !noTag && showThink && !pipe && Engine.kind === 'sample' && !Engine.noTag, reserve: pipe ? 80000 : 0, extraImages: extraImgs.length });
-    let conv = await buildC(false);
+    let conv = o.meet ? await meetingConv(chat, am, o.meet) : await buildC(false);
     if (conv.dropped) alt.dropped = conv.dropped;
     if (Engine.kind === 'api') {
       alt.stage = '';
@@ -2739,7 +2786,7 @@ async function generate(chat, am, alt, o = {}) {
       imgs.push(...extraImgs);
       const note = imageNote(conv, extraImgs.length, live ? (Live.imgLabel || (extraImgs.length > 1 ? 'いま2つのカメラ（内カメラと外カメラ）に映っている映像' : 'いまカメラに映っている映像')) : '今回の追加画像');
       const callEff = EFF_RANK[eff] > 2 ? 'high' : eff;
-      const jobOK = !live && Engine.relay && !pipe;
+      const jobOK = !live && Engine.relay && !pipe && !o.meet;
       const call = (suffix, onText) => callSample({ turns: sampleTurns(conv, suffix, note), images: imgs, model, effort: callEff, signal: ctl.signal, onText, search: useSearch, research: useResearch ? (+SET.researchMin || 30) : 0, onProgress: prog, job: jobOK, onJob: jobOK ? (id, kind) => { alt.job = { id, k: kind || 'chat', at: Date.now() }; PendingJobs.add(chat.id, am.id, am.alts.indexOf(alt), id, kind || 'chat'); persistChat(chat, { touch: false }); } : undefined });
       const fin = r => { alt.applied = r.applied; alt.tier = r.tier; alt.trunc = r.trunc; };
       const review = t => { const s = splitTag(t, 'review'); if (s.inner || s.open) setPart('見直し', s.inner); alt.text = s.rest; };
@@ -2778,7 +2825,7 @@ async function generate(chat, am, alt, o = {}) {
     if (alt.job) { PendingJobs.remove(alt.job.id); delete alt.job; }
     persistChat(chat);
     paintMsg(chat, am, true); renderComposer(); renderSidebarSoon();
-    if (!alt.err && !alt.stopped) { SFX.play('recv'); if (!live && SET.autoRead && alt.text) TTS.sayAll(alt.text); }
+    if (!alt.err && !alt.stopped) { SFX.play('recv'); if (!live && !o.meet && SET.autoRead && alt.text) TTS.sayAll(alt.text); }
     if (!chat.title && !chat.titling) autoTitle(chat);
     o.onDone && o.onDone(alt);
   }
@@ -2978,7 +3025,15 @@ const TTS = {
     let h = 0; for (const ch of String(p.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     return pool[h % pool.length];
   },
+  /* キャラ会議の発言：VOICEVOXならキャラの声、端末の声なら全員ちがう声（devMap）で読む */
+  who: null, devMap: null,
+  sayWho(text, who) { const st = this.onState; this.onState = null; this.cancel(); this.onState = st; this.who = who || null; const { parts } = splitSentences(speakable(text), true); parts.forEach(p => this.q.push(p)); this.next(); },
   resolve(text, noCloud) {
+    if (this.who) {
+      if (!noCloud && CV.active()) return { cloud: true, rate: SET.rate };
+      const d = this.devMap && this.devMap[this.who];
+      if (d && !(SET.enAuto && isEnglish(text))) return { voice: d.voice, lang: 'ja-JP', rate: clamp(SET.rate * d.rate, 0.3, 3), pitch: clamp(SET.pitch * d.pitch, 0, 2) };
+    }
     const p = voicePreset(SET.voice);
     if (p.engine === 'blip') return { blip: true, rate: SET.rate * p.rate, pitch: SET.pitch * p.pitch };
     if (!noCloud && CV.active()) return { cloud: true, rate: SET.rate };
@@ -2994,7 +3049,7 @@ const TTS = {
   next() {
     if (this.speaking) return;
     const t = this.q.shift();
-    if (!t) { this.onState && this.onState('idle'); return; }
+    if (!t) { this.who = null; this.onState && this.onState('idle'); return; }
     this.speaking = true; const my = this.gen; this.onState && this.onState('speaking'); this.onSay && this.onSay(t);
     const r = this.resolve(t);
     let done = false; let wd = 0;
@@ -3019,7 +3074,7 @@ const TTS = {
     }
     speakSys();
   },
-  cancel() { this.gen++; this.q = []; this.speaking = false; Blip.stop(); CV.stop(); if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} this.onState && this.onState('idle'); },
+  cancel() { this.gen++; this.q = []; this.speaking = false; this.who = null; Blip.stop(); CV.stop(); if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} this.onState && this.onState('idle'); },
   busy() { return this.speaking || this.q.length > 0; }
 };
 
@@ -3086,7 +3141,7 @@ const MOOD_RE = [
   ['calm', /ゆっくり|落ち着|大丈夫|安心|休んで|静か|おやすみ|穏やか/],
 ];
 const moodOf = t => { const s = String(t || ''); for (const [k, re] of MOOD_RE) if (re.test(s)) return k; return 'normal'; };
-const castKey = () => (SET.angel ? 'tenwa' : SET.cyan ? 'cyan' : SET.hiyori ? 'hiyori' : SET.riku ? 'riku' : SET.pixel ? 'pixel' : 'std');
+const castKey = () => (TTS.who ? (TTS.who === 'moderator' ? 'std' : TTS.who) : SET.angel ? 'tenwa' : SET.cyan ? 'cyan' : SET.hiyori ? 'hiyori' : SET.riku ? 'riku' : SET.pixel ? 'pixel' : 'std');
 function priceUSD(engine, model, voice, chars, secs) {
   if (engine === 'openai') return model === 'tts-1' ? chars * 15 / 1e6 : model === 'tts-1-hd' ? chars * 30 / 1e6 : secs * 0.015 / 60;
   if (engine === 'eleven') return chars * (model === 'eleven_multilingual_v2' ? 0.10 : 0.05) / 1000;
@@ -3459,7 +3514,7 @@ function userHTML(c, m, old) {
 }
 function aiHTML(c, m, old) {
   const busy = S.busy && S.busy.msgId === m.id;
-  return `<article class="msg ai${busy ? '' : ' done'}" data-id="${m.id}"><div class="ai-av">${mgHTML()}</div><div class="ai-body">${aiInner(c, m, old)}</div></article>`;
+  return `<article class="msg ai${busy ? '' : ' done'}" data-id="${m.id}"><div class="ai-av">${m.who ? mgHTMLFor(m.who) : mgHTML()}</div><div class="ai-body">${aiInner(c, m, old)}</div></article>`;
 }
 function modelChipText(a) {
   const id = a.applied && MODEL_BY_ID[a.applied] ? a.applied : a.model;
@@ -3478,7 +3533,7 @@ const cleanAI = t => String(t || '').replace(/\[\[(速さ|声|表情|動き|地�
 const geoTags = t => { const out = [], seen = new Set(); for (const m of String(t || '').matchAll(/\[\[(地図|ルート)[:：]\s*([^\]]+?)\s*\]\]/g)) { const k = m[1] + m[2]; if (!seen.has(k)) { seen.add(k); out.push([m[1], m[2]]); } } return out.slice(0, 8); };
 function aiInner(c, m, old) {
   const a = curAlt(m) || {}; const busy = (S.busy && S.busy.msgId === m.id) || !!a.job;
-  let h = `<div class="ai-meta"><b>${esc(aiName())}</b>${a.model ? `<span class="mchip">${esc(modelChipText(a))}</span>` : ''}${a.live ? '<span class="mchip is-live">LIVE</span>' : ''}</div>`;
+  let h = `<div class="ai-meta"><b>${esc(m.who && WHO[m.who] ? WHO[m.who].name : aiName())}</b>${a.model ? `<span class="mchip">${esc(modelChipText(a))}</span>` : ''}${a.live ? '<span class="mchip is-live">LIVE</span>' : ''}</div>`;
   h += thinkHTML(m, a, busy);
   const text = cleanAI(a.text);
   if (busy && !text) {
@@ -3554,7 +3609,7 @@ function renderComposer() {
   $('#composer').classList.toggle('geo-on-dot', !!Geo.on);
   const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && '画像生成', SET.genVideo && '動画生成', SET.study && '勉強', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
   const send = $('#sendBtn');
-  const here = !!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live;
+  const here = (!!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live) || Meeting.on;
   if (here) { send.classList.add('stop'); send.innerHTML = ic('stop'); send.setAttribute('aria-label', '生成を止める'); send.disabled = false; }
   else { send.classList.remove('stop'); send.innerHTML = ic('send'); send.setAttribute('aria-label', '送信'); send.disabled = !!S.busy || !(input.value.trim() || S.pend.length); }
   const b = byteLen(input.value); const mt = $('#meter');
@@ -3608,7 +3663,7 @@ function applySlash(k) {
   if (s.t) { input.value = s.t; autosize(); input.focus(); input.setSelectionRange(input.value.length, input.value.length); renderComposer(); return; }
   if (s.act === 'memory') { input.value = '/覚えて '; input.focus(); renderComposer(); return; }
   input.value = ''; autosize(); renderComposer();
-  ({ new: newChat, live: () => Live.open(), settings: () => openSettings(), pixel: togglePixel, angel: () => toggleAngel(), cyan: () => toggleCyan(), hiyori: () => toggleHiyori(), riku: () => toggleRiku(), rkstage: () => RikuStage.open(), map: () => GeoPanel.open(), geo: () => toggleGeo(), study: () => Study.openSheet(), karaoke: () => Karaoke.open(), note: () => NotePanel.open(), aicam: () => AICam.open(), pomo: () => (Pomo.on ? Pomo.menu($('#pomoPill')) : Pomo.setup()) })[s.act]();
+  ({ new: newChat, live: () => Live.open(), meeting: () => openMeetingDialog(), settings: () => openSettings(), pixel: togglePixel, angel: () => toggleAngel(), cyan: () => toggleCyan(), hiyori: () => toggleHiyori(), riku: () => toggleRiku(), rkstage: () => RikuStage.open(), map: () => GeoPanel.open(), geo: () => toggleGeo(), study: () => Study.openSheet(), karaoke: () => Karaoke.open(), note: () => NotePanel.open(), aicam: () => AICam.open(), pomo: () => (Pomo.on ? Pomo.menu($('#pomoPill')) : Pomo.setup()) })[s.act]();
 }
 function addMemory(t) {
   t = t.trim(); if (!t) return;
@@ -3619,6 +3674,7 @@ function addMemory(t) {
 }
 
 async function onSend() {
+  if (Meeting.on) { stopGen(); return; }
   if (S.busy) { if (S.view && S.busy.chatId === S.view.id) stopGen(); else toast('ほかのチャットで回答中です'); return; }
   const text = input.value.trim();
   if (/^\/覚えて[\s　]+/.test(text)) { addMemory(text.replace(/^\/覚えて[\s　]+/, '')); input.value = ''; autosize(); clearDraft(); renderComposer(); return; }
@@ -3632,6 +3688,7 @@ async function onSend() {
   await sendMessage(text, pend);
 }
 async function sendMessage(text, pend, o = {}) {
+  if (Meeting.on) { toast('キャラ会議の進行中です。止めるには停止ボタンを押してください'); return null; }
   if (S.sending || S.busy) return null;
   S.sending = true; /* only until the generation registers as busy */
   let c, um, am;
@@ -3655,7 +3712,7 @@ async function sendMessage(text, pend, o = {}) {
   await run;
   return { chat: c, am };
 }
-function stopGen() { if (S.busy) { S.busy.ctl.abort(); SFX.play('stop'); } }
+function stopGen() { if (Meeting.on) Meeting.stop(); if (S.busy) { S.busy.ctl.abort(); SFX.play('stop'); } }
 
 /* ---------- message actions ---------- */
 function msgCtx(node) {
@@ -3716,7 +3773,7 @@ function speakMsg(ctx) {
   if (S.speakId === m.id) { TTS.cancel(); S.speakId = null; refreshFoots(c); return; }
   TTS.unlock(); S.speakId = m.id; refreshFoots(c);
   const t = m.role === 'user' ? m.text : cleanAI(curAlt(m).text);
-  TTS.sayAll(t);
+  if (m.who) { Meeting.assignVoices((c.meeting && c.meeting.cast) || ['tenwa', 'cyan', 'hiyori', 'riku']); TTS.sayWho(t, m.who); } else TTS.sayAll(t);
   const prev = TTS.onState;
   TTS.onState = st => { if (st === 'idle') { S.speakId = null; refreshFoots(c); TTS.onState = prev; } };
 }
@@ -3730,6 +3787,96 @@ function msgMenu(btn, ctx) {
   items.push({ icon: 'branch', label: 'ここから新しいチャット', run: () => forkFrom(ctx) });
   items.push({ icon: 'trash', label: m.role === 'user' ? 'このやりとりを削除' : 'この回答を削除', danger: true, run: () => deleteMsg(ctx) });
   menu(btn, items, { align: m.role === 'user' ? 'right' : 'left' });
+}
+
+/* ---------- キャラ会議：テーマを出すと、キャラが順に意見を言い合い、最後に司会がまとめる ---------- */
+const MEET_PROFILE = { tenwa: { g: 'f', pitch: 1.5, rate: 1.06 }, cyan: { g: 'm', pitch: 0.82, rate: 0.97 }, hiyori: { g: 'f', pitch: 1.18, rate: 1.14 }, riku: { g: 'm', pitch: 1.12, rate: 1.1 }, moderator: { g: '', pitch: 0.98, rate: 1.0 } };
+const MEET_ALL = [['tenwa', '天和', '見習い天使の男の子'], ['cyan', 'シアン', '冷静な分析系の少年'], ['hiyori', 'ひより', 'おでかけ好きの女の子'], ['riku', 'リク', 'ダンス好きの男の子']];
+const Meeting = {
+  on: false, stopped: false,
+  /* 端末の声：全員ちがう声にする。男女で声を分け、同じ性別の声は順番にずらす。使える声が足りないときは、高さ・速さを大きく変えて区別する */
+  assignVoices(cast) {
+    const q = v => (GOODV.test(v.name) ? 2 : 0) + (v.localService === false ? 0.5 : 0);
+    const base = TTS.ja.slice().sort((a, b) => q(b) - q(a));
+    const fem = base.filter(v => FEMALE.test(v.name)), mal = base.filter(v => MALE.test(v.name));
+    const used = new Map(), usedNames = new Set(), map = {};
+    for (const who of [...new Set([...(cast || []), 'moderator'])]) {
+      const pr = MEET_PROFILE[who] || MEET_PROFILE.moderator;
+      const pool = pr.g === 'f' ? (fem.length ? fem : base) : pr.g === 'm' ? (mal.length ? mal : base) : base;
+      const n = used.get(pool) || 0;
+      const voice = pool.find(v => !usedNames.has(v.name)) || (pool.length ? pool[n % pool.length] : null); /* まだ使っていない声を優先 */
+      if (voice) usedNames.add(voice.name); used.set(pool, n + 1);
+      map[who] = { voice, pitch: pr.pitch, rate: pr.rate };
+    }
+    TTS.devMap = map;
+  },
+  say(who, text) {
+    return new Promise(res => {
+      let done = false; const prev = TTS.onState;
+      const fin = () => { if (done) return; done = true; TTS.onState = prev; res(); };
+      TTS.unlock(); TTS.onState = st => { if (st === 'idle') fin(); };
+      TTS.sayWho(text, who);
+      setTimeout(fin, Math.min(90000, text.length * 500 + 12000));
+    });
+  },
+  stop() { this.stopped = true; TTS.cancel(); },
+  async run({ topic, cast, rounds, speak, fast }) {
+    if (this.on) return;
+    if (S.busy) { toast('回答中です'); return; }
+    if (!engineReady()) { showEngineHelp(); return; }
+    this.on = true; this.stopped = false; renderComposer();
+    let spk = Promise.resolve();
+    try {
+      await Promise.all([angelAssets, cyanAssets, hiyoriAssets, rikuAssets].map(f => f().catch(() => false)));
+      let c = S.view;
+      if (!c || c.sample) { c = newChatObj(); S.chats.set(c.id, c); S.view = c; LS.set('last', c.id); renderHeader(); S.index[c.id] = entryOf(c); thread.innerHTML = '<div class="msgs" id="msgs"></div>'; S.attMap = new Map(); }
+      c.meeting = { cast: cast.slice(), rounds, at: Date.now() };
+      const um = { id: uid('m'), role: 'user', text: 'キャラ会議のテーマ：' + topic, topic, t: Date.now(), att: [] };
+      c.msgs.push(um); persistChat(c); watchCurrent(c);
+      S.stick = true; appendMsgs(c, [um]); scrollBottom(true); SFX.play('send');
+      this.assignVoices(cast);
+      const turns = []; for (let r = 1; r <= rounds; r++) for (const w of cast) turns.push({ who: w, round: r });
+      turns.push({ who: 'moderator', round: rounds });
+      const model = fast ? 'claude-haiku-5-5' : undefined;
+      for (const t of turns) {
+        if (this.stopped) break;
+        const am = { id: uid('m'), role: 'assistant', who: t.who, t: Date.now(), alts: [{ text: '', think: [] }], cur: 0 };
+        c.msgs.push(am); persistChat(c);
+        const run = generate(c, am, am.alts[0], { meet: { who: t.who, cast, round: t.round, rounds }, model });
+        S.stick = true; appendMsgs(c, [am]); scrollBottom(true);
+        await run;
+        const alt = am.alts[0];
+        if (alt.err || alt.stopped || this.stopped) break;
+        if (speak) { const text = cleanAI(alt.text), prev = spk; spk = (async () => { await prev; if (!this.stopped) await this.say(t.who, text); })(); }
+      }
+      await spk;
+    } finally { this.on = false; this.stopped = false; renderComposer(); }
+  },
+};
+async function openMeetingDialog() {
+  if (Meeting.on) { toast('キャラ会議の進行中です'); return; }
+  if (!engineReady()) { showEngineHelp(); return; }
+  const pref = LS.get('meetPrefs', { cast: ['tenwa', 'cyan', 'hiyori'], rounds: 2, speak: true, fast: true });
+  const vnote = SET.ttsEngine === 'auto' && CV.active() ? 'VOICEVOXで、キャラごとの声（猫使ビィ・離途・春日部つむぎ・白上虎太郎）で読み上げます。' : '端末の声で、全員ちがう声（声の種類・高さ・速さ）にして読み上げます。';
+  const v = await dialog({
+    title: 'キャラ会議',
+    body: `<p class="help-p">テーマを出すと、キャラクターが順番に意見を言い合って、最後に司会（コトダマ）がまとめます。</p>
+      <label class="field"><span>テーマ</span><textarea id="mt-topic" rows="3" placeholder="例：週末は、家でのんびり過ごすのと、出かけるのと、どっちがいい？"></textarea></label>
+      <div class="sg-h">参加するキャラ（2人以上）</div>
+      <div class="mt-cast">${MEET_ALL.map(([k, n, d]) => `<label class="mt-c"><input type="checkbox" data-mt="${k}"${(pref.cast || []).includes(k) ? ' checked' : ''}><span><b>${n}</b><small>${d}</small></span></label>`).join('')}</div>
+      <label class="field"><span>話し合いの回数</span><select id="mt-rounds"><option value="1"${pref.rounds === 1 ? ' selected' : ''}>1周（それぞれ意見を言う）</option><option value="2"${pref.rounds === 2 ? ' selected' : ''}>2周（意見 → ほかの人に反応）</option><option value="3"${pref.rounds === 3 ? ' selected' : ''}>3周（じっくり）</option></select></label>
+      <label class="field"><span>使うモデル</span><select id="mt-model"><option value="fast"${pref.fast ? ' selected' : ''}>速さ優先（Haiku）</option><option value="chat"${pref.fast ? '' : ' selected'}>いつものモデル</option></select></label>
+      <div class="row-set"><span class="rl"><b>声で読み上げる</b><small>${esc(vnote)}</small></span><label class="sw"><input type="checkbox" id="mt-speak"${pref.speak ? ' checked' : ''} aria-label="声で読み上げる"><span></span></label></div>`,
+    actions: [{ label: 'キャンセル', value: null }, { label: '会議を始める', primary: true, value: n => {
+      const topic = ($('#mt-topic', n).value || '').trim(), cast = $$('input[data-mt]:checked', n).map(x => x.dataset.mt);
+      if (!topic) { toast('テーマを入れてください', { err: true }); return false; }
+      if (cast.length < 2) { toast('2人以上えらんでください', { err: true }); return false; }
+      return { topic, cast, rounds: +$('#mt-rounds', n).value || 2, speak: $('#mt-speak', n).checked, fast: $('#mt-model', n).value === 'fast' };
+    } }],
+  });
+  if (!v) return;
+  LS.set('meetPrefs', { cast: v.cast, rounds: v.rounds, speak: v.speak, fast: v.fast });
+  Meeting.run(v);
 }
 
 /* ---------- ＋メニュー（添付・画像生成・動画生成） ---------- */
@@ -3771,6 +3918,8 @@ function openPlusMenu(btn) {
     { icon: 'search', label: '検索をかける', sub: canWeb() ? 'ネットで調べて、その結果もふまえて答える' : '中継サーバーかAPIキーでつないだときだけ使えます', on: !!SET.webSearch, disabled: !canWeb() && !SET.webSearch, run: toggleWeb },
     { icon: 'bulb', label: 'リサーチモード', sub: Engine.relay || SET.research ? `テーマを丸ごと調べ尽くしてから答える（最短${resMin()}分）` : '中継サーバーでつないだときだけ使えます', on: !!SET.research, disabled: !Engine.relay && !SET.research, run: toggleResearch },
     { icon: 'sliders', label: 'リサーチの最短時間', sub: `${resMin()}分以上かけて調べる`, run: setResearchMin },
+    '-', { head: 'みんなで話す' },
+    { icon: 'persona', label: 'キャラ会議', sub: 'キャラが順に意見を言い合い、司会がまとめる', run: () => openMeetingDialog() },
     '-', { head: 'AIにさせること（オン／オフ）' },
     { icon: 'image', label: '画像生成', sub: 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
     { icon: 'play', label: '動画生成', sub: 'AIがコードで動くアニメーションを作る', on: !!SET.genVideo, run: () => toggleGen('genVideo') },
@@ -12734,7 +12883,7 @@ async function boot() {
   resumeJobs();
   if (S.localCount) toast(`この端末に以前のチャットが${S.localCount}件あります`, { action: 'アカウントに移す', onAction: () => migrateLocal().then(() => { S.localCount = 0; }), ms: 9000 });
 }
-if (win.__KD_TEST) win.__kd = { S, SET, Live, Orb, STT, TTS, Engine, KV, CV, Usage, Tenwa, Cyan, Hiyori, Riku, Riku3D, RikuStage, Geo, GeoPanel, GeoNav, Study, Karaoke, Note, NotePanel, Pomo, AICam, CodePrev, zipStore };
+if (win.__KD_TEST) win.__kd = { Meeting, S, SET, Live, Orb, STT, TTS, Engine, KV, CV, Usage, Tenwa, Cyan, Hiyori, Riku, Riku3D, RikuStage, Geo, GeoPanel, GeoNav, Study, Karaoke, Note, NotePanel, Pomo, AICam, CodePrev, zipStore };
 boot();
 
 })();
