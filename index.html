@@ -665,6 +665,8 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 /* 画像・動画の生成 */
 .gen-img, .gen-vid { margin: 10px 0; border: 1px solid var(--line, rgba(255,255,255,.14)); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.03); }
 .gen-img.wait, .gen-vid.wait { display: flex; align-items: center; gap: 10px; padding: 18px 16px; color: var(--ink-3, #9bb); font-size: 13.5px; }
+.gen-img.px img { background: conic-gradient(#d8d8d8 25%, #fff 0 50%, #d8d8d8 0 75%, #fff 0) 0 0 / 16px 16px; image-rendering: pixelated; }
+.gen-img .px-info { align-self: center; font-size: 12px; opacity: .7; margin-right: auto; }
 .gen-img img { display: block; width: min(100%, 480px); height: auto; margin: 0 auto; background: #fff; }
 .gen-vid iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
 .gen-img figcaption, .gen-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
@@ -1761,7 +1763,7 @@ const SLASH = [
 const DEFAULTS = {
   theme: 'auto', accent: 'hisui', fs: 'm', enterSend: !COARSE, sounds: false, pixel: false, crt: false,
   model: 'claude-sonnet-5-5', effort: 'high', think: true, thinkOpen: false, length: 'normal', tone: 'auto',
-  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', hiyori: false, hiyoriHat: 'beret', hiyoriHair: 'side', hiyoriJacket: 'olive', hiyoriSkirt: 'teal', hiyoriRibbon: 'teal', hiyoriBag: 'satchel', hiyoriSky: 'auto', riku: false, rikuCap: 'none', rikuJacket: 'red', rikuPants: 'charcoal', rikuShoes: 'red', rikuPhones: 'on', rikuStage: 'auto', rikuView: '2d', liveFull: false, geo: false, genImage: false, genVideo: false, study: false, webSearch: false, research: false, researchMin: 30,
+  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', hiyori: false, hiyoriHat: 'beret', hiyoriHair: 'side', hiyoriJacket: 'olive', hiyoriSkirt: 'teal', hiyoriRibbon: 'teal', hiyoriBag: 'satchel', hiyoriSky: 'auto', riku: false, rikuCap: 'none', rikuJacket: 'red', rikuPants: 'charcoal', rikuShoes: 'red', rikuPhones: 'on', rikuStage: 'auto', rikuView: '2d', liveFull: false, geo: false, genImage: false, genStyle: 'vector', pixSize: 'auto', pixColors: 'auto', pixPalette: 'free', genVideo: false, study: false, webSearch: false, research: false, researchMin: 30,
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 1.2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
@@ -2050,6 +2052,50 @@ const MD = (() => {
     const svg = cleanSvg(src); if (!svg) return '';
     return `<figure class="gen-img"><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}" alt="AIが描いた画像"><figcaption><button type="button" class="btn sm" data-act="gen-save-png">${ic('download')}PNGで保存</button><button type="button" class="btn sm" data-act="gen-save-svg">SVGで保存</button><button type="button" class="btn sm" data-act="gen-zoom">${ic('image')}大きく見る</button></figcaption></figure>`;
   }
+
+  const PIX_PAL = {
+    gb: { name: 'ゲームボーイ(4色)', c: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'] },
+    mono: { name: '白黒(2色)', c: ['#000000', '#ffffff'] },
+    pico8: { name: 'PICO-8(16色)', c: ['#000000', '#1d2b53', '#7e2553', '#008751', '#ab5236', '#5f574f', '#c2c3c7', '#fff1e8', '#ff004d', '#ffa300', '#ffec27', '#00e436', '#29adff', '#83769c', '#ff77a8', '#ffccaa'] },
+  };
+  function pixParse(src) {
+    const lines = String(src || '').replace(/\r/g, '').split('\n');
+    let W = 0, H = 0, mode = ''; const pal = {}, rows = [];
+    for (const raw of lines) {
+      const ln = raw.trim(); if (!ln) continue;
+      let m;
+      if ((m = ln.match(/^size\s*[:：]\s*(\d+)\s*[x×*]\s*(\d+)/i))) { W = +m[1]; H = +m[2]; mode = ''; continue; }
+      if (/^palette\b/i.test(ln)) { mode = 'pal'; }
+      else if (/^grid\b/i.test(ln)) { mode = 'grid'; continue; }
+      if (mode === 'pal') { ln.replace(/(\S)\s*=\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/g, (a, k, v) => { if (k !== '.') pal[k] = v.toLowerCase(); return a; }); continue; }
+      if (mode === 'grid') rows.push(ln.replace(/\s+/g, ''));
+    }
+    if (!rows.length) return null;
+    if (!(W > 0 && H > 0)) { H = rows.length; W = Math.max(...rows.map(r => r.length)); }
+    W = Math.min(W, 128); H = Math.min(H, 128);
+    const grid = []; for (let y = 0; y < H; y++) { const r = rows[y] || ''; const a = []; for (let x = 0; x < W; x++) a.push(r[x] || '.'); grid.push(a); }
+    return { W, H, pal, grid };
+  }
+  function pixSvg(d) {
+    const by = {}; const used = new Set();
+    for (let y = 0; y < d.H; y++) {
+      let x = 0;
+      while (x < d.W) {
+        const ch = d.grid[y][x], col = ch === '.' ? null : d.pal[ch];
+        if (!col) { x++; continue; }
+        let e = x + 1; while (e < d.W && d.grid[y][e] === ch) e++;
+        (by[col] = by[col] || []).push(`M${x} ${y}h${e - x}v1h-${e - x}z`); used.add(col); x = e;
+      }
+    }
+    const paths = Object.keys(by).map(c => `<path fill="${c}" d="${by[c].join('')}"/>`).join('');
+    return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${d.W} ${d.H}" width="${d.W * 16}" height="${d.H * 16}" shape-rendering="crispEdges">${paths}</svg>`, colors: used.size };
+  }
+  function genPixelHTML(src, open) {
+    if (open) return `<div class="gen-img wait"><span class="dots"><i></i><i></i><i></i></span><span>ドット絵を打っています…</span></div>`;
+    const d = pixParse(src); if (!d) return '';
+    const r = pixSvg(d); if (!r.colors) return '';
+    return `<figure class="gen-img px" data-pw="${d.W}" data-ph="${d.H}"><img src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(r.svg)}" alt="AIが描いたドット絵 ${d.W}×${d.H}"><figcaption><span class="px-info">${d.W}×${d.H}・${r.colors}色</span><button type="button" class="btn sm" data-act="gen-save-png">${ic('download')}PNGで保存</button><button type="button" class="btn sm" data-act="gen-save-png1">等倍PNG</button><button type="button" class="btn sm" data-act="gen-save-svg">SVGで保存</button><button type="button" class="btn sm" data-act="gen-zoom">${ic('image')}大きく見る</button></figcaption></figure>`;
+  }
   const VID_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:"><style>html,body{margin:0;height:100%;overflow:hidden}</style>`;
   function genVideoHTML(src, open) {
     if (open) return `<div class="gen-vid wait"><span class="dots"><i></i><i></i><i></i></span><span>アニメーションを作っています…</span></div>`;
@@ -2060,7 +2106,7 @@ const MD = (() => {
   function code(src, lang, open, rest) {
     const gl = (lang || '').toLowerCase();
     if (gl === 'study') return Study.html(src, open);
-    if (gl === 'gen-image' || gl === 'gen-video') { const g = gl === 'gen-image' ? genImageHTML(src, open) : genVideoHTML(src, open); if (g) return g; }
+    if (gl === 'gen-image' || gl === 'gen-video' || gl === 'gen-pixel') { const g = gl === 'gen-image' ? genImageHTML(src, open) : gl === 'gen-pixel' ? genPixelHTML(src, open) : genVideoHTML(src, open); if (g) return g; }
     const info = codeInfo(lang, rest), l = info.lang;
     const name = LANG[l] || (info.ext && LANG[info.ext]) || l || 'コード';
     const canRun = !open && PREVIEW_EXT.has(info.ext) && (info.ext !== 'xml' || /<svg/i.test(src));
@@ -2551,7 +2597,8 @@ function systemText(chat, o = {}) {
   if (mem.length) L.push('', '【ユーザーについて覚えておくこと】', ...mem.map(x => '・' + x));
   if (typeof Geo !== 'undefined' && Geo.on && Geo.ok) L.push('', ...Geo.promptLines(!!o.live));
   if (!o.live && Study.want(chat)) L.push('', ...Study.promptLines());
-  if (!o.live && SET.genImage) L.push('', '【画像の生成（オン）】', 'ユーザーが画像・イラスト・図・ロゴ・アイコンを作ってほしいと頼んだときは、SVGで描いて見せられます。次の形で、言語名を gen-image にしたコードブロックに、完全なSVG（<svg ...> から </svg> まで）を1つだけ書いてください。\n```gen-image\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">…</svg>\n```\nルール：viewBox を必ず付ける／外部ファイル・外部URL・scriptタグ・imageタグは使わない（図形・パス・グラデーション・文字だけで描く）／文字は font-family="sans-serif" を使う／背景は自分で塗る。コードブロックの前後に、何を描いたかを短く日本語で書く。写真のような絵は描けないので、頼まれたときはベクターのイラストになると最初に一言伝える。複数案を頼まれたら最大3つまで、別々のコードブロックで。');
+  if (!o.live && SET.genImage && SET.genStyle === 'pixel') L.push('', pixelPrompt());
+  else if (!o.live && SET.genImage) L.push('', '【画像の生成（オン）】', 'ユーザーが画像・イラスト・図・ロゴ・アイコンを作ってほしいと頼んだときは、SVGで描いて見せられます。次の形で、言語名を gen-image にしたコードブロックに、完全なSVG（<svg ...> から </svg> まで）を1つだけ書いてください。\n```gen-image\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">…</svg>\n```\nルール：viewBox を必ず付ける／外部ファイル・外部URL・scriptタグ・imageタグは使わない（図形・パス・グラデーション・文字だけで描く）／文字は font-family="sans-serif" を使う／背景は自分で塗る。コードブロックの前後に、何を描いたかを短く日本語で書く。写真のような絵は描けないので、頼まれたときはベクターのイラストになると最初に一言伝える。複数案を頼まれたら最大3つまで、別々のコードブロックで。');
   if (!o.live && SET.genVideo) L.push('', '【動画（アニメーション）の生成（オン）】', 'ユーザーが動画・アニメーション・動く映像を作ってほしいと頼んだときは、コードで動くアニメーションを作れます。言語名を gen-video にしたコードブロックに、完全に自己完結した1つのHTML文書を書いてください。\n```gen-video\n<!doctype html><html><body>…</body></html>\n```\nルール：外部ファイル・外部URL・ネット通信・音は使わない／canvas（requestAnimationFrame）かCSS／SVGのアニメーションで描く／5〜15秒でループする／背景色を必ず指定し、画面いっぱい（16:9を想定、canvasは window.innerWidth と innerHeight に合わせる）に描く／マウス操作や入力は必要にしない。コードブロックの前後に、何を作ったかを短く日本語で書く。実写のような映像は作れないので、頼まれたときは「コードで描くアニメーション」になると最初に一言伝える。');
   if (!o.live) L.push('', '【コードやファイルを書くとき】', 'コードやファイルの中身を書くときは、コードブロックの言語名のあとにコロンとファイル名を付けてください（例：```html:index.html、```python:main.py）。ユーザーはそのまま保存したり、HTML・SVG・JavaScriptはその場でプレビューして動かしたりできます。ウェブページやゲームを作るときは、なるべくCSSとJavaScriptを1つのHTMLファイルにまとめてください。');
   if (o.think) L.push('', '【考えの過程の書き方】', '回答の前に、どう考えたかを <thinking> と </thinking> の間に日本語で書いてください。この部分はユーザーが「思考」として読めます。簡単な質問なら短くてかまいません。</thinking> のあとに、ユーザーへの回答本文だけを書いてください。');
@@ -3607,7 +3654,7 @@ function renderComposer() {
   const model = c ? c.model : SET.model, eff = c ? c.effort : SET.effort, think = c ? c.think : SET.think;
   $('#modelChip').innerHTML = `<span class="mc-n">${esc(modelShort(model))}</span><span class="mc-e">${esc(effName(eff))}</span>${think ? `<span class="mc-t" title="思考を表示">${ic('bulb')}</span>` : ''}${ic('chevD')}`;
   $('#composer').classList.toggle('geo-on-dot', !!Geo.on);
-  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && '画像生成', SET.genVideo && '動画生成', SET.study && '勉強', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
+  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && (SET.genStyle === 'pixel' ? 'ドット絵' : '画像生成'), SET.genVideo && '動画生成', SET.study && '勉強', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
   const send = $('#sendBtn');
   const here = (!!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live) || Meeting.on;
   if (here) { send.classList.add('stop'); send.innerHTML = ic('stop'); send.setAttribute('aria-label', '生成を止める'); send.disabled = false; }
@@ -3879,12 +3926,68 @@ async function openMeetingDialog() {
   Meeting.run(v);
 }
 
+
+function pixLabel() {
+  const pal = PIX_PAL_NAMES[SET.pixPalette];
+  return `${SET.pixSize === 'auto' ? '大きさ自動' : SET.pixSize + '×' + SET.pixSize}・${pal || (SET.pixColors === 'auto' ? '色自動' : SET.pixColors + '色')}`;
+}
+const PIX_PAL_NAMES = { gb: 'ゲームボーイ(4色)', mono: '白黒(2色)', pico8: 'PICO-8(16色)' };
+const PIX_HEX = { gb: '#0f380f #306230 #8bac0f #9bbc0f', mono: '#000000 #ffffff', pico8: '#000000 #1d2b53 #7e2553 #008751 #ab5236 #5f574f #c2c3c7 #fff1e8 #ff004d #ffa300 #ffec27 #00e436 #29adff #83769c #ff77a8 #ffccaa' };
+function pixelPrompt() {
+  const sz = SET.pixSize, cl = SET.pixColors, pl = SET.pixPalette;
+  const sizeRule = sz === 'auto'
+    ? '大きさは描く内容に合わせて自分で決める。目安：8×8＝ハート・コイン・キノコなど1つの小物や文字／16×16＝アイテム・小さなキャラ・タイル（ファミコン時代のスプライトの標準）／32×32＝キャラの全身・動物・乗り物／64×64＝風景・細かいキャラ。ユーザーが「16x16で」のように大きさを言ったら、それに従う。'
+    : `大きさは必ず ${sz}×${sz} にする（ユーザーが別の大きさを頼んでも、設定が優先であることを一言伝える）。`;
+  let colRule;
+  if (pl !== 'free' && PIX_HEX[pl]) colRule = `色は次のパレット（${PIX_PAL_NAMES[pl]}）の色だけを使う。16進の値を変えない：${PIX_HEX[pl]}`;
+  else if (cl === 'auto') colRule = '色数は内容と大きさに合わせて自分で決める。目安：8×8＝2〜4色／16×16＝4〜8色／32×32＝8〜16色／64×64＝16〜32色。ふつう、輪郭用の暗い色、基本色、影、ハイライトの組を揃える。';
+  else colRule = `使う色は${cl}色以内にする（透明は数えない）。`;
+  return [
+    '【画像の生成（オン）：ドット絵モード】',
+    'ユーザーが画像・イラスト・キャラ・アイコンなどを頼んだら、SVGではなく「ドット絵」で描いてください。次の形で、言語名を gen-pixel にしたコードブロックを1つだけ書きます。',
+    '```gen-pixel\nsize: 8x8\npalette: A=#222034 B=#d95763 C=#ffffff\ngrid:\n.AAAAAA.\nABBBBBBA\nABCBBBBA\nABBBBBBA\nABBBBBBA\n.ABBBBA.\n..ABBA..\n...AA...\n```',
+    'ルール：size は 横x縦。palette は「1文字=#16進カラー」を空白で区切って並べる（文字は英数字、「.」は使えない。「.」は透明）。grid の各行は横の数ちょうどの文字で、行数は縦の数ちょうど。空白やコメントは入れない。',
+    sizeRule, colRule,
+    '描き方：1マス=1ドット。ぼかし・アンチエイリアス・半端な中間色は使わない。輪郭は暗い色で1ドットの線にする。光は左上から当てて、影は同じ系統の暗い色で1〜2段。左右対称のものは正確に対称にする。小さいほど情報を削って、シルエットで何か分かるようにする。描く前に、どの行にどの色を置くかを頭の中で決めてから書く。',
+    'コードブロックの前後に、大きさ・使った色数（自動のときは、その大きさと色数にした理由）を日本語で短く書く。複数案を頼まれたら最大3つまで、別々のコードブロックで。ユーザーが、絵ではなく図・グラフ・文字入りの図表を頼んだときだけ、通常のSVG（gen-image）を使ってよい。',
+  ].join('\n');
+}
+async function openGenStyle() {
+  const st = { genStyle: SET.genStyle === 'pixel' ? 'pixel' : 'vector', pixSize: String(SET.pixSize || 'auto'), pixColors: String(SET.pixColors || 'auto'), pixPalette: SET.pixPalette || 'free' };
+  const grp = (key, title, opts) => `<div class="field" style="margin-bottom:12px" data-grp="${key}"><span>${title}</span><div class="btn-row" style="flex-wrap:wrap;gap:6px;margin-top:6px">${opts.map(([v, l]) => `<button type="button" class="btn sm" data-k="${key}" data-v="${v}">${l}</button>`).join('')}</div></div>`;
+  await dialog({
+    title: '画像生成のスタイル',
+    body: `<p class="help-p">画像生成で描く絵の種類を選びます。ドット絵では「自動」にすると、描く内容に合わせてAIが大きさと色を決めます。</p>
+      ${grp('genStyle', 'スタイル', [['vector', 'イラスト（SVG）'], ['pixel', 'ドット絵']])}
+      <div id="gs-pix">
+      ${grp('pixSize', 'ドットの大きさ', [['auto', '自動'], ['8', '8×8'], ['16', '16×16'], ['32', '32×32'], ['64', '64×64']])}
+      ${grp('pixPalette', 'パレット', [['free', '自由に選ぶ'], ['gb', 'ゲームボーイ(4色)'], ['mono', '白黒(2色)'], ['pico8', 'PICO-8(16色)']])}
+      <div id="gs-col">${grp('pixColors', '色の数（パレットが「自由」のとき）', [['auto', '自動'], ['2', '2色'], ['4', '4色'], ['8', '8色'], ['16', '16色'], ['32', '32色']])}</div>
+      </div>`,
+    actions: [{ label: 'キャンセル', value: null }, { label: '保存', primary: true, value: () => st }],
+    onOpen: n => {
+      const paint = () => {
+        n.querySelectorAll('[data-k]').forEach(b => { const on = String(st[b.dataset.k]) === b.dataset.v; b.classList.toggle('primary', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+        const px = n.querySelector('#gs-pix'); if (px) px.style.display = st.genStyle === 'pixel' ? '' : 'none';
+        const col = n.querySelector('#gs-col'); if (col) col.style.display = st.pixPalette === 'free' ? '' : 'none';
+      };
+      n.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; st[b.dataset.k] = b.dataset.v; paint(); });
+      paint();
+    },
+  }).then(v => {
+    if (!v) return;
+    Settings.set({ genStyle: v.genStyle, pixSize: v.pixSize === 'auto' ? 'auto' : +v.pixSize, pixColors: v.pixColors === 'auto' ? 'auto' : +v.pixColors, pixPalette: v.pixPalette, genImage: true });
+    renderComposer();
+    toast(v.genStyle === 'pixel' ? `ドット絵モードにしました（${pixLabel()}）。「〇〇を描いて」と頼んでください` : '画像生成をイラスト（SVG）にしました', { ms: 4200 });
+  });
+}
+
 /* ---------- ＋メニュー（添付・画像生成・動画生成） ---------- */
 const genSvgOf = img => { try { return decodeURIComponent(String(img.src).replace(/^data:[^,]*,/, '')); } catch (e) { return ''; } };
 function toggleGen(key) {
   const on = !SET[key]; Settings.set({ [key]: on }); renderComposer();
   const name = key === 'genImage' ? '画像生成' : '動画生成';
-  toast(on ? `${name}をオンにしました。${key === 'genImage' ? '「〇〇の絵を描いて」と頼むと、AIがSVGのイラストを描きます' : '「〇〇のアニメーションを作って」と頼むと、AIがコードで動く映像を作ります'}` : `${name}をオフにしました`, { ms: on ? 5200 : 2200 });
+  toast(on ? `${name}をオンにしました。${key === 'genImage' ? (SET.genStyle === 'pixel' ? `「〇〇を描いて」と頼むと、AIがドット絵を描きます（${pixLabel()}）` : '「〇〇の絵を描いて」と頼むと、AIがSVGのイラストを描きます') : '「〇〇のアニメーションを作って」と頼むと、AIがコードで動く映像を作ります'}` : `${name}をオフにしました`, { ms: on ? 5200 : 2200 });
 }
 const canWeb = () => !!(Engine.relay || Engine.kind === 'api');
 const resMin = () => Math.max(1, Math.min(600, Math.round(+SET.researchMin || 30)));
@@ -3921,7 +4024,8 @@ function openPlusMenu(btn) {
     '-', { head: 'みんなで話す' },
     { icon: 'persona', label: 'キャラ会議', sub: 'キャラが順に意見を言い合い、司会がまとめる', run: () => openMeetingDialog() },
     '-', { head: 'AIにさせること（オン／オフ）' },
-    { icon: 'image', label: '画像生成', sub: 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
+    { icon: 'image', label: '画像生成', sub: SET.genStyle === 'pixel' ? `AIがドット絵を描く（${pixLabel()}）` : 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
+    { icon: 'sliders', label: '画像生成のスタイル', sub: 'イラスト／ドット絵（8×8・16×16…・色・自動）', run: openGenStyle },
     { icon: 'play', label: '動画生成', sub: 'AIがコードで動くアニメーションを作る', on: !!SET.genVideo, run: () => toggleGen('genVideo') },
     '-', { head: '勉強' },
     { icon: 'book', label: '勉強モード', sub: '「カードを作って」で、その場で解けるカードや問題に', on: !!SET.study, run: () => Study.toggle() },
@@ -9705,7 +9809,7 @@ function codeInfo(lang, rest) {
   file = file.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80);
   return { lang: l, file, ext };
 }
-const codeBlocks = text => (String(text || '').replace(/^\s{0,3}```(study|gen-image|gen-video)\b[\s\S]*?^\s{0,3}```\s*$/gm, '').match(/^\s{0,3}(```|~~~)/gm) || []).length >> 1;
+const codeBlocks = text => (String(text || '').replace(/^\s{0,3}```(study|gen-image|gen-video|gen-pixel)\b[\s\S]*?^\s{0,3}```\s*$/gm, '').match(/^\s{0,3}(```|~~~)/gm) || []).length >> 1;
 
 const CodePrev = {
   src(codeEl) { const c = $('pre code', codeEl); return c ? c.textContent : ''; },
@@ -12691,8 +12795,20 @@ const ACT = {
   'to-bottom': () => { S.stick = true; thread.scrollTo({ top: thread.scrollHeight, behavior: reduced() ? 'auto' : 'smooth' }); },
   'attach': b => openPlusMenu(b),
   'gen-save-svg': b => { const img = $('img', b.closest('.gen-img')); if (img) saveOut('イラスト.svg', new Blob([genSvgOf(img)], { type: 'image/svg+xml' })); },
+  'gen-save-png1': async b => {
+    const fig = b.closest('.gen-img'), img = $('img', fig), pw = +fig.dataset.pw, ph = +fig.dataset.ph; if (!img || !pw || !ph) return;
+    const c = doc.createElement('canvas'); c.width = pw; c.height = ph; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    try { g.drawImage(img, 0, 0, pw, ph); const bl = await canvasBlob(c, 'image/png'); if (bl) saveOut(`ドット絵_${pw}x${ph}.png`, bl); } catch (e) { toast('PNGにできませんでした。SVGで保存してください', { err: true }); }
+  },
   'gen-save-png': async b => {
     const img = $('img', b.closest('.gen-img')); if (!img) return;
+    { const fig = b.closest('.gen-img'), pw = +fig.dataset.pw, ph = +fig.dataset.ph;
+      if (pw && ph) {
+        const k = Math.max(1, Math.floor(1024 / Math.max(pw, ph))), c = doc.createElement('canvas'); c.width = pw * k; c.height = ph * k;
+        const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+        try { g.drawImage(img, 0, 0, c.width, c.height); const bl = await canvasBlob(c, 'image/png'); if (bl) saveOut(`ドット絵_${pw}x${ph}_x${k}.png`, bl); } catch (e) { toast('PNGにできませんでした。SVGで保存してください', { err: true }); }
+        return;
+      } }
     const w0 = img.naturalWidth || 800, h0 = img.naturalHeight || 600, k = Math.min(2, 1600 / Math.max(w0, h0));
     const c = doc.createElement('canvas'); c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);

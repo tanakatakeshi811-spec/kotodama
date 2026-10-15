@@ -544,6 +544,7 @@ server.listen(PORT, '127.0.0.1', () => {
 process.on('exit', () => { for (const w of warmPool.values()) try { w.child.kill(); } catch (e) {} });
 
 // Cloudflare の一時トンネル（アカウント不要）。起動のたびにURLが変わる
+let tunnelFails = 0;
 function startTunnel() {
   if (!KEY) { console.log('\n[トンネル] 合言葉が未設定のため、外には公開しません。relay/passphrase.txt に合言葉を書いてください。'); return; }
   const bins = [process.env.CLOUDFLARED_BIN, path.join(HERE, 'cloudflared.exe'), 'cloudflared', 'C:\\Program Files (x86)\\cloudflared\\cloudflared.exe', 'C:\\Program Files\\cloudflared\\cloudflared.exe'].filter(Boolean);
@@ -555,15 +556,23 @@ function startTunnel() {
       started = true;
       const m = d.toString('utf8').match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
       if (m && !shown) {
-        shown = true;
+        shown = true; tunnelFails = 0;
         console.log('\n[トンネル] 外からつながる住所: ' + m[0]);
         console.log('[トンネル] スマホなどで、次のリンクを開くと自動で設定されます（合言葉は最初に1回だけ入力）:');
         console.log('  ' + PAGE + '#relay=' + encodeURIComponent(m[0]));
+        try { fs.writeFileSync(path.join(HERE, 'tunnel-url.txt'), m[0] + '\n' + PAGE + '#relay=' + encodeURIComponent(m[0]) + '\n'); } catch (e) {}
       }
     };
     t.stdout.on('data', onData); t.stderr.on('data', onData);
     t.on('error', () => { if (!started) tryBin(i + 1); });
-    t.on('close', () => { if (started) console.log('\n[トンネル] 切れました。start-relay-tunnel.bat をもう一度起動してください。'); });
+    t.on('close', () => {
+      if (!started) return;
+      // 切れたら自動でつなぎ直す（住所は変わるので新しいリンクを表示する）
+      tunnelFails++;
+      const wait = Math.min(60000, 3000 * tunnelFails);
+      console.log('\n[トンネル] 切れました。' + Math.round(wait / 1000) + '秒後に自動でつなぎ直します…');
+      setTimeout(() => tryBin(i), wait);
+    });
     process.on('exit', () => t.kill());
     process.on('SIGINT', () => process.exit(0));
   };
