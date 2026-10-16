@@ -665,6 +665,49 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 /* 画像・動画の生成 */
 .gen-img, .gen-vid { margin: 10px 0; border: 1px solid var(--line, rgba(255,255,255,.14)); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.03); }
 .gen-img.wait, .gen-vid.wait { display: flex; align-items: center; gap: 10px; padding: 18px 16px; color: var(--ink-3, #9bb); font-size: 13.5px; }
+
+.kd-call { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; padding: 7px 11px; border: 1px dashed var(--line, rgba(127,127,127,.35)); border-radius: 11px; font-size: 13px; color: var(--ink-2, inherit); }
+.kd-call .ic, .kd-call svg { width: 16px; height: 16px; flex: none; }
+.kd-call code { font-size: 12px; opacity: .8; word-break: break-all; }
+.kd-call.wait { opacity: .75; }
+.kd-res { margin: 4px 0 10px; border: 1px solid var(--line, rgba(127,127,127,.3)); border-radius: 11px; font-size: 13px; }
+.kd-res summary { cursor: pointer; padding: 6px 11px; display: flex; gap: 8px; align-items: baseline; }
+.kd-res summary small { opacity: .65; }
+.kd-res.ng summary { color: var(--danger, #d0453b); }
+.kd-res pre { margin: 0; padding: 8px 11px 10px; white-space: pre-wrap; word-break: break-word; max-height: 280px; overflow: auto; font-size: 12px; }
+.kd-view { margin: 10px 0; }
+.kd-vframe { display: block; width: 100%; height: 120px; border: 1px solid var(--line, rgba(127,127,127,.3)); border-radius: 12px; background: transparent; }
+.kd-ext { margin: 10px 0; border: 1px solid var(--line, rgba(127,127,127,.3)); border-radius: 14px; overflow: hidden; }
+.kd-ext-h { display: flex; gap: 10px; align-items: center; padding: 12px 14px 6px; }
+.kd-ext-f { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 14px 12px; }
+.kd-ext-f small { margin-right: auto; opacity: .7; }
+.xic { font-size: 22px; width: 34px; height: 34px; display: inline-grid; place-items: center; flex: none; border-radius: 10px; background: rgba(127,127,127,.12); }
+.xcard { border: 1px solid var(--line, rgba(127,127,127,.25)); border-radius: 14px; padding: 6px 12px 10px; margin: 10px 0; }
+.xcard.on { border-color: var(--accent, #2a8); }
+.xcard .row-set { gap: 10px; justify-content: flex-start; }
+.xcard .row-set .rl { flex: 1; }
+.dlg.wide.xdlg .dlg-b { display: block; padding: 4px 20px 16px; overflow-y: auto; }
+.xtest select { font: inherit; padding: 5px 8px; border-radius: 8px; }
+.xmeta { font-size: 11.5px; opacity: .7; }
+.xbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.xver { display: flex; gap: 6px; align-items: center; font-size: 12.5px; margin-right: auto; max-width: 100%; }
+.xver select { max-width: 220px; font: inherit; padding: 4px 6px; border-radius: 8px; }
+.xtop { flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.xerr { color: var(--danger, #d0453b); font-size: 12.5px; display: flex; gap: 6px; align-items: flex-start; margin: 4px 0; }
+.xerr svg { width: 15px; height: 15px; flex: none; margin-top: 2px; }
+.xempty { opacity: .75; }
+.xed { display: grid; gap: 10px; }
+.xed-r, .xai { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.xed-ic { width: 84px; }
+.xcode { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; font-size: 12.5px !important; line-height: 1.5; tab-size: 2; white-space: pre; }
+textarea.xcode { min-height: 220px; }
+.xtest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.xtest input { flex: 1; min-width: 160px; font: inherit; padding: 5px 8px; border-radius: 8px; }
+.xout { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(127,127,127,.1); white-space: pre-wrap; word-break: break-word; font-size: 12.5px; max-height: 320px; overflow: auto; }
+.xout.ng { color: var(--danger, #d0453b); }
+.xhelp summary { cursor: pointer; font-size: 13px; opacity: .8; }
+.xhelp pre { white-space: pre-wrap; font-size: 12px; opacity: .85; }
+.xh { font-size: 14px; margin: 14px 0 6px; }
 .gen-img.px img { background: conic-gradient(#d8d8d8 25%, #fff 0 50%, #d8d8d8 0 75%, #fff 0) 0 0 / 16px 16px; image-rendering: pixelated; }
 .gen-img .px-info { align-self: center; font-size: 12px; opacity: .7; margin-right: auto; }
 .gen-img img { display: block; width: min(100%, 480px); height: auto; margin: 0 auto; background: #fff; }
@@ -1763,7 +1806,7 @@ const SLASH = [
 const DEFAULTS = {
   theme: 'auto', accent: 'hisui', fs: 'm', enterSend: !COARSE, sounds: false, pixel: false, crt: false,
   model: 'claude-sonnet-5-5', effort: 'high', think: true, thinkOpen: false, length: 'normal', tone: 'auto',
-  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', hiyori: false, hiyoriHat: 'beret', hiyoriHair: 'side', hiyoriJacket: 'olive', hiyoriSkirt: 'teal', hiyoriRibbon: 'teal', hiyoriBag: 'satchel', hiyoriSky: 'auto', riku: false, rikuCap: 'none', rikuJacket: 'red', rikuPants: 'charcoal', rikuShoes: 'red', rikuPhones: 'on', rikuStage: 'auto', rikuView: '2d', liveFull: false, geo: false, genImage: false, genStyle: 'vector', pixSize: 'auto', pixColors: 'auto', pixPalette: 'free', genVideo: false, study: false, webSearch: false, research: false, researchMin: 30,
+  persona: 'std', instr: '', memory: '', autoTitle: true, personas: [], angel: false, angelVoicePrev: '', angelYomi: 'てんわ', cyan: false, cyanVoicePrev: '', cyanHood: 'black', cyanGlow: 'cyan', cyanTie: 'blue', cyanScreen: 'cat', cyanHolo: 1, cyanLight: 'on', cyanPet: 'cat', hiyori: false, hiyoriHat: 'beret', hiyoriHair: 'side', hiyoriJacket: 'olive', hiyoriSkirt: 'teal', hiyoriRibbon: 'teal', hiyoriBag: 'satchel', hiyoriSky: 'auto', riku: false, rikuCap: 'none', rikuJacket: 'red', rikuPants: 'charcoal', rikuShoes: 'red', rikuPhones: 'on', rikuStage: 'auto', rikuView: '2d', liveFull: false, geo: false, extGallery: '', extAuthor: '', genImage: false, genStyle: 'vector', pixSize: 'auto', pixColors: 'auto', pixPalette: 'free', genVideo: false, study: false, webSearch: false, research: false, researchMin: 30,
   voice: 'std', sysVoice: '', rate: 1.1, pitch: 1, enAuto: true, autoRead: false,
   liveModel: 'claude-haiku-5-5', liveListen: true, liveBarge: false, liveDelay: 1.2, liveCam: true, liveCaps: true, sttLang: 'ja-JP', dictSend: false,
   apiKey: '', apiKeep: false, relayUrl: 'http://127.0.0.1:8787', relayKey: '', side: true, pxSoundsAsked: false,
@@ -2106,6 +2149,7 @@ const MD = (() => {
   function code(src, lang, open, rest) {
     const gl = (lang || '').toLowerCase();
     if (gl === 'study') return Study.html(src, open);
+    if (/^kd-(tool|result|view|ext)$/.test(gl)) { const g = Ext.blockHTML(gl, src, open); if (g) return g; }
     if (gl === 'gen-image' || gl === 'gen-video' || gl === 'gen-pixel') { const g = gl === 'gen-image' ? genImageHTML(src, open) : gl === 'gen-pixel' ? genPixelHTML(src, open) : genVideoHTML(src, open); if (g) return g; }
     const info = codeInfo(lang, rest), l = info.lang;
     const name = LANG[l] || (info.ext && LANG[info.ext]) || l || 'コード';
@@ -2420,6 +2464,7 @@ async function relayPing(timeout = 4000) {
     const j = await r.json();
     if (!(j && j.ok && j.name === 'kotodama-relay')) return false;
     Engine.relayWhy = j.auth ? '' : (j.why || 'bad');
+    Engine.gallery = (j.auth && typeof j.gallery === 'string' && /^https:\/\//.test(j.gallery)) ? j.gallery : '';
     if (j.auth && j.limits) Engine.limits = j.limits;
     return !!j.auth;
   } catch (e) { return false; } finally { clearTimeout(to); }
@@ -2597,6 +2642,7 @@ function systemText(chat, o = {}) {
   if (mem.length) L.push('', '【ユーザーについて覚えておくこと】', ...mem.map(x => '・' + x));
   if (typeof Geo !== 'undefined' && Geo.on && Geo.ok) L.push('', ...Geo.promptLines(!!o.live));
   if (!o.live && Study.want(chat)) L.push('', ...Study.promptLines());
+  if (!o.live && !o.meet) { const xl = Ext.promptLines(Ext.lastUserText(chat)); if (xl.length) L.push('', ...xl); }
   if (!o.live && SET.genImage && SET.genStyle === 'pixel') L.push('', pixelPrompt());
   else if (!o.live && SET.genImage) L.push('', '【画像の生成（オン）】', 'ユーザーが画像・イラスト・図・ロゴ・アイコンを作ってほしいと頼んだときは、SVGで描いて見せられます。次の形で、言語名を gen-image にしたコードブロックに、完全なSVG（<svg ...> から </svg> まで）を1つだけ書いてください。\n```gen-image\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">…</svg>\n```\nルール：viewBox を必ず付ける／外部ファイル・外部URL・scriptタグ・imageタグは使わない（図形・パス・グラデーション・文字だけで描く）／文字は font-family="sans-serif" を使う／背景は自分で塗る。コードブロックの前後に、何を描いたかを短く日本語で書く。写真のような絵は描けないので、頼まれたときはベクターのイラストになると最初に一言伝える。複数案を頼まれたら最大3つまで、別々のコードブロックで。');
   if (!o.live && SET.genVideo) L.push('', '【動画（アニメーション）の生成（オン）】', 'ユーザーが動画・アニメーション・動く映像を作ってほしいと頼んだときは、コードで動くアニメーションを作れます。言語名を gen-video にしたコードブロックに、完全に自己完結した1つのHTML文書を書いてください。\n```gen-video\n<!doctype html><html><body>…</body></html>\n```\nルール：外部ファイル・外部URL・ネット通信・音は使わない／canvas（requestAnimationFrame）かCSS／SVGのアニメーションで描く／5〜15秒でループする／背景色を必ず指定し、画面いっぱい（16:9を想定、canvasは window.innerWidth と innerHeight に合わせる）に描く／マウス操作や入力は必要にしない。コードブロックの前後に、何を作ったかを短く日本語で書く。実写のような映像は作れないので、頼まれたときは「コードで描くアニメーション」になると最初に一言伝える。');
@@ -2854,6 +2900,23 @@ async function generate(chat, am, alt, o = {}) {
           else throw e;
         }
         th(r.text); fin(r);
+      }
+      alt.stage = '';
+    }
+    /* 拡張機能の道具：AIが kd-tool を書いたら動かして、結果を渡して続きを書いてもらう（最大5回） */
+    if (!live && !o.meet && !pipe && !useResearch && Ext.active().some(x => (Ext.cur(x).tools || []).length)) {
+      for (let round = 0; round < 5; round++) {
+        alt.stage = '拡張を動かしています';  upd();
+        const n = await Ext.runPending(alt, upd, ctl.signal);
+        if (!n) break;
+        alt.stage = '結果を読んでいます'; upd();
+        const prefix = alt.text.replace(/\s+$/, '') + '\n\n';
+        const conv2 = { ...conv, msgs: [...conv.msgs, { role: 'assistant', text: alt.text, m: null }, { role: 'user', text: '（アプリより：拡張機能の道具の結果が、上の kd-result ブロックに入りました。それをふまえて回答の続きを書いてください。すでに書いた文はくり返さない。）', m: null }] };
+        const onT = t => { alt.text = prefix + stripTags(t); upd(); };
+        const r = Engine.kind === 'api'
+          ? await callApi({ conv: conv2, model, effort: eff, think: false, signal: ctl.signal, search: useSearch, onText: onT })
+          : await callSample({ turns: sampleTurns(conv2), images: [], model, effort: EFF_RANK[eff] > 2 ? 'high' : eff, signal: ctl.signal, onText: onT, search: useSearch });
+        alt.text = prefix + stripTags(r.text || '');
       }
       alt.stage = '';
     }
@@ -3654,7 +3717,7 @@ function renderComposer() {
   const model = c ? c.model : SET.model, eff = c ? c.effort : SET.effort, think = c ? c.think : SET.think;
   $('#modelChip').innerHTML = `<span class="mc-n">${esc(modelShort(model))}</span><span class="mc-e">${esc(effName(eff))}</span>${think ? `<span class="mc-t" title="思考を表示">${ic('bulb')}</span>` : ''}${ic('chevD')}`;
   $('#composer').classList.toggle('geo-on-dot', !!Geo.on);
-  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && (SET.genStyle === 'pixel' ? 'ドット絵' : '画像生成'), SET.genVideo && '動画生成', SET.study && '勉強', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
+  const gi = $('#genInd'); if (gi) { const on = [SET.research ? `リサーチ${resMin()}分以上` : SET.webSearch && '検索', SET.genImage && (SET.genStyle === 'pixel' ? 'ドット絵' : '画像生成'), SET.genVideo && '動画生成', Ext.active().length && `拡張${Ext.active().length}`, SET.study && '勉強', Geo.on && '位置情報'].filter(Boolean); gi.hidden = !on.length; gi.textContent = on.join('・') + ' オン'; }
   const send = $('#sendBtn');
   const here = (!!S.busy && !!S.view && S.busy.chatId === S.view.id && !S.busy.live) || Meeting.on;
   if (here) { send.classList.add('stop'); send.innerHTML = ic('stop'); send.setAttribute('aria-label', '生成を止める'); send.disabled = false; }
@@ -3927,6 +3990,568 @@ async function openMeetingDialog() {
 }
 
 
+/* ---------- 拡張機能（Ext）：指示（行動）＋コード（道具・小さな画面）を1まとまりにして、オン／オフ・版の切り替え・共有ができる ----------
+   コードは本体と切り離した箱（sandbox="allow-scripts" の iframe、オリジンなし）で動く。本体の画面・保存データ・合言葉・APIキーには触れない。 */
+const EXT_SPEC = [
+  '拡張機能は次の形のJSON 1つで表します：',
+  '{"name":"短い名前","icon":"絵文字1つ","desc":"何ができるかを1文で","prompt":"この拡張がオンのとき、AIが守る指示（行動・口調・手順など）。不要なら空文字","code":"別の箱で動くJavaScript。不要なら空文字"}',
+  'code の中で使えるもの：',
+  '・kd.tool(名前, 説明, {引数名:"説明"}, async (args) => 結果) … AIが呼べる「道具」。結果は文字列かJSONで返す。名前は英数字',
+  '・kd.view(名前, 説明, (data, root) => { root.innerHTML = …; }) … 会話の中に出す小さな画面（ボタン・タイマー・表・ミニゲームなど）。addEventListener や setInterval、canvas も使える。data はAIが渡すJSON',
+  '・await kd.get(キー) / await kd.set(キー, 値) … この拡張だけの保存領域（ユーザーが設定から値を入れることもある。APIキーなどはここから読む）',
+  '・kd.notify(文字) … 画面に短い通知を出す ／ kd.ask(文字) … 入力欄に文字を入れる（ビューのボタンから）',
+  '・fetch … https のAPI（ブラウザから呼べる＝CORSを許可しているもの）や、PCのローカル（http://127.0.0.1:ポート）に通信できる',
+  '使えないもの：コトダマ本体の画面・会話・保存データ・合言葉・APIキー、alert/confirm/prompt、外部scriptの読み込み、import文',
+  '注意：APIキーが必要なサービスは、キーをコードに書かず kd.get("apiKey") などから読み、無ければ「拡張の設定（保存データ）に apiKey を入れてください」と返す。コードはふつうのscriptとして上から実行されるので、kd.tool / kd.view は一番外側で呼ぶ（awaitの後にしない）。',
+  '行動だけ変える拡張（例：「毎回最後に英語の一言を添える」）は code を空にして prompt だけでよい。',
+].join('\n');
+
+ICONS.puzzle = '<path d="M5 8h3.5a2 2 0 1 1 4 0H16v3.5a2 2 0 1 1 0 4V19h-3.5a2 2 0 1 0-4 0H5v-3.5a2 2 0 1 0 0-4z"/>';
+
+async function aiOnce(system, user, { onText, model } = {}) {
+  if (!engineReady()) throw { code: 'no_engine' };
+  model = model || SET.model;
+  if (Engine.kind === 'api') {
+    const r = await callApi({ conv: { system, msgs: [{ role: 'user', text: user, m: null }], imgs: [], native: new Set() }, model, effort: 'medium', think: false, onText });
+    return r.text || '';
+  }
+  const r = await callSample({ turns: [{ role: 'user', content: system + '\n\n' + user }], images: [], model, effort: 'medium', onText });
+  return stripTags(r.text || '');
+}
+const hashStr = s => { let h = 2166136261; s = String(s || ''); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+
+/* ---- 箱（sandbox iframe）の中で動く土台 ---- */
+const EXT_RUNTIME = `(() => {
+  const P = parent; const tools = {}, views = {}; const pend = {}; let seq = 0;
+  const post = o => P.postMessage(Object.assign({ kdx: 1 }, o), '*');
+  const rpc = (op, o) => new Promise((res, rej) => { const id = ++seq; pend[id] = { res, rej }; post(Object.assign({ op, id }, o)); });
+  window.kd = {
+    tool(name, desc, params, fn) { if (typeof params === 'function') { fn = params; params = {}; } if (typeof desc === 'function') { fn = desc; desc = ''; params = {}; } tools[String(name)] = { desc: String(desc || ''), params: params || {}, fn }; },
+    view(name, desc, fn) { if (typeof desc === 'function') { fn = desc; desc = ''; } views[String(name)] = { desc: String(desc || ''), fn }; },
+    get: k => rpc('get', { k: String(k) }), set: (k, v) => rpc('set', { k: String(k), v }),
+    notify: t => post({ op: 'toast', t: String(t).slice(0, 200) }), ask: t => post({ op: 'ask', t: String(t).slice(0, 4000) }),
+  };
+  addEventListener('error', e => post({ op: 'log', t: String(e.message || e) }));
+  addEventListener('unhandledrejection', e => post({ op: 'log', t: String((e.reason && e.reason.message) || e.reason) }));
+  addEventListener('message', async e => {
+    if (e.source !== P) return; const m = e.data || {}; if (!m.kdx) return;
+    if (m.op === 'ret') { const p = pend[m.id]; if (p) { delete pend[m.id]; m.ok ? p.res(m.v) : p.rej(new Error(m.err)); } return; }
+    if (m.op === 'call') {
+      try {
+        const t = tools[m.tool]; if (!t) throw new Error('道具「' + m.tool + '」はありません');
+        let v = await t.fn(m.args || {});
+        if (v === undefined) v = '（結果なし）'; if (typeof v !== 'string') v = JSON.stringify(v, null, 1);
+        post({ op: 'res', id: m.id, ok: true, v });
+      } catch (err) { post({ op: 'res', id: m.id, ok: false, err: String((err && err.message) || err) }); }
+      return;
+    }
+    if (m.op === 'render') {
+      document.documentElement.dataset.theme = m.dark ? 'dark' : 'light';
+      const root = document.getElementById('root');
+      try { const w = views[m.view]; if (!w) throw new Error('表示「' + m.view + '」はありません'); await w.fn(m.data || {}, root); }
+      catch (err) { root.textContent = '表示エラー: ' + ((err && err.message) || err); }
+      const sz = () => post({ op: 'h', h: Math.ceil(root.getBoundingClientRect().height) + 2 });
+      new ResizeObserver(sz).observe(root); sz();
+    }
+  });
+  window.__kdReady = () => post({ op: 'ready', tools: Object.keys(tools).map(n => ({ name: n, desc: tools[n].desc, params: tools[n].params })), views: Object.keys(views).map(n => ({ name: n, desc: views[n].desc })) });
+})();`;
+const EXT_CSS = `html,body{margin:0;background:transparent;font:14px/1.6 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;color:#1d2422}
+html[data-theme=dark] body{color:#e6eeeb} #root{padding:10px 12px} button{font:inherit;padding:6px 12px;border-radius:9px;border:1px solid rgba(127,127,127,.4);background:rgba(127,127,127,.12);color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit;background:rgba(127,127,127,.1);border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:5px 8px} table{border-collapse:collapse} td,th{border:1px solid rgba(127,127,127,.35);padding:3px 8px}`;
+const ExtHost = {
+  recs: new Set(), workers: new Map(), seq: 0, inited: false,
+  init() { if (this.inited) return; this.inited = true; addEventListener('message', e => this.onMsg(e)); },
+  srcdoc(code) {
+    const SO = '<scr' + 'ipt>', SC = '</scr' + 'ipt>';
+    const safe = String(code || '').replace(/<\/(scr)(ipt)/gi, '<\\/$1$2');
+    return '<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data: blob: https:; media-src data: blob: https:; font-src data:; connect-src https: http://127.0.0.1:* http://localhost:*">'
+      + '<style>' + EXT_CSS + '</style><body><div id="root"></div>' + SO + EXT_RUNTIME + SC + SO + safe + '\n' + SC + SO + 'window.__kdReady()' + SC + '</body>';
+  },
+  spawn(x, code, host) {
+    this.init();
+    const f = doc.createElement('iframe');
+    f.setAttribute('sandbox', 'allow-scripts'); f.setAttribute('referrerpolicy', 'no-referrer'); f.title = '拡張機能';
+    const rec = { x, frame: f, pend: new Map(), logs: [], meta: null };
+    rec.ready = new Promise(res => { rec.resolve = res; });
+    this.recs.add(rec);
+    f.srcdoc = this.srcdoc(code);
+    host.appendChild(f);
+    return rec;
+  },
+  kill(rec) { this.recs.delete(rec); for (const p of rec.pend.values()) p.rej(new Error('止めました')); rec.pend.clear(); try { rec.frame.remove(); } catch (e) {} },
+  onMsg(e) {
+    let rec = null; for (const r of this.recs) if (r.frame.contentWindow === e.source) { rec = r; break; }
+    if (!rec) return; const m = e.data; if (!m || !m.kdx) return;
+    const reply = (id, ok, v, err) => { try { rec.frame.contentWindow.postMessage({ kdx: 1, op: 'ret', id, ok, v, err }, '*'); } catch (er) {} };
+    const id = rec.x && rec.x.id;
+    switch (m.op) {
+      case 'ready': rec.meta = { tools: (m.tools || []).slice(0, 40), views: (m.views || []).slice(0, 20), err: rec.logs.join('\n') }; rec.resolve(rec.meta); break;
+      case 'res': { const p = rec.pend.get(m.id); if (p) { rec.pend.delete(m.id); m.ok ? p.res(String(m.v)) : p.rej(new Error(m.err)); } break; }
+      case 'get': { const d = id ? LS.get('extData:' + id, {}) : {}; reply(m.id, true, d[m.k] === undefined ? null : d[m.k]); break; }
+      case 'set': {
+        if (!id) { reply(m.id, false, null, '保存できません'); break; }
+        const d = LS.get('extData:' + id, {}); d[m.k] = m.v;
+        if (JSON.stringify(d).length > 200000) { reply(m.id, false, null, '保存できる量（約200KB）をこえました'); break; }
+        LS.set('extData:' + id, d); reply(m.id, true, true); break;
+      }
+      case 'toast': toast('🧩 ' + String(m.t || '')); break;
+      case 'ask': { if (!rec.view) break; const inp = $('#input'); if (inp) { inp.value = String(m.t || ''); inp.dispatchEvent(new Event('input', { bubbles: true })); inp.focus(); } break; }
+      case 'h': if (rec.view) rec.frame.style.height = Math.max(40, Math.min(900, +m.h || 0)) + 'px'; break;
+      case 'log': rec.logs.push(String(m.t || '').slice(0, 300)); if (rec.logs.length > 20) rec.logs.shift(); break;
+    }
+  },
+  holder() { let h = $('#kdExtHold'); if (!h) { h = el('div'); h.id = 'kdExtHold'; h.setAttribute('aria-hidden', 'true'); h.style.cssText = 'position:fixed;width:0;height:0;overflow:hidden;left:-9px;top:-9px'; doc.body.appendChild(h); } return h; },
+  worker(x) {
+    const v = Ext.cur(x); const sig = hashStr(v.code);
+    let r = this.workers.get(x.id); if (r && r.sig === sig) return r;
+    if (r) this.kill(r);
+    r = this.spawn(x, v.code, this.holder()); r.sig = sig; this.workers.set(x.id, r); return r;
+  },
+  drop(id) { const r = this.workers.get(id); if (r) { this.kill(r); this.workers.delete(id); } },
+  async analyze(code) {
+    if (!String(code || '').trim()) return { tools: [], views: [], err: '' };
+    const r = this.spawn(null, code, this.holder());
+    try { return await Promise.race([r.ready, new Promise(res => setTimeout(() => res({ tools: [], views: [], err: (r.logs.join('\n') || '') + '\n読み込みが終わりませんでした（5秒）' }), 5000))]); }
+    finally { setTimeout(() => this.kill(r), 50); }
+  },
+  async call(x, tool, args, signal) {
+    const r = this.worker(x);
+    const meta = await Promise.race([r.ready, new Promise((_, rej) => setTimeout(() => rej(new Error('拡張が起動しませんでした')), 8000))]);
+    if (meta.err && !meta.tools.length) throw new Error('コードのエラー: ' + meta.err);
+    const id = ++this.seq;
+    return new Promise((res, rej) => {
+      const to = setTimeout(() => { r.pend.delete(id); rej(new Error('時間切れ（30秒）')); }, 30000);
+      r.pend.set(id, { res: v => { clearTimeout(to); res(v); }, rej: e => { clearTimeout(to); rej(e); } });
+      if (signal) signal.addEventListener('abort', () => { const p = r.pend.get(id); if (p) { r.pend.delete(id); p.rej(new Error('止めました')); } }, { once: true });
+      r.frame.contentWindow.postMessage({ kdx: 1, op: 'call', id, tool, args }, '*');
+    });
+  },
+  mountView(node) {
+    node.dataset.m = '1';
+    let d; try { d = JSON.parse(decodeURIComponent(node.dataset.json || '')); } catch (e) { d = null; }
+    const x = d && Ext.get(d.ext);
+    if (!x) { node.innerHTML = `<div class="kd-call">${ic('puzzle')}<span>拡張「${esc((d && d.ext) || '?')}」が入っていないため表示できません</span></div>`; return; }
+    if (!x.on) { node.innerHTML = `<div class="kd-call">${ic('puzzle')}<span>${esc(Ext.cur(x).name)} はオフです</span></div>`; return; }
+    node.innerHTML = '';
+    const r = this.spawn(x, Ext.cur(x).code, node); r.view = true;
+    r.frame.className = 'kd-vframe';
+    r.ready.then(() => { const dark = doc.documentElement.classList.contains('dark') || doc.documentElement.dataset.theme === 'dark' || (SET.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches); r.frame.contentWindow.postMessage({ kdx: 1, op: 'render', view: String(d.view || ''), data: d.data || {}, dark }, '*'); });
+    const mo = new MutationObserver(() => { if (!node.isConnected) { mo.disconnect(); this.kill(r); } });
+    mo.observe(doc.body, { childList: true, subtree: true });
+  },
+};
+
+const Ext = {
+  list() { const l = LS.get('exts', []); return Array.isArray(l) ? l : []; },
+  save(l) { if (!LS.set('exts', l)) toast('保存できませんでした（端末の保存領域がいっぱいかもしれません）', { err: true }); },
+  get(id) { return this.list().find(x => x.id === id) || null; },
+  put(x) { const l = this.list(); const i = l.findIndex(y => y.id === x.id); if (i >= 0) l[i] = x; else l.push(x); this.save(l); },
+  newId() { return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); },
+  cur(x) { const v = x && x.vers || []; const i = x && x.cur != null ? Math.max(0, Math.min(v.length - 1, x.cur)) : v.length - 1; return v[i] || { name: '（空）', icon: '🧩', desc: '', prompt: '', code: '', tools: [], views: [] }; },
+  active() { return this.list().filter(x => x.on && x.vers && x.vers.length); },
+  srcLabel(x) { const s = x.src || {}; return s.kind === 'gallery' ? `公開ギャラリーから（${s.author || '名無し'}）` : s.kind === 'cloud' ? '自分のクラウドから' : s.kind === 'file' ? 'ファイルから' : s.kind === 'ai' ? 'AIが作成' : '自作'; },
+  fmt(t) { const d = new Date(t || 0); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; },
+  clean(o) {
+    o = o || {};
+    const s = (v, n) => String(v == null ? '' : v).slice(0, n);
+    return { name: s(o.name, 40).trim() || '名前のない拡張', icon: s(o.icon, 8).trim() || '🧩', desc: s(o.desc, 200), prompt: s(o.prompt, 8000), code: s(o.code, 120000) };
+  },
+  /* 版を足して保存（書き換えるたびに1つの版になる。前の版にも戻せる） */
+  async addVersion(x, draft, note) {
+    const c = this.clean(draft);
+    const meta = await ExtHost.analyze(c.code);
+    const v = { ...c, tools: meta.tools || [], views: meta.views || [], err: meta.err || '', note: String(note || '').slice(0, 80), at: Date.now() };
+    x.vers = (x.vers || []).concat([v]).slice(-30); x.cur = x.vers.length - 1;
+    this.put(x); ExtHost.drop(x.id); this.changed();
+    return v;
+  },
+  changed() { try { renderComposer(); } catch (e) {} if (S.redrawSettings) S.redrawSettings(); },
+  toggle(id, on) {
+    const x = this.get(id); if (!x) return;
+    x.on = on == null ? !x.on : !!on; this.put(x); if (!x.on) ExtHost.drop(id); this.changed();
+    toast(`${this.cur(x).icon} ${this.cur(x).name} を${x.on ? 'オン' : 'オフ'}にしました`, { ms: 2200 });
+  },
+  pack(x, all) { const vers = all ? x.vers : [this.cur(x)]; return { kdext: 1, id: x.id, cur: all ? x.cur : 0, vers: vers.map(v => ({ ...this.clean(v), note: v.note || '', at: v.at || Date.now() })) }; },
+  async install(p, src) {
+    if (!p || !Array.isArray(p.vers) || !p.vers.length) throw new Error('拡張の形になっていません');
+    let x = (src && src.gid && this.list().find(y => y.src && y.src.gid === src.gid)) || (src && src.kind === 'cloud' && p.id && this.get(p.id)) || null;
+    const isNew = !x;
+    if (!x) x = { id: src && src.kind === 'cloud' && p.id ? p.id : this.newId(), on: true, vers: [], cur: 0 };
+    x.src = { ...(x.src || {}), ...(src || {}) };
+    const vers = [];
+    for (const v of p.vers.slice(-30)) { const c = this.clean(v); const meta = await ExtHost.analyze(c.code); vers.push({ ...c, tools: meta.tools, views: meta.views, err: meta.err || '', note: String(v.note || '').slice(0, 80), at: v.at || Date.now() }); }
+    if (src && src.kind === 'cloud') { x.vers = vers; x.cur = Math.max(0, Math.min(vers.length - 1, p.cur == null ? vers.length - 1 : p.cur)); }
+    else { x.vers = (x.vers || []).concat(vers).slice(-30); x.cur = x.vers.length - 1; }
+    x.on = true; this.put(x); ExtHost.drop(x.id); this.changed();
+    return { x, isNew };
+  },
+
+  /* ---- AIへの指示 ---- */
+  promptLines(lastUser) {
+    const L = []; const act = this.active();
+    if (act.length) {
+      let anyTool = false, anyView = false;
+      L.push('【拡張機能（オン）】', 'ユーザーが入れた次の拡張機能がオンです。各拡張の指示を守り、役に立つときは道具や表示を使ってください。');
+      for (const x of act) {
+        const v = this.cur(x);
+        L.push('', `◆ ${v.icon} ${v.name}（id: ${x.id}）${v.desc ? '：' + v.desc : ''}`);
+        if (v.prompt.trim()) L.push('指示：' + v.prompt.trim());
+        for (const t of v.tools || []) { anyTool = true; L.push(`・道具 ${t.name}：${t.desc || ''}${t.params && Object.keys(t.params).length ? '　引数：' + JSON.stringify(t.params) : ''}`); }
+        for (const w of v.views || []) { anyView = true; L.push(`・表示 ${w.name}：${w.desc || ''}`); }
+      }
+      if (anyTool) L.push('', '道具を使うときは、次の形のコードブロックを書いてください（複数可）。書いたらそこで回答を止めます。アプリが道具を動かし、結果を ```kd-result ブロックとして直後に入れてから、続きを書くよう頼みます。結果を自分で想像して書いたり、kd-result を自分で書いたりしてはいけません。', '```kd-tool\n{"ext":"拡張のid","tool":"道具の名前","args":{}}\n```');
+      if (anyView) L.push('', '表示（小さな画面）をユーザーに見せるときは、次の形のコードブロックを書きます（ふつうの文章の途中に置けます）。', '```kd-view\n{"ext":"拡張のid","view":"表示の名前","data":{}}\n```');
+    }
+    if (/拡張|プラグイン|エクステンション|extension|plugin|連携|機能を(足|追加|作)/i.test(lastUser || '')) L.push('', '【拡張機能を作る】', 'ユーザーが新しい拡張機能（AIの行動のルール、外部サービスとの連携、道具、小さな画面など）を作ってほしいと頼んだら、説明を短く書いたうえで、次の仕様のJSONを言語名 kd-ext のコードブロックに1つ書いてください。ユーザーはその場で中身を見て、インストールできます。', EXT_SPEC);
+    return L;
+  },
+
+  /* ---- 道具の実行（AIが kd-tool を書いたら、結果を kd-result として直後に差し込む） ---- */
+  async runPending(alt, upd, signal) {
+    const ok = new Set(alt.extRes || []);
+    /* AIが自分で書いた（にせの）kd-result は消す */
+    let text = String(alt.text || '').replace(/\n?[ \t]{0,3}```kd-result[^\n]*\n([\s\S]*?)\n[ \t]{0,3}```[ \t]*(?=\n|$)/g, (all, body) => ok.has(hashStr(body.trim())) ? all : '');
+    const re = /(^|\n)[ \t]{0,3}```kd-tool[^\n]*\n([\s\S]*?)\n[ \t]{0,3}```[ \t]*(?=\n|$)/g;
+    let m, n = 0;
+    while ((m = re.exec(text)) && n < 6) {
+      const end = m.index + m[0].length;
+      if (/^\s*```kd-result/.test(text.slice(end))) continue;
+      let call = null; try { call = JSON.parse(m[2]); } catch (e) {}
+      const res = await this.exec(call, signal);
+      const body = JSON.stringify(res);
+      alt.extRes = (alt.extRes || []).concat(hashStr(body));
+      const block = '\n```kd-result\n' + body + '\n```';
+      text = text.slice(0, end) + block + text.slice(end);
+      re.lastIndex = end + block.length; n++;
+      alt.text = text; upd && upd();
+    }
+    alt.text = text;
+    return n;
+  },
+  async exec(call, signal) {
+    const out = { ext: call && call.ext, tool: call && call.tool, ok: false };
+    try {
+      if (!call || typeof call !== 'object') throw new Error('kd-tool の中身がJSONになっていません');
+      const x = this.get(call.ext); if (!x) throw new Error(`拡張「${call.ext}」は入っていません`);
+      if (!x.on) throw new Error(`拡張「${this.cur(x).name}」はオフです`);
+      const v = await ExtHost.call(x, String(call.tool || ''), call.args && typeof call.args === 'object' ? call.args : {}, signal);
+      out.ok = true; out.result = v.length > 6000 ? v.slice(0, 6000) + '…（長いので省略）' : v;
+    } catch (e) { out.error = String((e && e.message) || e).slice(0, 500); }
+    return out;
+  },
+  lastUserText(chat) { for (let i = chat.msgs.length - 1; i >= 0; i--) if (chat.msgs[i].role === 'user') return chat.msgs[i].text || ''; return ''; },
+
+  /* ---- 会話の中のブロックの表示 ---- */
+  blockHTML(gl, src, open) {
+    let d = null; try { d = JSON.parse(String(src || '').trim()); } catch (e) {}
+    if (gl === 'kd-tool') {
+      if (open) return `<div class="kd-call wait">${ic('puzzle')}<span>拡張の道具を呼び出しています…</span></div>`;
+      const x = d && this.get(d.ext); const v = x && this.cur(x);
+      const args = d && d.args && Object.keys(d.args).length ? JSON.stringify(d.args) : '';
+      return `<div class="kd-call">${ic('puzzle')}<b>${esc(v ? v.icon + ' ' + v.name : (d && d.ext) || '拡張')}</b><span>› ${esc((d && d.tool) || '?')}</span>${args ? `<code>${esc(args.length > 120 ? args.slice(0, 120) + '…' : args)}</code>` : ''}</div>`;
+    }
+    if (gl === 'kd-result') {
+      if (open || !d) return `<div class="kd-call wait">${ic('puzzle')}<span>結果を待っています…</span></div>`;
+      return `<details class="kd-res ${d.ok ? '' : 'ng'}"><summary>${d.ok ? '結果' : 'エラー'}<small>${esc(d.tool || '')}</small></summary><pre>${esc(d.ok ? d.result : d.error)}</pre></details>`;
+    }
+    if (gl === 'kd-view') {
+      if (open || !d) return `<div class="kd-call wait">${ic('puzzle')}<span>画面を用意しています…</span></div>`;
+      return `<div class="kd-view" data-json="${esc(encodeURIComponent(JSON.stringify(d)))}"></div>`;
+    }
+    if (gl === 'kd-ext') {
+      if (open) return `<div class="kd-call wait">${ic('puzzle')}<span>拡張機能を作っています…</span></div>`;
+      if (!d) return '';
+      const c = this.clean(d);
+      return `<div class="kd-ext" data-src="${esc(encodeURIComponent(JSON.stringify(c)))}"><div class="kd-ext-h"><span class="xic">${esc(c.icon)}</span><span class="rl"><b>${esc(c.name)}</b><small>${esc(c.desc)}</small></span></div><div class="kd-ext-f"><small>${c.code.trim() ? 'コード ' + c.code.split('\n').length + '行' : '指示のみ'}</small><button type="button" class="btn sm" data-act="ext-block-edit">${ic('edit')}中身を見る・直す</button><button type="button" class="btn sm primary" data-act="ext-block-install">${ic('download')}インストール</button></div></div>`;
+    }
+    return '';
+  },
+  fromBlock(b) { try { return JSON.parse(decodeURIComponent(b.closest('.kd-ext').dataset.src)); } catch (e) { return null; } },
+  async installBlock(b) {
+    const c = this.fromBlock(b); if (!c) return;
+    const x = { id: this.newId(), on: true, vers: [], cur: 0, src: { kind: 'ai' } };
+    await this.addVersion(x, c, 'AIが作成');
+    toast(`${c.icon} ${c.name} をインストールしてオンにしました（＋ボタンや設定→拡張機能でオン／オフできます）`, { ms: 5200 });
+  },
+
+  /* ---- 一覧（設定の「拡張機能」タブと、管理画面で共用） ---- */
+  galleryBase() { return String(SET.extGallery || Engine.gallery || '').trim().replace(/\/+$/, ''); },
+  galleryLabel() { const b = this.galleryBase(); return b ? b.replace(/^https?:\/\//, '') : Engine.relay ? '中継サーバー（Cloudflareのギャラリーが未設定のため、同じ中継につながる人だけが見られます）' : '未設定'; },
+  listHTML() {
+    const l = this.list();
+    const items = l.map(x => {
+      const v = this.cur(x); const ci = x.cur != null ? x.cur : x.vers.length - 1;
+      const info = [this.srcLabel(x), v.tools && v.tools.length ? `道具${v.tools.length}` : '', v.views && v.views.length ? `画面${v.views.length}` : '', v.prompt.trim() ? '指示あり' : '', x.pub ? '公開中' : ''].filter(Boolean).join('・');
+      return `<div class="xcard${x.on ? ' on' : ''}">
+        <div class="row-set"><span class="xic">${esc(v.icon)}</span>${rl(esc(v.name), esc(v.desc) + `<br><span class="xmeta">${esc(info)}</span>`)}<label class="sw"><input type="checkbox" data-xon="${x.id}"${x.on ? ' checked' : ''} aria-label="${esc(v.name)}をオンにする"><span></span></label></div>
+        ${v.err ? `<p class="xerr">${ic('alert')}${esc(v.err.slice(0, 160))}</p>` : ''}
+        <div class="xbar"><label class="xver"><span>版</span><select data-xver="${x.id}" aria-label="使う版">${x.vers.map((w, i) => `<option value="${i}"${i === ci ? ' selected' : ''}>v${i + 1}・${this.fmt(w.at)}${w.note ? '・' + esc(w.note) : ''}</option>`).join('')}</select></label>
+          <button type="button" class="btn sm" data-xa="edit" data-id="${x.id}">${ic('edit')}編集</button>
+          <button type="button" class="btn sm" data-xa="upload" data-id="${x.id}">${ic('upload')}アップロード</button>
+          <button type="button" class="btn sm" data-xa="publish" data-id="${x.id}">${ic('cloud')}${x.pub ? '公開を更新' : '公開'}</button>
+          <button type="button" class="btn sm" data-xa="more" data-id="${x.id}" aria-label="ほかの操作">${ic('more')}</button></div>
+      </div>`;
+    }).join('');
+    return `<p class="help-p">拡張機能は「AIへの指示（行動）」と「コード（道具・小さな画面・外部サービスとの連携）」のまとまりです。オンにした拡張は、AIが会話の中で使います。書き換えるたびに新しい版として残り、版を選んで戻せます。コードは本体から切り離された箱の中で動き、会話・保存データ・合言葉・APIキーには触れません。</p>
+      <div class="btn-row xtop"><button type="button" class="btn sm primary" data-xa="new-ai">${ic('sparkle')}AIに作ってもらう</button><button type="button" class="btn sm" data-xa="new">${ic('edit')}自分で書く</button><button type="button" class="btn sm" data-xa="gallery">${ic('cloud')}公開されているものを見る</button><button type="button" class="btn sm" data-xa="cloud">${ic('download')}自分のクラウドから入れる</button><button type="button" class="btn sm" data-xa="import">${ic('file')}ファイルから</button></div>
+      ${items || `<p class="help-p xempty">まだ拡張機能はありません。「AIに作ってもらう」で、やってほしいことを書くだけで作れます。</p>`}
+      <div class="row-set stack">${rl('公開先（ギャラリー）', esc(this.galleryLabel()))}<div class="btn-row"><button type="button" class="btn sm" data-xa="gallery-url">${ic('key')}公開先を変える</button></div></div>`;
+  },
+  async act(a, id, btn) {
+    const x = id ? this.get(id) : null;
+    try {
+      if (a === 'new-ai') return await this.createAI();
+      if (a === 'new') return await this.edit(null);
+      if (a === 'gallery') return await this.openGallery();
+      if (a === 'cloud') return await this.openCloud();
+      if (a === 'import') return await this.importFile();
+      if (a === 'gallery-url') {
+        const v = await promptBox('公開先（ギャラリー）のURL', SET.extGallery || '', { label: 'Cloudflare Workers のギャラリーのURL（空にすると中継サーバーから自動で読みます）', placeholder: 'https://kotodama-gallery.〇〇.workers.dev' });
+        if (v != null) { const u = v.trim(); if (u && !/^https:\/\//.test(u)) { toast('https:// で始まるURLを入れてください', { err: true }); return; } Settings.set({ extGallery: u }); this.changed(); }
+        return;
+      }
+      if (!x) return;
+      if (a === 'edit') return await this.edit(x);
+      if (a === 'upload') return await this.upload(x);
+      if (a === 'publish') return await this.publish(x);
+      if (a === 'more') {
+        menu(btn, [
+          { icon: 'eye', label: '中身を見る', run: () => this.showCode(this.cur(x)) },
+          { icon: 'copy', label: '複製する', run: async () => { const y = { id: this.newId(), on: false, vers: [], cur: 0, src: { kind: 'local' } }; const v = this.cur(x); await this.addVersion(y, { ...v, name: v.name + 'のコピー' }, '複製'); } },
+          { icon: 'download', label: 'ファイルに書き出す', run: () => saveOut(this.cur(x).name + '.kdext.json', new Blob([JSON.stringify(this.pack(x, true), null, 1)], { type: 'application/json' })) },
+          { icon: 'db', label: '保存データ（設定値）', sub: 'APIキーなど、この拡張だけが読む値', run: () => this.editData(x) },
+          ...(x.pub ? [{ icon: 'x', label: '公開をやめる', run: () => this.unpublish(x) }] : []),
+          '-', { icon: 'trash', label: '削除', danger: true, run: async () => { if (await confirmBox('拡張機能を削除', `「${esc(this.cur(x).name)}」と、すべての版・保存データを削除しますか？`, '削除', true)) { this.save(this.list().filter(y => y.id !== x.id)); LS.del('extData:' + x.id); ExtHost.drop(x.id); this.changed(); } } },
+        ]);
+      }
+    } catch (e) { toast(this.errText(e), { err: true, ms: 5200 }); }
+  },
+  errText(e) { if (e && e.code) return errText(e); return String((e && e.message) || e || 'エラー'); },
+  bind(n, redraw) {
+    n.addEventListener('click', async e => { const b = e.target.closest('[data-xa]'); if (!b || !n.contains(b)) return; await this.act(b.dataset.xa, b.dataset.id, b); redraw && redraw(); });
+    n.addEventListener('change', e => {
+      const t = e.target;
+      if (t.dataset && t.dataset.xon) { this.toggle(t.dataset.xon, t.checked); redraw && redraw(); }
+      else if (t.dataset && t.dataset.xver) { const x = this.get(t.dataset.xver); if (x) { x.cur = +t.value; this.put(x); ExtHost.drop(x.id); this.changed(); toast(`v${x.cur + 1} を使うようにしました`, { ms: 2000 }); } redraw && redraw(); }
+    });
+  },
+  async openManager() {
+    let redraw;
+    await dialog({ title: '拡張機能', cls: 'wide xdlg', body: `<div id="xmgr">${this.listHTML()}</div>`, actions: [{ label: '閉じる', value: null }],
+      onOpen: n => { const b = $('#xmgr', n); redraw = () => { if (n.isConnected) b.innerHTML = this.listHTML(); }; const prev = S.redrawSettings; S.redrawSettings = () => { redraw(); prev && prev(); }; this.bind(b, redraw); } });
+  },
+
+  /* ---- 作る・直す ---- */
+  async aiWrite(draft, instruction, onText) {
+    const sys = 'あなたはチャットアプリ「コトダマ」の拡張機能を作る専門家です。ユーザーの希望を、そのまま動く拡張機能にします。\n' + EXT_SPEC + '\n\n出力は、拡張機能のJSONを1つだけ、言語名 json のコードブロックに書いてください（説明文は不要）。コードは文字列としてJSONに入れるので、改行は \\n にする。動作を確かめられない外部APIは、キー不要でCORSを許可している有名なもの（例：Open-Meteo、Wikipedia の REST API）を優先する。';
+    const user = draft && (draft.prompt || draft.code) ? `いまの拡張機能：\n${JSON.stringify(this.clean(draft))}\n\nこれを次のように直してください：\n${instruction}` : `次のことができる拡張機能を作ってください：\n${instruction}`;
+    const t = await aiOnce(sys, user, { onText });
+    const m = t.match(/```(?:json)?\s*\n([\s\S]*?)\n```/); const body = (m ? m[1] : t).trim();
+    const a = body.indexOf('{'), z = body.lastIndexOf('}');
+    let o; try { o = JSON.parse(body.slice(a, z + 1)); } catch (e) { throw new Error('AIの答えを拡張の形にできませんでした。もう一度試してください'); }
+    return this.clean(o);
+  },
+  async createAI() {
+    if (!engineReady()) { toast('AIにつながっていないため作れません（中継サーバーかAPIキーでつないでください）', { err: true, ms: 4600 }); return; }
+    const want = await dialog({
+      title: 'AIに拡張機能を作ってもらう',
+      body: `<p class="help-p">やってほしいこと・ほしい連携を、ふつうの言葉で書いてください。AIが「指示」と「コード」を書き、中身を確かめてから保存できます。</p>
+        <label class="field"><span>やってほしいこと</span><textarea id="xa-want" rows="5" placeholder="例：「天気」と聞いたら今いる地域の天気を調べて答える／返事の最後に今日の英単語を1つ添える／ポモドーロタイマーの画面を出せるようにする／PCのOllamaにつないで要約させる"></textarea></label>
+        <div class="btn-row" style="flex-wrap:wrap">${['天気を調べて答える', '返事の最後に英単語を1つ', 'タイマーの画面を出す', 'サイコロ・くじ引き', 'Wikipediaで調べる'].map(s => `<button type="button" class="btn sm" data-ex="${esc(s)}">${esc(s)}</button>`).join('')}</div>`,
+      actions: [{ label: 'キャンセル', value: null }, { label: '作る', primary: true, value: n => { const v = $('#xa-want', n).value.trim(); if (!v) { toast('やってほしいことを書いてください', { err: true }); return false; } return v; } }],
+      onOpen: n => n.addEventListener('click', e => { const b = e.target.closest('[data-ex]'); if (b) { $('#xa-want', n).value = b.dataset.ex; $('#xa-want', n).focus(); } }),
+    });
+    if (!want) return;
+    toast('AIが拡張機能を作っています…（30秒〜1分ほど）', { ms: 180000 });
+    let d;
+    try { d = await this.aiWrite(null, want); } catch (e) { toast(this.errText(e), { err: true, ms: 5200 }); return; }
+    toast('できました。中身を確かめて保存してください', { ms: 2600 });
+    await this.edit(null, d, { note: 'AIが作成', kind: 'ai', want });
+  },
+  async edit(x, draft, o = {}) {
+    const v = draft || (x ? this.cur(x) : { name: '', icon: '🧩', desc: '', prompt: '', code: '' });
+    const isNew = !x;
+    const res = await dialog({
+      title: isNew ? '拡張機能を作る' : `編集：${this.cur(x).name}`, cls: 'wide xdlg',
+      body: `<div class="xed">
+        <div class="xed-r"><label class="field xed-ic"><span>アイコン</span><input type="text" id="xe-icon" maxlength="8" value="${esc(v.icon || '🧩')}"></label><label class="field" style="flex:1"><span>名前</span><input type="text" id="xe-name" maxlength="40" value="${esc(v.name || '')}" placeholder="例：お天気"></label></div>
+        <label class="field"><span>説明（何ができるか）</span><input type="text" id="xe-desc" maxlength="200" value="${esc(v.desc || '')}"></label>
+        <label class="field"><span>AIへの指示（行動）</span><textarea id="xe-prompt" rows="4" placeholder="この拡張がオンのとき、AIにしてほしいこと">${esc(v.prompt || '')}</textarea></label>
+        <label class="field"><span>コード（JavaScript・空でもよい）</span><textarea id="xe-code" class="xcode" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="kd.tool('name', '説明', {}, async (args) => '結果');">${esc(v.code || '')}</textarea></label>
+        <details class="xhelp"><summary>コードで使えるもの</summary><pre>${esc(EXT_SPEC)}</pre></details>
+        <div class="xai"><label class="field" style="flex:1"><span>AIに書き換えてもらう</span><input type="text" id="xe-ai" placeholder="例：気温を華氏でも出す／ボタンを大きく／もっと短く答えるように"></label><button type="button" class="btn sm" id="xe-aibtn">${ic('sparkle')}AIで書き換え</button></div>
+        <div class="xtest"><button type="button" class="btn sm" id="xe-check">${ic('check')}コードを確かめる</button><select id="xe-tool" aria-label="試す道具" hidden></select><input type="text" id="xe-args" placeholder='引数（JSON） 例：{"city":"東京"}' hidden><button type="button" class="btn sm" id="xe-run" hidden>${ic('play')}試す</button></div>
+        <pre class="xout" id="xe-out" hidden></pre>
+        <label class="field"><span>変更メモ（版の名前・なくてもよい）</span><input type="text" id="xe-note" maxlength="80" value="${esc(o.note || '')}" placeholder="例：華氏を追加"></label>
+      </div>`,
+      actions: [{ label: 'キャンセル', value: null }, { label: isNew ? '保存してオンにする' : '新しい版として保存', primary: true, value: n => {
+        const d = { icon: $('#xe-icon', n).value, name: $('#xe-name', n).value, desc: $('#xe-desc', n).value, prompt: $('#xe-prompt', n).value, code: $('#xe-code', n).value };
+        if (!d.name.trim()) { toast('名前を入れてください', { err: true }); return false; }
+        if (!d.prompt.trim() && !d.code.trim()) { toast('指示かコードのどちらかを書いてください', { err: true }); return false; }
+        return { d, note: $('#xe-note', n).value };
+      } }],
+      onOpen: n => {
+        const out = $('#xe-out', n);
+        const show = (t, err) => { out.hidden = false; out.textContent = t; out.classList.toggle('ng', !!err); };
+        const read = () => ({ icon: $('#xe-icon', n).value, name: $('#xe-name', n).value, desc: $('#xe-desc', n).value, prompt: $('#xe-prompt', n).value, code: $('#xe-code', n).value });
+        $('#xe-code', n).addEventListener('keydown', e => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const t = e.target, s = t.selectionStart; t.setRangeText('  ', s, t.selectionEnd, 'end'); } });
+        $('#xe-check', n).addEventListener('click', async () => {
+          const meta = await ExtHost.analyze(read().code);
+          const sel = $('#xe-tool', n);
+          sel.innerHTML = meta.tools.map(t => `<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+          for (const k of ['#xe-tool', '#xe-args', '#xe-run']) $(k, n).hidden = !meta.tools.length;
+          show(`道具：${meta.tools.map(t => t.name + (t.desc ? '（' + t.desc + '）' : '')).join('、') || 'なし'}\n画面：${meta.views.map(w => w.name).join('、') || 'なし'}${meta.err ? '\n\nエラー：' + meta.err : ''}`, !!meta.err);
+        });
+        $('#xe-run', n).addEventListener('click', async () => {
+          let args = {}; const raw = $('#xe-args', n).value.trim();
+          if (raw) { try { args = JSON.parse(raw); } catch (e) { show('引数がJSONになっていません', true); return; } }
+          show('実行中…');
+          const tmp = { id: 'xtest-' + (x ? x.id : 'new'), vers: [{ ...read() }], cur: 0, on: true };
+          if (x) tmp.id = x.id;
+          ExtHost.drop(tmp.id);
+          try { const r = await ExtHost.call(tmp, $('#xe-tool', n).value, args); show('結果：\n' + r); } catch (e) { show('エラー：' + e.message, true); }
+          finally { ExtHost.drop(tmp.id); }
+        });
+        $('#xe-aibtn', n).addEventListener('click', async () => {
+          const ins = $('#xe-ai', n).value.trim(); if (!ins) { toast('どう書き換えてほしいかを書いてください', { err: true }); return; }
+          if (!engineReady()) { toast('AIにつながっていません', { err: true }); return; }
+          const b = $('#xe-aibtn', n); b.disabled = true; show('AIが書き換えています…');
+          try {
+            const d = await this.aiWrite(read(), ins, t => { out.textContent = 'AIが書き換えています… ' + t.length + '文字'; });
+            $('#xe-icon', n).value = d.icon; $('#xe-name', n).value = d.name; $('#xe-desc', n).value = d.desc; $('#xe-prompt', n).value = d.prompt; $('#xe-code', n).value = d.code;
+            if (!$('#xe-note', n).value.trim()) $('#xe-note', n).value = ('AI：' + ins).slice(0, 80);
+            show('書き換えました。中身を確かめて、よければ保存してください');
+          } catch (e) { show(this.errText(e), true); } finally { b.disabled = false; }
+        });
+      },
+    });
+    if (!res) return null;
+    const y = x || { id: this.newId(), on: true, vers: [], cur: 0, src: { kind: o.kind || 'local' } };
+    const ver = await this.addVersion(y, res.d, res.note);
+    toast(`${ver.icon} ${ver.name} を保存しました${isNew ? '（オン）' : `（v${y.vers.length}）`}${ver.err ? '。コードにエラーがあります' : ''}`, { err: !!ver.err, ms: 4200 });
+    return y;
+  },
+  showCode(v) {
+    return dialog({ title: `${v.icon} ${v.name}`, cls: 'wide xdlg', body: `<p class="help-p">${esc(v.desc || '')}</p><h3 class="xh">AIへの指示</h3><pre class="xout">${esc(v.prompt || '（なし）')}</pre><h3 class="xh">コード</h3><pre class="xout xcode">${esc(v.code || '（なし）')}</pre>` });
+  },
+  async editData(x) {
+    const d = LS.get('extData:' + x.id, {});
+    const v = await promptBox('保存データ（設定値）', JSON.stringify(d, null, 1), { label: 'この拡張だけが kd.get(キー) で読める値（JSON）。例：{"apiKey":"…"}', multiline: true });
+    if (v == null) return;
+    try { const o = JSON.parse(v || '{}'); if (!o || typeof o !== 'object' || Array.isArray(o)) throw 0; LS.set('extData:' + x.id, o); ExtHost.drop(x.id); toast('保存しました', { ms: 1800 }); }
+    catch (e) { toast('JSONの形になっていません', { err: true }); }
+  },
+  importFile() {
+    return new Promise(res => {
+      const inp = doc.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+      inp.onchange = async () => {
+        const f = inp.files && inp.files[0]; if (!f) return res();
+        try { const p = JSON.parse(await f.text()); const r = await this.install(p, { kind: 'file' }); toast(`${this.cur(r.x).icon} ${this.cur(r.x).name} を入れました`, { ms: 3000 }); }
+        catch (e) { toast('読み込めませんでした：' + this.errText(e), { err: true }); }
+        res();
+      };
+      inp.click();
+    });
+  },
+
+  /* ---- 自分のクラウド（中継サーバー）：アップロードすると、ほかの端末（スマホ・PC）からインストールできる ---- */
+  needRelay() { if (!Engine.relay) throw new Error('中継サーバーにつながっていないため使えません（設定→接続）'); },
+  async upload(x) {
+    this.needRelay();
+    await relayFetchJson('/ext/lib', { method: 'POST', body: JSON.stringify({ ext: { ...this.pack(x, true), up: Date.now(), from: navigator.userAgent.slice(0, 80) } }) });
+    x.up = Date.now(); this.put(x);
+    toast(`${this.cur(x).name} をアップロードしました。ほかの端末の「自分のクラウドから入れる」でインストールできます`, { ms: 5200 });
+  },
+  async openCloud() {
+    this.needRelay();
+    const j = await relayFetchJson('/ext/lib', { method: 'GET' });
+    const items = (j && j.items) || [];
+    await dialog({
+      title: '自分のクラウド（中継サーバー）', cls: 'wide xdlg',
+      body: `<p class="help-p">どの端末からアップロードした拡張も、ここに並びます。インストールすると、すべての版ごと入ります（入っていれば最新に更新）。</p><div id="xcl">${items.length ? items.map((p, i) => { const v = p.vers[p.cur != null ? p.cur : p.vers.length - 1] || p.vers[p.vers.length - 1] || {}; const have = this.get(p.id); return `<div class="xcard"><div class="row-set"><span class="xic">${esc(v.icon || '🧩')}</span>${rl(esc(v.name || ''), esc(v.desc || '') + `<br><span class="xmeta">${p.vers.length}版・${this.fmt(p.up)}にアップロード${have ? '・この端末に入っています' : ''}</span>`)}</div><div class="xbar"><button type="button" class="btn sm primary" data-ci="${i}">${ic('download')}${have ? '更新' : 'インストール'}</button><button type="button" class="btn sm" data-cv="${i}">${ic('eye')}中身</button><button type="button" class="btn sm" data-cd="${i}">${ic('trash')}クラウドから消す</button></div></div>`; }).join('') : '<p class="help-p xempty">まだアップロードされた拡張はありません。拡張の「アップロード」を押すと、ここに入ります。</p>'}</div>`,
+      onOpen: n => n.addEventListener('click', async e => {
+        const b = e.target.closest('[data-ci],[data-cv],[data-cd]'); if (!b) return;
+        const p = items[+(b.dataset.ci || b.dataset.cv || b.dataset.cd)]; if (!p) return;
+        try {
+          if (b.dataset.ci != null) { const r = await this.install(p, { kind: 'cloud' }); b.textContent = '入れました'; b.disabled = true; toast(`${this.cur(r.x).name} を${r.isNew ? 'インストール' : '更新'}しました`, { ms: 2600 }); }
+          else if (b.dataset.cv != null) this.showCode(p.vers[p.vers.length - 1]);
+          else if (await confirmBox('クラウドから消す', 'クラウドから消しますか？（この端末に入っているものは消えません）', '消す', true)) { await relayFetchJson('/ext/lib/delete', { method: 'POST', body: JSON.stringify({ id: p.id }) }); b.closest('.xcard').remove(); }
+        } catch (er) { toast(this.errText(er), { err: true }); }
+      }),
+    });
+  },
+
+  /* ---- 公開ギャラリー（Cloudflare Workers。未設定なら中継サーバーで代わりに） ---- */
+  async gfetch(path, init = {}) {
+    const base = this.galleryBase();
+    if (base) {
+      let r; try { r = await fetch(base + path, { ...init, headers: { 'content-type': 'application/json' } }); } catch (e) { throw new Error('公開先につながりません（' + base.replace(/^https?:\/\//, '') + '）'); }
+      const j = await r.json().catch(() => null);
+      if (!r.ok) throw new Error({ rate: '公開が多すぎます。しばらく待ってください', too_big: '大きすぎて公開できません', bad_token: 'この拡張を更新する権限がありません', not_found: '見つかりません' }[j && j.error] || (j && j.error) || 'HTTP ' + r.status);
+      return j;
+    }
+    if (Engine.relay) return relayFetchJson('/ext/pub' + path, init);
+    throw new Error('公開先がありません。中継サーバーにつなぐか、設定→拡張機能で公開先を設定してください');
+  },
+  async publish(x) {
+    if (!SET.extAuthor) {
+      const a = await promptBox('公開するときの名前', '', { label: 'ギャラリーに作者として出る名前（ニックネームでOK）', placeholder: '例：しゅんり' });
+      if (a == null || !a.trim()) return; Settings.set({ extAuthor: a.trim().slice(0, 30) });
+    }
+    const v = this.cur(x);
+    const hasSecret = /sk-ant-|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,}|apikey\s*[:=]\s*['"][^'"]{12,}/i.test(v.code + v.prompt);
+    const ok = await confirmBox(x.pub ? '公開を更新' : '公開する', `「${esc(v.name)}」（v${(x.cur != null ? x.cur : x.vers.length - 1) + 1}）を公開ギャラリーに${x.pub ? '更新' : '公開'}します。だれでも中身（指示とコード）を見て、インストールできるようになります。<br>作者名：${esc(SET.extAuthor)}${hasSecret ? '<br><b>⚠ コードや指示にAPIキーのようなものが入っています。消してから公開してください。</b>' : ''}`, x.pub ? '更新する' : '公開する');
+    if (!ok) return;
+    const body = { ext: this.pack(x, false), author: SET.extAuthor };
+    if (x.pub && x.pub.base === this.galleryBase()) { body.gid = x.pub.gid; body.token = x.pub.token; }
+    const j = await this.gfetch('/publish', { method: 'POST', body: JSON.stringify(body) });
+    x.pub = { gid: j.gid, token: j.token || (x.pub && x.pub.token), base: this.galleryBase(), at: Date.now() };
+    this.put(x); this.changed();
+    toast(`公開しました。ほかの人も「公開されているものを見る」からインストールできます`, { ms: 4600 });
+  },
+  async unpublish(x) {
+    if (!x.pub) return;
+    try { await this.gfetch('/unpublish', { method: 'POST', body: JSON.stringify({ gid: x.pub.gid, token: x.pub.token }) }); } catch (e) { toast(this.errText(e), { err: true }); return; }
+    delete x.pub; this.put(x); this.changed(); toast('公開をやめました', { ms: 2200 });
+  },
+  async openGallery() {
+    let items = [];
+    const card = (it, i) => { const have = this.list().find(y => y.src && y.src.gid === it.gid) || this.list().find(y => y.pub && y.pub.gid === it.gid); return `<div class="xcard"><div class="row-set"><span class="xic">${esc(it.icon || '🧩')}</span>${rl(esc(it.name || ''), esc(it.desc || '') + `<br><span class="xmeta">${esc(it.author || '名無し')}・${this.fmt(it.at)}・${+it.dl || 0}回インストール${have ? '・入っています' : ''}</span>`)}</div><div class="xbar"><button type="button" class="btn sm primary" data-gi="${i}">${ic('download')}${have ? '更新' : 'インストール'}</button><button type="button" class="btn sm" data-gv="${i}">${ic('eye')}中身を見る</button></div></div>`; };
+    const load = async (n, q) => {
+      const box = $('#xgl', n); box.innerHTML = '<p class="help-p">読み込み中…</p>';
+      try { const j = await this.gfetch('/list?q=' + encodeURIComponent(q || '')); items = (j && j.items) || []; box.innerHTML = items.length ? items.map(card).join('') : '<p class="help-p xempty">まだ公開された拡張はありません。</p>'; }
+      catch (e) { box.innerHTML = `<p class="help-p xerr">${esc(this.errText(e))}</p>`; }
+    };
+    await dialog({
+      title: '公開されている拡張機能', cls: 'wide xdlg',
+      body: `<p class="help-p">みんなが公開した拡張機能です。入れる前に「中身を見る」で指示とコードを確かめられます。コードは本体から切り離された箱で動きますが、拡張に渡した内容は、その拡張が連携するサービスに送られることがあります。</p>
+        <p class="help-p xmeta">公開先：${esc(this.galleryLabel())}</p>
+        <div class="xai"><label class="field" style="flex:1"><span>さがす</span><input type="search" id="xg-q" placeholder="例：天気、タイマー"></label><button type="button" class="btn sm" id="xg-go">${ic('search')}さがす</button></div><div id="xgl"></div>`,
+      onOpen: n => {
+        load(n, '');
+        $('#xg-go', n).addEventListener('click', () => load(n, $('#xg-q', n).value));
+        $('#xg-q', n).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); load(n, e.target.value); } });
+        n.addEventListener('click', async e => {
+          const b = e.target.closest('[data-gi],[data-gv]'); if (!b) return;
+          const it = items[+(b.dataset.gi || b.dataset.gv)]; if (!it) return;
+          try {
+            const full = await this.gfetch('/item/' + encodeURIComponent(it.gid));
+            const p = full && full.ext;
+            if (b.dataset.gv != null) { this.showCode(p.vers[p.vers.length - 1]); return; }
+            const r = await this.install(p, { kind: 'gallery', gid: it.gid, author: it.author, base: this.galleryBase() });
+            this.gfetch('/dl/' + encodeURIComponent(it.gid), { method: 'POST', body: '{}' }).catch(() => {});
+            b.textContent = '入れました'; b.disabled = true;
+            toast(`${this.cur(r.x).icon} ${this.cur(r.x).name} を${r.isNew ? 'インストール' : '更新'}してオンにしました`, { ms: 3200 });
+          } catch (er) { toast(this.errText(er), { err: true }); }
+        });
+      },
+    });
+  },
+};
+/* 会話の中の kd-view（拡張の小さな画面）を、表示されたときに箱の中で動かす */
+new MutationObserver(() => { for (const v of $$('.kd-view:not([data-m])')) ExtHost.mountView(v); }).observe(doc.documentElement, { childList: true, subtree: true });
+
 function pixLabel() {
   const pal = PIX_PAL_NAMES[SET.pixPalette];
   return `${SET.pixSize === 'auto' ? '大きさ自動' : SET.pixSize + '×' + SET.pixSize}・${pal || (SET.pixColors === 'auto' ? '色自動' : SET.pixColors + '色')}`;
@@ -4023,6 +4648,9 @@ function openPlusMenu(btn) {
     { icon: 'sliders', label: 'リサーチの最短時間', sub: `${resMin()}分以上かけて調べる`, run: setResearchMin },
     '-', { head: 'みんなで話す' },
     { icon: 'persona', label: 'キャラ会議', sub: 'キャラが順に意見を言い合い、司会がまとめる', run: () => openMeetingDialog() },
+    '-', { head: '拡張機能（オン／オフ）' },
+    ...Ext.list().map(x => { const v = Ext.cur(x); return { icon: 'puzzle', label: `${v.icon} ${v.name}`, sub: v.desc || Ext.srcLabel(x), on: !!x.on, run: () => Ext.toggle(x.id) }; }),
+    { icon: 'plus', label: '拡張機能を作る・管理', sub: 'AIに作ってもらう・自分で書く・版の切り替え・共有・公開されているものを見る', run: () => Ext.openManager() },
     '-', { head: 'AIにさせること（オン／オフ）' },
     { icon: 'image', label: '画像生成', sub: SET.genStyle === 'pixel' ? `AIがドット絵を描く（${pixLabel()}）` : 'AIがSVGでイラスト・図を描く', on: !!SET.genImage, run: () => toggleGen('genImage') },
     { icon: 'sliders', label: '画像生成のスタイル', sub: 'イラスト／ドット絵（8×8・16×16…・色・自動）', run: openGenStyle },
@@ -9809,7 +10437,7 @@ function codeInfo(lang, rest) {
   file = file.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80);
   return { lang: l, file, ext };
 }
-const codeBlocks = text => (String(text || '').replace(/^\s{0,3}```(study|gen-image|gen-video|gen-pixel)\b[\s\S]*?^\s{0,3}```\s*$/gm, '').match(/^\s{0,3}(```|~~~)/gm) || []).length >> 1;
+const codeBlocks = text => (String(text || '').replace(/^\s{0,3}```(study|gen-image|gen-video|gen-pixel|kd-tool|kd-result|kd-view|kd-ext)\b[\s\S]*?^\s{0,3}```\s*$/gm, '').match(/^\s{0,3}(```|~~~)/gm) || []).length >> 1;
 
 const CodePrev = {
   src(codeEl) { const c = $('pre code', codeEl); return c ? c.textContent : ''; },
@@ -9942,7 +10570,7 @@ function zipStore(files) {
 
 /* ---- 88_settings.js ---- */
 /* ========== settings ========== */
-const SET_TABS = [['general', '一般', 'sliders'], ['ai', 'AI', 'sparkle'], ['voice', '声・LIVE', 'speaker'], ['persona', 'キャラクター', 'persona'], ['data', 'データ', 'db'], ['conn', '接続', 'key'], ['help', 'ヘルプ', 'help']];
+const SET_TABS = [['general', '一般', 'sliders'], ['ai', 'AI', 'sparkle'], ['voice', '声・LIVE', 'speaker'], ['persona', 'キャラクター', 'persona'], ['ext', '拡張機能', 'puzzle'], ['data', 'データ', 'db'], ['conn', '接続', 'key'], ['help', 'ヘルプ', 'help']];
 const rl = (title, sub) => `<span class="rl"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>`;
 const swRow = (k, title, sub = '') => `<div class="row-set">${rl(title, sub)}<label class="sw"><input type="checkbox" data-set="${k}"${SET[k] ? ' checked' : ''} aria-label="${esc(title)}"><span></span></label></div>`;
 const segRow = (k, title, sub, opts) => `<div class="row-set stack">${rl(title, sub)}<div class="seg" data-seg="${k}" role="radiogroup" aria-label="${esc(title)}">${opts.map(([v, l]) => { const on = String(SET[k]) === String(v); return `<button type="button" data-v="${esc(String(v))}" class="${on ? 'on' : ''}" role="radio" aria-checked="${on}">${l}</button>`; }).join('')}</div></div>`;
@@ -10000,6 +10628,7 @@ function usageHTML() {
 }
 
 const SET_TAB = {
+  ext: () => Ext.listHTML(),
   general: () => `
     <div class="sg"><div class="sg-h">見た目</div>
       ${segRow('theme', 'テーマ', '', [['auto', '自動'], ['light', 'ライト'], ['dark', 'ダーク']])}
@@ -10202,10 +10831,14 @@ function openSettings(tab) {
           return;
         }
         if (e.target.closest('[data-pnew]')) { await editPersona(null); redraw(); return; }
+        const xa = e.target.closest('[data-xa]');
+        if (xa) { await Ext.act(xa.dataset.xa, xa.dataset.id, xa); redraw(); return; }
         const d = e.target.closest('[data-do]');
         if (d) await settingsDo(d.dataset.do, n, redraw);
       });
       n.addEventListener('change', e => {
+        if (e.target.dataset && e.target.dataset.xon) { Ext.toggle(e.target.dataset.xon, e.target.checked); redraw(); return; }
+        if (e.target.dataset && e.target.dataset.xver) { const x = Ext.get(e.target.dataset.xver); if (x) { x.cur = +e.target.value; Ext.put(x); ExtHost.drop(x.id); Ext.changed(); toast(`v${x.cur + 1} を使うようにしました`, { ms: 2000 }); } redraw(); return; }
         const ck = e.target.dataset && e.target.dataset.cast;
         if (ck && e.target.tagName === 'SELECT') { CV.setCast(ck, e.target.value); voiceTest(); redraw(); return; }
         const k = e.target.dataset && e.target.dataset.set; if (!k) return;
@@ -12794,6 +13427,8 @@ const ACT = {
   'pick-persona': b => pickPersona(b.dataset.pid),
   'to-bottom': () => { S.stick = true; thread.scrollTo({ top: thread.scrollHeight, behavior: reduced() ? 'auto' : 'smooth' }); },
   'attach': b => openPlusMenu(b),
+  'ext-block-install': b => Ext.installBlock(b),
+  'ext-block-edit': async b => { const c = Ext.fromBlock(b); if (c) await Ext.edit(null, c, { note: 'AIが作成', kind: 'ai' }); },
   'gen-save-svg': b => { const img = $('img', b.closest('.gen-img')); if (img) saveOut('イラスト.svg', new Blob([genSvgOf(img)], { type: 'image/svg+xml' })); },
   'gen-save-png1': async b => {
     const fig = b.closest('.gen-img'), img = $('img', fig), pw = +fig.dataset.pw, ph = +fig.dataset.ph; if (!img || !pw || !ph) return;

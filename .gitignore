@@ -2,3 +2,7 @@ passphrase.txt
 cloudflared.exe
 jobs-store.json
 tunnel-url.txt
+ext-store.json
+gallery-url.txt
+wrangler.toml
+.wrangler/

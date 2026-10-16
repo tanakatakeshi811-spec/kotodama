@@ -424,6 +424,17 @@ function startChatJob(res, body, prompt, images, alias, effort) {
 setInterval(() => { for (const [id, j] of chatJobs) if (j.endedAt && Date.now() - j.endedAt > JOB_KEEP_MS) chatJobs.delete(id); }, 600000).unref();
 process.on('exit', saveJobs);
 
+
+/* ---- 拡張機能の保管（ext-store.json。Gitには載せない） ---- */
+const EXT_FILE = path.join(HERE, 'ext-store.json');
+let extLib = { items: [], pub: [] };
+try { const j = JSON.parse(fs.readFileSync(EXT_FILE, 'utf8')); extLib = { items: Array.isArray(j.items) ? j.items : [], pub: Array.isArray(j.pub) ? j.pub : [] }; } catch (e) {}
+let extT = null;
+function extSave() { clearTimeout(extT); extT = setTimeout(() => { try { fs.writeFileSync(EXT_FILE, JSON.stringify(extLib)); } catch (e) {} }, 300); }
+function extOk(x) { return !!(x && typeof x.id === 'string' && x.id.length < 64 && Array.isArray(x.vers) && x.vers.length && x.vers.length <= 30 && JSON.stringify(x).length < 500000); }
+/* 公開ギャラリー（Cloudflare Workers）のURL。deploy-gallery で作ると gallery-url.txt に入る */
+function galleryUrl() { try { const u = fs.readFileSync(path.join(HERE, 'gallery-url.txt'), 'utf8').trim().split(/\s+/)[0]; return /^https:\/\//.test(u) ? u : ''; } catch (e) { return ''; } }
+
 const server = http.createServer(async (req, res) => {
   const allowed = cors(req, res);
   if (req.method === 'OPTIONS') { res.writeHead(allowed ? 204 : 403); return res.end(); }
@@ -432,7 +443,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url === '/ping') {
     const a = checkAuth(req);
-    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 6, features: ['search', 'research', 'voicevox', 'jobs'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null });
+    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 6, features: ['search', 'research', 'voicevox', 'jobs', 'ext'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null, gallery: a === 'ok' ? galleryUrl() : '' });
   }
 
   if (req.method === 'POST' && url === '/ask') {
@@ -527,6 +538,46 @@ const server = http.createServer(async (req, res) => {
         finalText: job.finalText, error: job.error, usage: job.usage, limits: job.limits || lastLimits, model: job.model, truncated: job.truncated,
       });
     }
+  }
+
+  /* ---- 拡張機能：自分のクラウド（どの端末からでもアップロード・インストール）と、公開ギャラリーの代わり ---- */
+  if (url.startsWith('/ext/')) {
+    const a = checkAuth(req);
+    if (a !== 'ok') return json(res, a === 'locked' ? 429 : 401, { error: 'auth_' + a });
+    const q = new URL(req.url, 'http://x').searchParams;
+    const body = async () => { try { return JSON.parse(await readBody(req, 600 * 1024)); } catch (e) { return null; } };
+    if (req.method === 'GET' && url === '/ext/lib') return json(res, 200, { items: extLib.items });
+    if (req.method === 'POST' && url === '/ext/lib') {
+      const b = await body(); const x = b && b.ext;
+      if (!extOk(x)) return json(res, 400, { error: 'bad_ext' });
+      extLib.items = extLib.items.filter(y => y.id !== x.id); extLib.items.unshift(x); extLib.items = extLib.items.slice(0, 200);
+      extSave(); return json(res, 200, { ok: true });
+    }
+    if (req.method === 'POST' && url === '/ext/lib/delete') { const b = await body(); extLib.items = extLib.items.filter(y => y.id !== (b && b.id)); extSave(); return json(res, 200, { ok: true }); }
+    if (req.method === 'GET' && url === '/ext/pub/list') {
+      const k = String(q.get('q') || '').toLowerCase();
+      const items = extLib.pub.filter(p => !k || (p.name + ' ' + p.desc + ' ' + p.author).toLowerCase().includes(k)).map(({ ext, token, ...m }) => m);
+      return json(res, 200, { items });
+    }
+    if (req.method === 'GET' && url.startsWith('/ext/pub/item/')) { const p = extLib.pub.find(y => y.gid === decodeURIComponent(url.slice(14))); return p ? json(res, 200, { ext: p.ext, author: p.author }) : json(res, 404, { error: 'not_found' }); }
+    if (req.method === 'POST' && url.startsWith('/ext/pub/dl/')) { const p = extLib.pub.find(y => y.gid === decodeURIComponent(url.slice(12))); if (p) { p.dl = (p.dl || 0) + 1; extSave(); } return json(res, 200, { ok: true }); }
+    if (req.method === 'POST' && url === '/ext/pub/publish') {
+      const b = await body(); const x = b && b.ext;
+      if (!extOk(x)) return json(res, 400, { error: 'bad_ext' });
+      const v = x.vers[x.vers.length - 1];
+      let p = b.gid && extLib.pub.find(y => y.gid === b.gid);
+      if (p && p.token !== b.token) return json(res, 403, { error: 'bad_token' });
+      if (!p) { p = { gid: crypto.randomBytes(6).toString('hex'), token: crypto.randomBytes(16).toString('hex'), dl: 0 }; extLib.pub.unshift(p); }
+      Object.assign(p, { ext: x, author: String(b.author || '').slice(0, 30), name: String(v.name || '').slice(0, 40), icon: String(v.icon || '').slice(0, 8), desc: String(v.desc || '').slice(0, 200), at: Date.now() });
+      extLib.pub = extLib.pub.slice(0, 500); extSave();
+      return json(res, 200, { gid: p.gid, token: p.token });
+    }
+    if (req.method === 'POST' && url === '/ext/pub/unpublish') {
+      const b = await body(); const p = b && extLib.pub.find(y => y.gid === b.gid);
+      if (!p) return json(res, 404, { error: 'not_found' }); if (p.token !== b.token) return json(res, 403, { error: 'bad_token' });
+      extLib.pub = extLib.pub.filter(y => y !== p); extSave(); return json(res, 200, { ok: true });
+    }
+    return json(res, 404, { error: 'not_found' });
   }
 
   json(res, 404, { error: 'not_found' });
