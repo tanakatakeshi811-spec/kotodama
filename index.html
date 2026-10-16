@@ -667,6 +667,16 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 .gen-img.wait, .gen-vid.wait { display: flex; align-items: center; gap: 10px; padding: 18px 16px; color: var(--ink-3, #9bb); font-size: 13.5px; }
 
 
+
+.pc-log { display: grid; gap: 8px; margin-top: 12px; max-height: 52vh; overflow: auto; }
+.pc-step { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line, rgba(127,127,127,.25)); border-radius: 12px; padding: 8px; font-size: 13px; }
+.pc-step img { width: 168px; flex: none; border-radius: 6px; }
+.pc-step.done { border-color: var(--accent, #2a8); }
+.pc-tx { display: grid; gap: 2px; min-width: 0; word-break: break-word; }
+.pc-tx small { opacity: .75; }
+.pc-tx svg { width: 15px; height: 15px; vertical-align: -2px; }
+.pc-st { font-size: 12.5px; opacity: .75; align-self: center; }
+@media (max-width: 560px) { .pc-step { flex-direction: column; } .pc-step img { width: 100%; } }
 .kaigi-ov { position: fixed; inset: 0; z-index: 800; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); }
 .kaigi-ov.min { display: none; }
 .kaigi-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; padding-top: max(6px, env(safe-area-inset-top)); border-bottom: 1px solid var(--line, rgba(127,127,127,.25)); font-size: 14px; }
@@ -2472,6 +2482,7 @@ async function relayPing(timeout = 4000) {
     const j = await r.json();
     if (!(j && j.ok && j.name === 'kotodama-relay')) return false;
     Engine.relayWhy = j.auth ? '' : (j.why || 'bad');
+    Engine.relayFeat = Array.isArray(j.features) ? j.features : [];
     Engine.gallery = (j.auth && typeof j.gallery === 'string' && /^https:\/\//.test(j.gallery)) ? j.gallery : '';
     if (j.auth && j.limits) Engine.limits = j.limits;
     return !!j.auth;
@@ -4633,6 +4644,130 @@ const Kaigi = {
   },
 };
 
+/* ---------- PCの操作：AIが画面を見て、マウスとキーボードでPCを動かす（このPCの中継サーバー経由・このPCで開いたときだけ） ---------- */
+const PC_ERR = { pc_local_only: 'PCの操作は、そのPCで開いたコトダマからだけ使えます（スマホや外からは使えません）', pc_windows_only: 'PCの操作はWindowsだけで使えます', pc_denied: 'PCの画面で「いいえ」が選ばれたので、操作しませんでした', pc_esc: 'Escキーで止められました', pc_not_started: '操作が始まっていません', pc_timeout: 'PCの応答がありませんでした', pc_closed: 'PC操作の部品が止まりました' };
+const PC_ACT_JA = a => {
+  const p = a.x != null ? `(${Math.round(a.x)},${Math.round(a.y)})` : '';
+  switch (a.type) {
+    case 'click': return `${a.count === 2 ? 'ダブルクリック' : a.button === 'right' ? '右クリック' : 'クリック'}${p}`;
+    case 'move': return `移動${p}`;
+    case 'type': return `入力「${String(a.text || '').slice(0, 30)}」`;
+    case 'key': return `キー ${a.keys || a.key || ''}`;
+    case 'scroll': return `スクロール${a.dir === 'up' ? '↑' : '↓'}${p}`;
+    case 'wait': return `待つ ${a.ms || 800}ms`;
+    default: return String(a.type || '?');
+  }
+};
+const PcOp = {
+  busy: false, stop: false, ctl: null,
+  can() { return !!Engine.relay && (Engine.relayFeat || []).includes('pc'); },
+  async req(path, body) {
+    let r; try { r = await fetch(relayBase() + path, { method: 'POST', headers: relayHeaders(), body: JSON.stringify(body || {}) }); } catch (e) { throw new Error('中継サーバーにつながりません'); }
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(PC_ERR[j && j.error] || (j && j.error) || 'HTTP ' + r.status);
+    return j;
+  },
+  prompt(task, hist, step) {
+    return [
+      'あなたは、ユーザーのWindows PCをマウスとキーボードで操作するアシスタントです（チャットアプリ「コトダマ」の機能）。',
+      '添付画像は、いまのPCの画面のスクリーンショットです。位置を読みやすいよう、薄い目盛り線と数字（100ごと）を重ねてあります。',
+      '座標は、画面の左上を(0,0)、右下を(1000,1000)とした割合で表します（横xも縦yも0〜1000）。ボタンや入力欄の「真ん中」を指してください。',
+      '',
+      '【ユーザーの依頼】', task,
+      '',
+      '【これまでの操作】', hist.length ? hist.slice(-12).join('\n') : '（まだなし。これが1回目）',
+      `（いまは${step}回目）`,
+      '',
+      '次にする操作を、次の形のJSONだけで答えてください（コードブロックも説明文も不要）：',
+      '{"thought":"画面から読み取ったことと、次の狙い（日本語で短く）","actions":[ … 最大5個 … ],"done":false,"say":"ユーザーへの一言（なくてもよい）"}',
+      '使える操作：',
+      '・{"type":"click","x":数,"y":数,"button":"left","count":1}（右クリックは button:"right"、ダブルクリックは count:2）',
+      '・{"type":"type","text":"文字"}（日本語もそのまま入る。先に入力欄をクリックしておく。改行は\\n）',
+      '・{"type":"key","keys":"enter"}（例：enter, tab, esc, backspace, ctrl+c, ctrl+v, ctrl+l, alt+tab, f5。Winキー・Alt+F4は使えない）',
+      '・{"type":"scroll","x":数,"y":数,"dir":"down","n":3}',
+      '・{"type":"wait","ms":1000}（読み込み待ち）',
+      'ルール：',
+      '・クリックやEnterで画面が変わるときは、その先を想像して操作を並べない。そこで区切り、次の画像を見てから決める。',
+      '・依頼が終わったら {"done":true,"say":"やったことの報告"}。終わったかは画像で確かめてから。',
+      '・購入・送金・削除・送信・投稿・パスワードや個人情報の入力・設定の変更など、取り消せない操作や危ない操作の直前では、actionsを空にして {"ask":"確認したいこと"} を付ける（ユーザーが許可したら、次の回の「これまでの操作」にそう書かれる）。パスワード・カード番号は自分で入力しない。',
+      '・できない／見つからないときは、無理に続けず done:true にして say で理由を伝える。同じ失敗を3回くり返したら止める。',
+    ].join('\n');
+  },
+  parse(t) {
+    t = stripTags(String(t || ''));
+    const m = t.match(/```(?:json)?\s*\n([\s\S]*?)\n```/); if (m) t = m[1];
+    const a = t.indexOf('{'), z = t.lastIndexOf('}');
+    try { return JSON.parse(t.slice(a, z + 1)); } catch (e) { return null; }
+  },
+  async open(task0) {
+    if (!this.can()) { toast(Engine.relay ? 'PCの操作は、WindowsのPCで中継サーバーを起動し、そのPCで開いたコトダマからだけ使えます' : '中継サーバーにつながっていないため使えません（設定→接続）', { err: true, ms: 5200 }); return; }
+    await dialog({
+      title: 'PCを操作してもらう', cls: 'wide xdlg',
+      body: `<p class="help-p">やってほしいことを書いて「始める」を押すと、PCの画面に許可の確認が出ます。許可すると、AIが画面を見ながらマウスとキーボードを動かします。<b>止めたいときは、キーボードの Esc キー</b>か「止める」を押してください。取り消せない操作（購入・送信・削除など）の前には、AIがここで確認します。</p>
+        <label class="field"><span>やってほしいこと</span><textarea id="pc-task" rows="3" placeholder="例：メモ帳を開いて「今日の買い物：たまご、牛乳」と書く／エクスプローラーでデスクトップの「新しいフォルダー」を開く／Chromeで明日の東京の天気を調べる">${esc(task0 || '')}</textarea></label>
+        <div class="btn-row"><button type="button" class="btn sm primary" id="pc-go">${ic('play')}始める</button><button type="button" class="btn sm" id="pc-stop" disabled>${ic('stop')}止める</button><span class="pc-st" id="pc-st"></span></div>
+        <div class="pc-log" id="pc-log"></div>`,
+      actions: [{ label: '閉じる', value: null }],
+      onOpen: n => {
+        $('#pc-go', n).onclick = () => { const t = $('#pc-task', n).value.trim(); if (!t) { toast('やってほしいことを書いてください', { err: true }); return; } this.run(n, t); };
+        $('#pc-stop', n).onclick = () => this.halt();
+      },
+    });
+    this.halt();
+  },
+  halt() { this.stop = true; if (this.ctl) try { this.ctl.abort(); } catch (e) {} },
+  async run(n, task) {
+    if (this.busy) return;
+    this.busy = true; this.stop = false; this.ctl = new AbortController();
+    const log = $('#pc-log', n), st = $('#pc-st', n), go = $('#pc-go', n), sp = $('#pc-stop', n);
+    const add = (html, cls = '') => { const d = el('div', 'pc-step ' + cls); d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
+    const state = t => { if (st) st.textContent = t; };
+    go.disabled = true; sp.disabled = false;
+    const hist = [];
+    try {
+      state('PCの画面で許可を待っています…');
+      await this.req('/pc/start', { task });
+      for (let step = 1; step <= 30 && !this.stop; step++) {
+        state(`${step}回目：画面を見ています…`);
+        const shot = await this.req('/pc/shot', { maxw: 1366 });
+        if (this.stop) break;
+        const bin = atob(shot.img); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const blob = new Blob([u8], { type: 'image/jpeg' });
+        const row = add(`<img src="data:image/jpeg;base64,${shot.img}" alt="${step}回目の画面"><div class="pc-tx"><b>${step}回目</b><span>考えています…</span></div>`);
+        state(`${step}回目：AIが次の操作を考えています…`);
+        const r = await callSample({ turns: [{ role: 'user', content: this.prompt(task, hist, step) }], images: [blob], model: SET.model, effort: 'low', signal: this.ctl.signal });
+        if (this.stop) break;
+        const j = this.parse(r.text);
+        const tx = $('.pc-tx span', row);
+        if (!j) { tx.textContent = 'AIの答えを読めませんでした。もう一度見ます'; hist.push(`${step}. （答えの形がまちがっていた。JSONだけで答えること）`); continue; }
+        const acts = (Array.isArray(j.actions) ? j.actions : []).slice(0, 5);
+        tx.innerHTML = `${esc(j.thought || '')}${acts.length ? `<br><small>${esc(acts.map(PC_ACT_JA).join(' → '))}</small>` : ''}${j.say ? `<br><b>${esc(j.say)}</b>` : ''}`;
+        if (j.ask) {
+          state('確認待ち');
+          const ok = await confirmBox('AIからの確認', esc(String(j.ask)), '許可する');
+          hist.push(`${step}. 確認「${j.ask}」→ ユーザーは${ok ? '許可した' : '許可しなかった（その操作はしない）'}`);
+          if (!ok) { add(`<div class="pc-tx">許可しなかったので、その操作はしません。</div>`); }
+          continue;
+        }
+        if (j.done) { add(`<div class="pc-tx"><b>${ic('check')}完了</b><span>${esc(j.say || '終わりました')}</span></div>`, 'done'); if (j.say) toast(j.say, { ms: 5200 }); break; }
+        if (!acts.length) { hist.push(`${step}. ${j.thought || ''}（操作なし）`); continue; }
+        state(`${step}回目：操作しています…`);
+        const res = await this.req('/pc/act', { actions: acts });
+        const errs = (res.results || []).filter(x => !x.ok).map(x => `${x.type}:${x.error}`);
+        hist.push(`${step}. ${j.thought || ''} → ${acts.map(PC_ACT_JA).join('、')}${errs.length ? `（失敗：${errs.join('、')}）` : ''}`);
+        if (res.esc) { add(`<div class="pc-tx">Escキーで止めました。</div>`, 'done'); break; }
+        await new Promise(z => setTimeout(z, 700));
+      }
+      if (this.stop) add(`<div class="pc-tx">止めました。</div>`, 'done');
+    } catch (e) {
+      if (!(e && (e.code === 'cancelled' || e.name === 'AbortError'))) add(`<div class="pc-tx xerr">${esc(e && e.code ? errText(e) : String((e && e.message) || e))}</div>`, 'done');
+    } finally {
+      this.busy = false; this.req('/pc/stop').catch(() => {});
+      state(''); if (go.isConnected) { go.disabled = false; sp.disabled = true; }
+    }
+  },
+};
+
 function pixLabel() {
   const pal = PIX_PAL_NAMES[SET.pixPalette];
   return `${SET.pixSize === 'auto' ? '大きさ自動' : SET.pixSize + '×' + SET.pixSize}・${pal || (SET.pixColors === 'auto' ? '色自動' : SET.pixColors + '色')}`;
@@ -4729,6 +4864,7 @@ function openPlusMenu(btn) {
     { icon: 'sliders', label: 'リサーチの最短時間', sub: `${resMin()}分以上かけて調べる`, run: setResearchMin },
     '-', { head: 'みんなで話す' },
     { icon: 'persona', label: 'キャラ会議', sub: 'キャラが順に意見を言い合い、司会がまとめる', run: () => openMeetingDialog() },
+    { icon: 'joystick', label: 'PCを操作してもらう', sub: PcOp.can() ? 'AIが画面を見てマウス・キーボードを動かす（Escで停止）' : 'Windowsで中継サーバーを起動し、そのPCで開いたときだけ使えます', disabled: !PcOp.can(), run: () => PcOp.open() },
     { icon: 'screen', label: 'コダマ会議（ビデオ会議）', sub: Kaigi.joined ? '会議中・画面に戻る' : 'AIが会議に参加して話せる・Claudeで要約や議事録', run: () => Kaigi.open() },
     '-', { head: '拡張機能（オン／オフ）' },
     ...Ext.list().map(x => { const v = Ext.cur(x); return { icon: 'puzzle', label: `${v.icon} ${v.name}`, sub: v.desc || Ext.srcLabel(x), on: !!x.on, run: () => Ext.toggle(x.id) }; }),

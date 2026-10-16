@@ -435,6 +435,44 @@ function extOk(x) { return !!(x && typeof x.id === 'string' && x.id.length < 64 
 /* 公開ギャラリー（Cloudflare Workers）のURL。deploy-gallery で作ると gallery-url.txt に入る */
 function galleryUrl() { try { const u = fs.readFileSync(path.join(HERE, 'gallery-url.txt'), 'utf8').trim().split(/\s+/)[0]; return /^https:\/\//.test(u) ? u : ''; } catch (e) { return ''; } }
 
+
+/* ---- PCの操作（AIがマウス・キーボードを動かす）。このPCで開いたコトダマからだけ使える（トンネル経由は拒否）。
+   開始のたびにPCの画面に許可ダイアログを出す。物理的なEscキーでいつでも緊急停止。Winキー・Alt+F4は使えない ---- */
+const PC = { child: null, buf: '', seq: 0, pend: new Map(), ok: false, esc: false, last: 0, screen: null };
+function pcSpawn() {
+  if (PC.child) return PC.child;
+  const ps1 = path.join(HERE, 'pc-control.ps1');
+  if (!fs.existsSync(ps1)) throw new Error('pc-control.ps1 がありません');
+  const c = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+  PC.child = c; PC.buf = '';
+  c.stdout.on('data', d => {
+    PC.buf += d.toString('utf8');
+    let i;
+    while ((i = PC.buf.indexOf('\n')) >= 0) {
+      const line = PC.buf.slice(0, i).trim(); PC.buf = PC.buf.slice(i + 1);
+      if (!line) continue;
+      let o; try { o = JSON.parse(line); } catch (e) { continue; }
+      if (o.event === 'esc') { PC.esc = true; PC.ok = false; console.log('[PC操作] Escキーで止めました'); continue; }
+      const p = PC.pend.get(o.id); if (p) { PC.pend.delete(o.id); clearTimeout(p.to); p.res(o); }
+    }
+  });
+  c.stderr.on('data', d => { const t = d.toString('utf8').trim(); if (t) console.log('[PC操作] ' + t.slice(0, 300)); });
+  c.on('close', () => { PC.child = null; PC.ok = false; for (const p of PC.pend.values()) p.rej(new Error('pc_closed')); PC.pend.clear(); });
+  c.on('error', () => {});
+  return c;
+}
+function pcCmd(o, ms = 20000) {
+  const c = pcSpawn(); const id = ++PC.seq;
+  return new Promise((res, rej) => {
+    const to = setTimeout(() => { PC.pend.delete(id); rej(new Error('pc_timeout')); }, ms);
+    PC.pend.set(id, { res, rej, to });
+    c.stdin.write(JSON.stringify({ ...o, id }) + '\n');
+  });
+}
+const b64 = s => Buffer.from(String(s || ''), 'utf8').toString('base64');
+setInterval(() => { if (PC.ok && Date.now() - PC.last > 30 * 60000) { PC.ok = false; pcCmd({ cmd: 'stop' }, 3000).catch(() => {}); } }, 60000).unref();
+process.on('exit', () => { try { PC.child && PC.child.kill(); } catch (e) {} });
+
 const server = http.createServer(async (req, res) => {
   const allowed = cors(req, res);
   if (req.method === 'OPTIONS') { res.writeHead(allowed ? 204 : 403); return res.end(); }
@@ -443,7 +481,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url === '/ping') {
     const a = checkAuth(req);
-    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 6, features: ['search', 'research', 'voicevox', 'jobs', 'ext'], auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null, gallery: a === 'ok' ? galleryUrl() : '' });
+    return json(res, 200, { ok: true, name: 'kotodama-relay', v: 6, features: ['search', 'research', 'voicevox', 'jobs', 'ext'].concat(process.platform === 'win32' && !isRemote(req) ? ['pc'] : []), auth: a === 'ok', why: a === 'ok' ? '' : a, limits: a === 'ok' ? lastLimits : null, gallery: a === 'ok' ? galleryUrl() : '' });
   }
 
   if (req.method === 'POST' && url === '/ask') {
@@ -538,6 +576,55 @@ const server = http.createServer(async (req, res) => {
         finalText: job.finalText, error: job.error, usage: job.usage, limits: job.limits || lastLimits, model: job.model, truncated: job.truncated,
       });
     }
+  }
+
+  /* ---- PCの操作 ---- */
+  if (url.startsWith('/pc/')) {
+    if (isRemote(req)) return json(res, 403, { error: 'pc_local_only' });
+    if (process.platform !== 'win32') return json(res, 400, { error: 'pc_windows_only' });
+    let b = {}; if (req.method === 'POST') { try { b = JSON.parse((await readBody(req, 64 * 1024)) || '{}'); } catch (e) { return json(res, 400, { error: 'bad_request' }); } }
+    try {
+      if (url === '/pc/start') {
+        if (!PC.ok) {
+          const task = String(b.task || '').slice(0, 200);
+          const r = await pcCmd({ cmd: 'confirm', t: b64('コトダマのAIが、このPCのマウスとキーボードを操作しようとしています。\n\n頼んだこと：' + (task || '（なし）') + '\n\n許可しますか？\n（操作中に Esc キーを押すと、すぐに止まります）') }, 120000);
+          if (!r.yes) return json(res, 403, { error: 'pc_denied' });
+          const i = await pcCmd({ cmd: 'init', w: 0, h: 0 });
+          PC.screen = i.screen; PC.ok = true; PC.esc = false;
+        }
+        PC.last = Date.now();
+        return json(res, 200, { ok: true, screen: PC.screen });
+      }
+      if (url === '/pc/stop') { PC.ok = false; if (PC.child) await pcCmd({ cmd: 'stop' }, 3000).catch(() => {}); return json(res, 200, { ok: true }); }
+      if (!PC.ok) return json(res, 409, { error: PC.esc ? 'pc_esc' : 'pc_not_started' });
+      PC.last = Date.now();
+      if (url === '/pc/shot') {
+        const r = await pcCmd({ cmd: 'shot', maxw: Math.max(640, Math.min(1920, +b.maxw || 1366)) });
+        if (!r.ok) return json(res, 500, { error: r.error || 'shot_failed' });
+        return json(res, 200, JSON.parse(r.shot));
+      }
+      if (url === '/pc/act') {
+        const acts = (Array.isArray(b.actions) ? b.actions : []).slice(0, 8);
+        const out = [];
+        for (const a of acts) {
+          if (PC.esc) break;
+          const t = String(a && a.type || '');
+          const num = (v, d) => Number.isFinite(+v) ? Math.max(0, Math.min(1000, +v)) : d;
+          let r;
+          if (t === 'click') r = await pcCmd({ cmd: 'click', x: num(a.x, 500), y: num(a.y, 500), b: a.button === 'right' ? 'right' : 'left', n: a.count === 2 ? 2 : 1 });
+          else if (t === 'move') r = await pcCmd({ cmd: 'move', x: num(a.x, 500), y: num(a.y, 500) });
+          else if (t === 'scroll') r = await pcCmd({ cmd: 'scroll', x: num(a.x, 500), y: num(a.y, 500), pos: a.x != null, dir: ['up', 'down', 'left', 'right'].includes(a.dir) ? a.dir : 'down', n: Math.max(1, Math.min(20, +a.n || 3)) });
+          else if (t === 'type') r = await pcCmd({ cmd: 'type', t: b64(String(a.text || '').slice(0, 600)) }, 60000);
+          else if (t === 'key') r = await pcCmd({ cmd: 'key', key: String(a.keys || a.key || '').slice(0, 40) });
+          else if (t === 'wait') { await new Promise(z => setTimeout(z, Math.max(0, Math.min(5000, +a.ms || 800)))); r = { ok: true }; }
+          else r = { ok: false, error: 'unknown action' };
+          out.push({ type: t, ok: !!r.ok, error: r.error || '' });
+          if (r.esc) { PC.esc = true; PC.ok = false; break; }
+        }
+        return json(res, 200, { results: out, esc: PC.esc });
+      }
+      return json(res, 404, { error: 'not_found' });
+    } catch (e) { return json(res, 500, { error: String(e && e.message || e).slice(0, 200) }); }
   }
 
   /* ---- 拡張機能：自分のクラウド（どの端末からでもアップロード・インストール）と、公開ギャラリーの代わり ---- */
