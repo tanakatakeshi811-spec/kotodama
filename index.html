@@ -666,6 +666,14 @@ body.live-on .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 66
 .gen-img, .gen-vid { margin: 10px 0; border: 1px solid var(--line, rgba(255,255,255,.14)); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.03); }
 .gen-img.wait, .gen-vid.wait { display: flex; align-items: center; gap: 10px; padding: 18px 16px; color: var(--ink-3, #9bb); font-size: 13.5px; }
 
+
+.kaigi-ov { position: fixed; inset: 0; z-index: 800; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); }
+.kaigi-ov.min { display: none; }
+.kaigi-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; padding-top: max(6px, env(safe-area-inset-top)); border-bottom: 1px solid var(--line, rgba(127,127,127,.25)); font-size: 14px; }
+.kaigi-st { margin-right: auto; font-size: 12px; opacity: .75; }
+.kaigi-ov iframe { flex: 1; width: 100%; border: 0; background: #000; }
+.kaigi-pill { position: fixed; right: 14px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 790; display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 0; background: var(--accent, #1f7a63); color: #fff; font: inherit; font-size: 13px; box-shadow: 0 6px 18px rgba(0,0,0,.25); cursor: pointer; }
+.kaigi-pill svg { width: 16px; height: 16px; }
 .kd-call { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; padding: 7px 11px; border: 1px dashed var(--line, rgba(127,127,127,.35)); border-radius: 11px; font-size: 13px; color: var(--ink-2, inherit); }
 .kd-call .ic, .kd-call svg { width: 16px; height: 16px; flex: none; }
 .kd-call code { font-size: 12px; opacity: .8; word-break: break-all; }
@@ -4552,6 +4560,79 @@ const Ext = {
 /* 会話の中の kd-view（拡張の小さな画面）を、表示されたときに箱の中で動かす */
 new MutationObserver(() => { for (const v of $$('.kd-view:not([data-m])')) ExtHost.mountView(v); }).observe(doc.documentElement, { childList: true, subtree: true });
 
+/* ---------- コダマ会議：コトダマの中で開き、AI機能（要約・議事録・@AI・会議に参加するAI）をコトダマのClaudeで動かす ---------- */
+const Kaigi = {
+  ov: null, frame: null, joined: false, room: '',
+  url() {
+    const o = LS.get('kaigiUrl', '');
+    if (o) return o;
+    try { if (/\.github\.io$/.test(location.hostname)) return new URL('/kodama-kaigi/', location.origin).href; } catch (e) {}
+    return 'https://tanakatakeshi811-spec.github.io/kodama-kaigi/';
+  },
+  origin() { try { return new URL(this.url(), location.href).origin; } catch (e) { return ''; } },
+  open() {
+    if (this.ov) { this.ov.classList.remove('min'); this.pill(false); return; }
+    const ov = el('div', 'kaigi-ov'); ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'コダマ会議');
+    ov.innerHTML = `<div class="kaigi-bar"><b>コダマ会議</b><span class="kaigi-st" id="kaigiSt"></span><button type="button" class="btn sm" data-kg="min">${ic('chevD')}コトダマに戻る</button><button type="button" class="btn sm" data-kg="close">${ic('x')}会議を閉じる</button></div>
+      <iframe title="コダマ会議" allow="camera; microphone; display-capture; autoplay; fullscreen; clipboard-read; clipboard-write; picture-in-picture; screen-wake-lock" referrerpolicy="no-referrer"></iframe>`;
+    doc.body.appendChild(ov);
+    this.ov = ov; this.frame = $('iframe', ov); this.joined = false; this.room = '';
+    this.frame.src = this.url();
+    ov.addEventListener('click', async e => {
+      const b = e.target.closest('[data-kg]'); if (!b) return;
+      if (b.dataset.kg === 'min') { ov.classList.add('min'); this.pill(true); }
+      else if (b.dataset.kg === 'close') { if (!this.joined || await confirmBox('会議を閉じる', '会議から抜けて閉じますか？', '閉じる', true)) this.close(); }
+    });
+    if (!this.lis) { this.lis = true; addEventListener('message', e => this.onMsg(e)); }
+    clearInterval(this.tick); this.tick = setInterval(() => this.status(), 8000);
+    this.paint();
+  },
+  close() { clearInterval(this.tick); if (this.ov) this.ov.remove(); this.ov = this.frame = null; this.joined = false; this.pill(false); },
+  pill(on) {
+    let p = $('#kaigiPill');
+    if (!on) { if (p) p.remove(); return; }
+    if (!p) { p = el('button', 'kaigi-pill'); p.id = 'kaigiPill'; p.type = 'button'; p.onclick = () => this.open(); doc.body.appendChild(p); }
+    p.innerHTML = `${ic('screen')}<span>${this.joined ? '会議中' : 'コダマ会議'}${this.room ? '・' + esc(this.room) : ''}</span>`;
+  },
+  paint() {
+    const st = this.ov && $('#kaigiSt', this.ov); if (!st) return;
+    st.textContent = (this.joined ? '会議中' + (this.room ? '・' + this.room : '') + '　' : '') + (engineReady() ? 'AI：コトダマのClaude' : 'AI：つながっていません（設定→接続）');
+    if (!this.ov.classList.contains('min')) return; this.pill(true);
+  },
+  post(o, origin) { try { this.frame && this.frame.contentWindow.postMessage(Object.assign({ kk: 1 }, o), origin && origin !== 'null' ? origin : '*'); } catch (e) {} },
+  status() { if (!this.frame) return; this.post({ op: 'status', ai: engineReady() }, this.origin()); this.paint(); },
+  async onMsg(e) {
+    if (!this.frame || e.source !== this.frame.contentWindow) return;
+    const m = e.data; if (!m || m.kk !== 1) return;
+    if (e.origin !== this.origin()) return; /* 会議の画面が別のサイトに移っていたら答えない */
+    if (m.op === 'hello') { this.post({ op: 'hi', ai: engineReady(), name: 'コトダマ' }, e.origin); return; }
+    if (m.op === 'ask') {
+      const id = m.id;
+      try {
+        const kind = String(m.kind || 'chat');
+        const model = kind === 'talk' || kind === 'tr' ? (SET.liveModel && SET.liveModel !== 'same' ? SET.liveModel : 'claude-haiku-5-5') : SET.model;
+        const sys = 'あなたはビデオ会議アプリ「コダマ会議」に組み込まれたAI（中身はAnthropicのClaude、チャットアプリ「コトダマ」経由）です。指示にそのまま従って、答えだけを出力してください。';
+        const text = await aiOnce(sys, String(m.prompt || '').slice(0, 60000), { model });
+        this.post({ op: 'ans', id, text: stripTags(text).trim() }, e.origin);
+      } catch (er) { this.post({ op: 'ans', id, err: er && er.code ? errText(er) : String((er && er.message) || er) }, e.origin); }
+      return;
+    }
+    if (m.op === 'save') {
+      const n = newChatObj(); const t = Date.now();
+      n.title = String(m.title || '会議の記録').slice(0, 60);
+      n.msgs.push({ id: uid('m'), role: 'user', t, text: 'コダマ会議の記録', att: [] }, { id: uid('m'), role: 'assistant', t, cur: 0, alts: [{ text: String(m.text || '').slice(0, 200000), think: [] }] });
+      S.chats.set(n.id, n); persistChat(n); renderSidebarSoon();
+      toast('会議の記録をコトダマの会話に保存しました', { ms: 3200 });
+      return;
+    }
+    if (m.op === 'event') {
+      if (m.type === 'joined') { this.joined = true; this.room = String((m.data && m.data.room) || '').slice(0, 30); }
+      if (m.type === 'left') this.joined = false;
+      this.paint();
+    }
+  },
+};
+
 function pixLabel() {
   const pal = PIX_PAL_NAMES[SET.pixPalette];
   return `${SET.pixSize === 'auto' ? '大きさ自動' : SET.pixSize + '×' + SET.pixSize}・${pal || (SET.pixColors === 'auto' ? '色自動' : SET.pixColors + '色')}`;
@@ -4648,6 +4729,7 @@ function openPlusMenu(btn) {
     { icon: 'sliders', label: 'リサーチの最短時間', sub: `${resMin()}分以上かけて調べる`, run: setResearchMin },
     '-', { head: 'みんなで話す' },
     { icon: 'persona', label: 'キャラ会議', sub: 'キャラが順に意見を言い合い、司会がまとめる', run: () => openMeetingDialog() },
+    { icon: 'screen', label: 'コダマ会議（ビデオ会議）', sub: Kaigi.joined ? '会議中・画面に戻る' : 'AIが会議に参加して話せる・Claudeで要約や議事録', run: () => Kaigi.open() },
     '-', { head: '拡張機能（オン／オフ）' },
     ...Ext.list().map(x => { const v = Ext.cur(x); return { icon: 'puzzle', label: `${v.icon} ${v.name}`, sub: v.desc || Ext.srcLabel(x), on: !!x.on, run: () => Ext.toggle(x.id) }; }),
     { icon: 'plus', label: '拡張機能を作る・管理', sub: 'AIに作ってもらう・自分で書く・版の切り替え・共有・公開されているものを見る', run: () => Ext.openManager() },
