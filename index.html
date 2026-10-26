@@ -1552,6 +1552,69 @@ const LS = {
   set(k, v) { try { localStorage.setItem('kd:' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   del(k) { try { localStorage.removeItem('kd:' + k); } catch (e) {} }
 };
+
+/* ---------- 管理者モード ----------
+   設定→ヘルプの一番下の「管理者モード」からパスワードで入る。天使モード・シアンモード（と、その声・コマンド）は
+   管理者だけが使え、管理者でないときは設定にもコマンドにも出てこない（保存されていても強制的にオフにする）。
+   注意：コトダマは1枚のHTMLで動くため、これは「うっかり見つけて使えてしまわない」ための鍵であって、
+   ソースを読める人に対する強い保護ではない（パスワードそのものは書かず、ハッシュだけを持っている）。 */
+function sha256hex(str) {
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const b = new TextEncoder().encode(str), l = b.length, n = ((l + 9 + 63) >> 6) << 6, m = new Uint8Array(n);
+  m.set(b); m[l] = 0x80; const dv = new DataView(m.buffer); dv.setUint32(n - 4, (l * 8) >>> 0); dv.setUint32(n - 8, Math.floor(l * 8 / 4294967296));
+  let h = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]; const w = new Array(64);
+  const R = (x, c) => (x >>> c) | (x << (32 - c));
+  for (let o = 0; o < n; o += 64) {
+    for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+    for (let i = 16; i < 64; i++) { const a = R(w[i-15],7) ^ R(w[i-15],18) ^ (w[i-15] >>> 3), c = R(w[i-2],17) ^ R(w[i-2],19) ^ (w[i-2] >>> 10); w[i] = (w[i-16] + a + w[i-7] + c) | 0; }
+    let [a, b2, c2, d, e, f, g, hh] = h;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (hh + (R(e,6) ^ R(e,11) ^ R(e,25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0, t2 = ((R(a,2) ^ R(a,13) ^ R(a,22)) + ((a & b2) ^ (a & c2) ^ (b2 & c2))) | 0;
+      hh = g; g = f; f = e; e = (d + t1) | 0; d = c2; c2 = b2; b2 = a; a = (t1 + t2) | 0;
+    }
+    h = [a, b2, c2, d, e, f, g, hh].map((v, i) => (h[i] + v) | 0);
+  }
+  return h.map(v => (v >>> 0).toString(16).padStart(8, '0')).join('');
+}
+const Admin = {
+  HASH: '6b72b0a0d1c9dfe0594abebfb0f1c9f27be7f07e0007d6a45ccc08e6e2752578', SALT: 'kd-admin-v1:', fails: 0, lockUntil: 0,
+  on() { return LS.get('adm', '') === this.HASH; },
+  check(pw) { return sha256hex(this.SALT + String(pw || '').trim()) === this.HASH; },
+  /* 管理者でないのに天使モード・シアンモード（とその声）が残っていたら、強制的にオフにする */
+  enforce() {
+    if (this.on()) return false;
+    const p = {};
+    if (SET.angel) p.angel = false;
+    if (SET.cyan) p.cyan = false;
+    if (SET.voice === 'tenwa' || SET.voice === 'cyan') { p.voice = (SET.angelVoicePrev && SET.angelVoicePrev !== 'tenwa' && SET.angelVoicePrev !== 'cyan') ? SET.angelVoicePrev : 'std'; p.angelVoicePrev = ''; }
+    if (!Object.keys(p).length) return false;
+    Settings.set(p, { quiet: true }); return true;
+  },
+  /* 設定の画面から。入る/やめるを切り替える。戻り値: 状態が変わったか */
+  async toggle() {
+    if (this.on()) {
+      if (!await confirmBox('管理者モードをやめる', '天使モードとシアンモードが使えなくなります（使用中ならふつうのコトダマにもどります）。', 'やめる')) return false;
+      if (charMode() === 'tenwa' || charMode() === 'cyan') await setChar('');
+      LS.del('adm'); this.enforce();
+      renderHeader(); renderThread(); renderComposer(); renderSidebar();
+      toast('管理者モードをやめました'); return true;
+    }
+    if (Date.now() < this.lockUntil) { toast('間違いが続いたため、少し待ってからやり直してください', { err: true }); return false; }
+    const pw = await dialog({
+      title: '管理者モード',
+      body: '<label class="field"><span>パスワード</span><input type="password" id="adm-pw" inputmode="numeric" autocomplete="off" autofocus></label>',
+      actions: [{ label: 'キャンセル', value: null }, { label: '入る', primary: true, value: n => $('#adm-pw', n).value }]
+    });
+    if (pw == null) return false;
+    if (!this.check(pw)) {
+      if (++this.fails >= 5) { this.fails = 0; this.lockUntil = Date.now() + 60000; }
+      toast('パスワードがちがいます', { err: true }); return false;
+    }
+    this.fails = 0; LS.set('adm', this.HASH);
+    renderHeader(); renderThread(); renderComposer(); renderSidebar();
+    toast('管理者モードになりました。天使モード・シアンモードが使えます'); return true;
+  }
+};
 const IDB = {
   p: null,
   open() {
@@ -1807,8 +1870,8 @@ const SLASH = [
   { k: '設定', d: '設定を開く', act: 'settings' },
   { k: '会議', d: 'キャラ会議を開く', act: 'meeting' },
   { k: 'ドット', d: 'ドット絵モードを切り替える', act: 'pixel' },
-  { k: '天使', d: '天使モード（天和）を切り替える', act: 'angel' },
-  { k: 'シアン', d: 'シアンモードを切り替える', act: 'cyan' },
+  { k: '天使', d: '天使モード（天和）を切り替える', act: 'angel', admin: true },
+  { k: 'シアン', d: 'シアンモードを切り替える', act: 'cyan', admin: true },
   { k: 'ひより', d: 'ひよりモードを切り替える', act: 'hiyori' },
   { k: 'リク', d: 'リクモードを切り替える（2D・3D・ダンス）', act: 'riku' },
   { k: 'ダンス', d: '3Dステージ（リクを踊らせる・動かす）', act: 'rkstage' },
@@ -1837,6 +1900,7 @@ const SET = Object.assign({}, DEFAULTS, LS.get('settings', {}));
 const Settings = {
   listeners: [],
   set(patch, { quiet } = {}) {
+    if (!Admin.on() && (patch.angel || patch.cyan)) patch = Object.assign({}, patch, patch.angel ? { angel: false } : {}, patch.cyan ? { cyan: false } : {}); // 管理者でなければ天使・シアンはオンにできない
     Object.assign(SET, patch);
     const o = stripSecrets(Object.assign({}, SET));
     LS.set('settings', o);
@@ -3779,7 +3843,7 @@ function updateSlash() {
   const box = $('#slash'); const m = input.value.match(/^\/(\S*)$/);
   if (!m) { box.hidden = true; S.slash = null; return; }
   const q = m[1].toLowerCase();
-  const items = SLASH.filter(s => !q || s.k.toLowerCase().startsWith(q) || s.k.toLowerCase().includes(q) || s.d.includes(q));
+  const items = SLASH.filter(s => (!s.admin || Admin.on()) && (!q || s.k.toLowerCase().startsWith(q) || s.k.toLowerCase().includes(q) || s.d.includes(q)));
   if (!items.length) { box.hidden = true; S.slash = null; return; }
   const sel = S.slash ? clamp(S.slash.sel, 0, items.length - 1) : 0;
   S.slash = { items, sel };
@@ -3787,7 +3851,7 @@ function updateSlash() {
   box.hidden = false;
 }
 function applySlash(k) {
-  const s = SLASH.find(x => x.k === k); if (!s) return;
+  const s = SLASH.find(x => x.k === k && (!x.admin || Admin.on())); if (!s) return;
   $('#slash').hidden = true; S.slash = null;
   if (s.t) { input.value = s.t; autosize(); input.focus(); input.setSelectionRange(input.value.length, input.value.length); renderComposer(); return; }
   if (s.act === 'memory') { input.value = '/覚えて '; input.focus(); renderComposer(); return; }
@@ -5073,6 +5137,7 @@ async function rikuAssets(force) {
 }
 /* a character mode: '' (ふつう), 'tenwa' (天使モード), 'cyan' (シアンモード), 'hiyori' (ひよりモード) or 'riku' (リクモード) — only one at a time */
 async function setChar(kind) {
+  if ((kind === 'tenwa' || kind === 'cyan') && !Admin.on()) return; // 天使モード・シアンモードは管理者だけ
   const cur = charMode(); if (kind === cur) return;
   const patch = { angel: kind === 'tenwa', cyan: kind === 'cyan', hiyori: kind === 'hiyori', riku: kind === 'riku' };
   let voice = SET.voice, prev = SET.angelVoicePrev;
@@ -5789,7 +5854,7 @@ const Live = {
       }).catch(() => toast('VOICEVOXの声の一覧を取得できませんでした。中継サーバーかVOICEVOXが動いているか確かめてください', { err: true, ms: 5000 }));
       return;
     }
-    menu(btn, [{ head: '声の種類' }, ...VOICE_PRESETS.map(v => ({ label: v.name, sub: v.desc, on: SET.voice === v.id, run: () => { Settings.set({ voice: v.id }); this.renderPills(); this.preview(); } }))], { align: 'right' });
+    menu(btn, [{ head: '声の種類' }, ...VOICE_PRESETS.filter(v => Admin.on() || (v.id !== 'tenwa' && v.id !== 'cyan')).map(v => ({ label: v.name, sub: v.desc, on: SET.voice === v.id, run: () => { Settings.set({ voice: v.id }); this.renderPills(); this.preview(); } }))], { align: 'right' });
   },
   /* ---------- camera ---------- */
   camToggle() {
@@ -10857,6 +10922,7 @@ const SET_TAB = {
       <div class="row-set">${rl('ドット絵モード', '昔のRPGのような画面になり、AIはドット絵のキャラクターになります')}<span class="px-pair">${SPRITE_URL ? `<img class="sprite-prev" src="${SPRITE_URL}" alt="">` : ''}<label class="sw"><input type="checkbox" data-set="pixel"${SET.pixel ? ' checked' : ''} aria-label="ドット絵モード"><span></span></label></span></div>
       ${SET.pixel ? swRow('crt', 'ブラウン管風', '走査線とにじみを重ねます') : ''}
     </div>
+    ${Admin.on() ? `
     <div class="sg"><div class="sg-h">天使モード</div>
       <div class="row-set">${rl('天使モード（天和）', `AIが天使の男の子「天和（${esc(tenwaYomi())}）」になります。話し方も天和になり、LIVEでは天和が画面に出てきて、表情や手・羽を動かしながら話します`)}<span class="px-pair">${TW_ICON ? `<img class="tw-prev" src="${TW_ICON}" alt="">` : ''}<label class="sw"><input type="checkbox" data-set="angel"${SET.angel ? ' checked' : ''} aria-label="天使モード"><span></span></label></span></div>
       ${SET.angel ? `<label class="field"><span>名前の読み方（読み上げと自己紹介に使います）</span><input type="text" data-set="angelYomi" value="${esc(SET.angelYomi || 'てんわ')}" placeholder="てんわ" autocomplete="off" spellcheck="false" maxlength="12"></label><p class="help-p">天使モードのあいだは、キャラクターの設定より天和が優先されます。声は「天和」になります（声・LIVE のタブで変えられます）。</p><div><button type="button" class="btn sm" data-do="angel-live">${ic('wave')}天和とLIVEで話す</button></div>` : ''}
@@ -10867,6 +10933,7 @@ const SET_TAB = {
       <div class="sg-h" style="margin-top:6px">着がえ・持ち物</div><div class="dress-set">${cyanDressHTML('cyan')}</div>
       <div><button type="button" class="btn sm" data-do="cyan-live">${ic('wave')}シアンとLIVEで話す</button></div>` : ''}
     </div>
+    ` : ''}
     <div class="sg"><div class="sg-h">ひよりモード</div>
       <div class="row-set">${rl('ひよりモード（新キャラ）', 'AIが、おでかけと道案内が得意な女の子「ひより」になります。明るく元気な話し方になり、LIVEでは外の景色の中にひよりが出てきて、顔・目・口・首・腕・指・足まで動かしながら話します。位置情報と組み合わせると、近くのおすすめや行き方を案内します')}<span class="px-pair">${HY_ICON ? `<img class="tw-prev hy-prev" src="${HY_ICON}" alt="">` : ''}<label class="sw"><input type="checkbox" data-set="hiyori"${charMode() === 'hiyori' ? ' checked' : ''} aria-label="ひよりモード"><span></span></label></span></div>
       ${charMode() === 'hiyori' ? `<p class="help-p">ひよりモードのあいだは、キャラクターの設定よりひよりが優先されます。声は「ひより」になります（声・LIVE のタブで変えられます）。ほかのキャラモードとは同時に使えません。</p>
@@ -10914,7 +10981,7 @@ const SET_TAB = {
     const sys = TTS.ja || [];
     return `
     <div class="sg"><div class="sg-h">声</div>
-      <div class="voice-grid" role="radiogroup" aria-label="声の種類">${VOICE_PRESETS.map(v => `<button type="button" class="vc${SET.voice === v.id ? ' on' : ''}" data-voice="${v.id}" role="radio" aria-checked="${SET.voice === v.id}"><b>${esc(v.name)}</b><small>${esc(v.desc)}</small></button>`).join('')}</div>
+      <div class="voice-grid" role="radiogroup" aria-label="声の種類">${VOICE_PRESETS.filter(v => Admin.on() || (v.id !== 'tenwa' && v.id !== 'cyan')).map(v => `<button type="button" class="vc${SET.voice === v.id ? ' on' : ''}" data-voice="${v.id}" role="radio" aria-checked="${SET.voice === v.id}"><b>${esc(v.name)}</b><small>${esc(v.desc)}</small></button>`).join('')}</div>
       ${rngRow('rate', '話す速さ', '', 0.5, 2, 0.1)}
       ${rngRow('pitch', '声の高さ', '', 0.5, 1.5, 0.05)}
       ${TTS.ok && sys.length ? `<label class="field"><span>端末の声（日本語）</span><select data-set="sysVoice"><option value="">おまかせ（声の種類に合わせて選ぶ）</option>${sys.map(v => `<option value="${esc(v.voiceURI)}"${SET.sysVoice === v.voiceURI ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select></label>` : `<p class="help-p">${TTS.ok ? 'この端末には日本語の声が見つかりませんでした。端末の設定で日本語の音声を追加すると、より自然になります。' : 'この端末では読み上げを使えないため、ピコピコ音で話します。'}</p>`}
@@ -10999,8 +11066,11 @@ const SET_TAB = {
       <kbd>/</kbd><span>コマンドを出す</span>
       <kbd>Space</kbd><span>LIVEで、話す・止める</span>
     </div></div>
-    <div class="sg"><div class="sg-h">コマンド（入力欄で / を打つ）</div><div class="kbd-list">${SLASH.map(s => `<kbd>/${esc(s.k)}</kbd><span>${esc(s.d)}</span>`).join('')}</div></div>
+    <div class="sg"><div class="sg-h">コマンド（入力欄で / を打つ）</div><div class="kbd-list">${SLASH.filter(s => !s.admin || Admin.on()).map(s => `<kbd>/${esc(s.k)}</kbd><span>${esc(s.d)}</span>`).join('')}</div></div>
     <div class="sg"><div class="sg-h">考える深さ</div><div class="kbd-list">${EFFORTS.map(e => `<kbd>${e.name}</kbd><span>${esc(Engine.kind === 'api' ? e.a : e.s)}</span>`).join('')}</div></div>
+    <div class="sg"><div class="sg-h">管理者</div>
+      <div class="row-set">${rl('管理者モード', Admin.on() ? '管理者モードです。天使モード・シアンモードが使えます' : 'パスワードを入れると、管理者だけの機能が使えます')}<button type="button" class="btn sm" data-do="admin">${Admin.on() ? 'やめる' : '入る'}</button></div>
+    </div>
     <div class="sg"><div class="sg-h">このアプリについて</div><p class="help-p">コトダマ 1.0 — Claude と話すためのアプリです。チャットは${S.mode === 'cloud' ? 'あなたのClaudeアカウント' : 'このブラウザ'}に保存されます。AIの答えはまちがえることがあるので、大事なことは確かめてください。</p></div>`
 };
 
@@ -11089,6 +11159,7 @@ function openSettings(tab) {
 async function settingsDo(act, n, redraw) {
   if (act === 'model') { await openModelSheet(); redraw(); return; }
   if (act === 'test-voice') { voiceTest(); return; }
+  if (act === 'admin') { await Admin.toggle(); redraw(); return; }
   if (act === 'angel-off') { await toggleAngel(false); redraw(); return; }
   if (act === 'angel-live' || act === 'cyan-live') { Layer.close(); setTimeout(() => Live.open(), 60); return; }
   if (act === 'cyan-off') { await toggleCyan(false); redraw(); return; }
@@ -13824,6 +13895,7 @@ async function boot() {
   if (!SET.side && !isMobile()) $('#app').classList.add('side-closed');
   input.setAttribute('enterkeyhint', SET.enterSend ? 'send' : 'enter');
   if (!STT.Rec) $('#micBtn').setAttribute('aria-label', '音声で入力（端末の音声入力の使い方）');
+  Admin.enforce();
   wire();
   syncState(); renderHeader(); renderComposer(); renderSidebar(); renderThread();
   if (SET.angel) angelAssets().then(ok => { if (ok) { renderThread(); renderHeader(); } });
