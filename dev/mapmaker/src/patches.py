@@ -109,3 +109,9 @@ patches.append((
     "renderSidebar(); toast(`${n}件のチャットを読み込みました`);",
     "let nm = 0; if (Array.isArray(j.maps) && j.maps.length) { try { nm = await MapMaker.importAll(j.maps); } catch (e) {} }\n  renderSidebar(); toast(`${n}件のチャットを読み込みました${nm ? `（マップ${nm}件も）` : ''}`);",
     'importBackup'))
+
+# ---- はじめのガイド（使い方の表）にも1行 ----
+patches.append((
+    r"| **AIカメラ** | 左の一覧の「AIカメラ」。顔を自動で追いかけ、真ん中の四角に写ったものをリアルタイムで判定 |\n",
+    r"| **AIカメラ** | 左の一覧の「AIカメラ」。顔を自動で追いかけ、真ん中の四角に写ったものをリアルタイムで判定 |\n| **マップ制作** | 左の一覧の「マップ制作」。行きたい場所（ららぽーと・ディズニー・コストコなど）を伝えると、お店やアトラクションを1つずつ載せた2D・3Dのマップを作ります。気温・検索・現在地・AIとの会話つき |\n",
+    'guide table'))
