@@ -137,6 +137,7 @@ function spotGroups() {
     let key, title, ord, fid = '';
     if (p.b && p.f) { const bi = bl.findIndex(b => b.id === p.b); key = p.b + '|' + p.f; title = floorShort(p.f) + (bl.length > 1 && bl[bi] ? ' ' + (bl[bi].n || '建物' + (bi + 1)) : ''); ord = Math.max(0, bi) * 1000 + floorLv(p.f) + 50; fid = p.f; }
     else if (p.z && zn.has(p.z)) { key = 'z|' + p.z; title = zn.get(p.z); ord = 100000 + (m.zones || []).findIndex(z => z.id === p.z); }
+    else if (bl.length && p.src === 'osm') { key = 'osm'; title = 'まわりのお店・施設（OpenStreetMap）'; ord = 210000; }
     else { key = 'out'; title = bl.length ? '建物の外' : 'そのほか'; ord = 200000; }
     let g = groups.get(key); if (!g) groups.set(key, g = { key, title, ord, fid, items: [] }); g.items.push(p);
   }
@@ -205,7 +206,7 @@ function paintCard() {
   const p = M.sel && M.map ? M.map.pois.find(x => x.id === M.sel) : null;
   if (!p) { box.hidden = true; box.innerHTML = ''; return; }
   const m = M.map, bl = m.bldgs || [], bi = bl.findIndex(b => b.id === p.b), zn = (m.zones || []).find(z => z.id === p.z);
-  const where = [p.b && p.f ? floorShort(p.f) + (bl.length > 1 && bl[bi] ? ' ' + bl[bi].n : '') : (bl.length ? '建物の外' : ''), zn ? zn.n : ''].filter(Boolean).join(' ・ ');
+  const where = [p.b && p.f ? floorShort(p.f) + (bl.length > 1 && bl[bi] ? ' ' + bl[bi].n : '') : (bl.length ? (p.src === 'osm' ? 'まわり（OpenStreetMapの位置）' : '建物の外') : ''), zn ? zn.n : ''].filter(Boolean).join(' ・ ');
   const d = distText(p), hasLL = !!(m.ll && !m.sample);
   box.innerHTML = `<div class="mm-pc-h">${catIcon(p.c, 'lg')}<div><b>${esc(p.n)}</b><small>${esc([catOf(p.c).n, where].filter(Boolean).join(' ・ '))}${d ? ' ・ 現在地から' + esc(d) : ''}</small></div><button class="mm-b" data-m="selx" aria-label="選択をやめる">${ic('x')}</button></div>
     ${p.ds ? `<p class="mm-pc-d">${esc(p.ds)}</p>` : ''}${p.hrs ? `<p class="mm-pc-m">${ic('timer', 'sm')}${esc(p.hrs)}</p>` : ''}${p.pos && p.ps !== 'osm' ? `<p class="mm-pc-m">${ic('locate', 'sm')}${esc(p.pos)}</p>` : ''}

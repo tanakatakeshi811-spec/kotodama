@@ -377,6 +377,7 @@ function spotListLines(m, budget) {
     let key, title, ord;
     if (p.b && p.f) { const bi = bl.findIndex(b => b.id === p.b); key = p.b + '|' + p.f; title = (bl.length > 1 && bl[bi] ? (bl[bi].n || '建物') + ' ' : '') + floorShort(p.f); ord = Math.max(0, bi) * 1000 + floorLv(p.f) + 50; }
     else if (p.z && zn.has(p.z)) { key = 'z|' + p.z; title = zn.get(p.z); ord = 100000 + (m.zones || []).findIndex(z => z.id === p.z); }
+    else if (bl.length && p.src === 'osm') { key = 'osm'; title = 'まわりのお店・施設（OpenStreetMapにあるもの。階や建物はわからない）'; ord = 210000; }
     else { key = 'out'; title = bl.length ? '建物の外' : 'そのほか'; ord = 200000; }
     let g = groups.get(key); if (!g) groups.set(key, g = { title, ord, items: [] }); g.items.push(p);
   }

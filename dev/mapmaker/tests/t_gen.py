@@ -77,6 +77,9 @@ async def main_():
         await make_and_wait(page)
         i = await page.evaluate(INFO); print('NOAI', json.dumps(i, ensure_ascii=False))
         check('no-AI: map from OSM only', i['acc'] == 'osm' and all(k == 'osm' for k in i['src']) and i['n'] >= 3, i)
+        heads = await page.evaluate("[...document.querySelectorAll('.mm-grp h4')].map(h => h.textContent)")
+        print('NOAI heads', heads)
+        check('no-AI: OSM-only spots outside the main building are grouped as 「まわりのお店・施設」, not 「建物の外」', any('まわりのお店・施設' in h for h in heads) and not any(h.startswith('建物の外') for h in heads), heads)
         await page.wait_for_timeout(2500); await page.screenshot(path=SH + 'g_noai.png')
         await page.evaluate("window.__kd.MapMaker.test.ai = window.__mock_ai")  if False else None
         sys.exit(summary(logs))

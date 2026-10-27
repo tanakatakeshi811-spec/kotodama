@@ -39,16 +39,40 @@ const OSMX = {
     const t = (r.osm_type || 'node')[0].toUpperCase();
     return { id: t + r.osm_id, osmType: r.osm_type, osmId: r.osm_id, name, label, lat: +r.lat, lon: +r.lon, bbox: bb.length === 4 && bb.every(isFinite) ? bb : null, cls: r.category || r.class || '', type: r.type || '', kind: this.guessKind(Object.assign({ name }, r)), imp: r.importance || 0 };
   },
+  async nomRaw(q, extra, signal, lim) {
+    return (await this.jfetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&accept-language=ja&limit=${lim || 10}&addressdetails=1&extratags=1&namedetails=1${extra || ''}`, null, 15000, signal)) || [];
+  },
+  /* 「お店の名前＋地名」（例：コストコ 幕張）。ふつうに探すと別の土地の同じ名前が出るので、地名を先に探して、そのまわりだけで名前を探す */
+  async searchNear(nameQ, placeQ, signal) {
+    const pl = await this.nomRaw(placeQ, '', signal, 3);
+    const p = pl.find(r => isFinite(+r.lat) && isFinite(+r.lon)); if (!p) return [];
+    const bb = (p.boundingbox || []).map(Number), la = +p.lat, lo = +p.lon;
+    const half = bb.length === 4 && bb.every(isFinite) ? Math.max(bb[1] - bb[0], bb[3] - bb[2]) / 2 : 0, d = clamp(half * 1.3, 0.1, 0.3);
+    return await this.nomRaw(nameQ, `&viewbox=${lo - d},${la + d},${lo + d},${la - d}&bounded=1`, signal, 8);
+  },
   async search(q, bias, signal) {
     const vb = bias && isFinite(bias.lat) ? `&viewbox=${bias.lon - 1.2},${bias.lat + 1},${bias.lon + 1.2},${bias.lat - 1}` : '';
-    const j = await this.jfetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&accept-language=ja&limit=10&addressdetails=1&extratags=1&namedetails=1${vb}`, null, 15000, signal);
-    const out = [], seen = new Set();
+    let j = await this.nomRaw(q, vb, signal);
+    const toks = String(q).trim().split(/[\s\u3000]+/).filter(Boolean);
+    if (toks.length >= 2 && !j.some(r => { const h = String(r.display_name || '') + ' ' + String((r.namedetails && r.namedetails.name) || ''); return toks.every(t => h.includes(t)); })) {
+      /* どの結果にも、入れた言葉が全部は出てこない → 「名前＋地名」かもしれないので、地名のまわりで探しなおす */
+      let extra = [];
+      for (const [nameQ, placeQ] of [[toks.slice(0, -1).join(' '), toks[toks.length - 1]], [toks.slice(1).join(' '), toks[0]]]) {
+        try { await sleep(T.fetch ? 30 : 1000); extra = await this.searchNear(nameQ, placeQ, signal); } catch (e) { if (e && e.code === 'cancelled') throw e; extra = []; }
+        if (extra.length) break;
+      }
+      j = extra.concat(j);
+    }
+    const out = [];
     for (const r of j || []) {
       const c = this.cand(r); if (!isFinite(c.lat) || !isFinite(c.lon)) continue;
       /* 行政区画（県・市など）は、お店や施設ではないので後ろに回す */
       c.admin = r.category === 'boundary' || r.category === 'place' && !/house|building|yes/.test(r.type || '');
-      const key = nameKey(c.name) + '|' + Math.round(c.lat * 400) + '|' + Math.round(c.lon * 400);
-      if (seen.has(key)) continue; seen.add(key); out.push(c);
+      /* 同じ名前で、同じ住所かすぐ近くのものは、同じ場所の別データ（点と建物など）。輪郭のあるほうを残して1つにする */
+      const nk = nameKey(c.name);
+      const dup = out.findIndex(o => nameKey(o.name) === nk && (o.label === c.label || Math.hypot((o.lat - c.lat) * 111000, (o.lon - c.lon) * 91000) < 120));
+      if (dup >= 0) { if (out[dup].osmType === 'node' && c.osmType !== 'node') out[dup] = c; continue; }
+      out.push(c);
     }
     out.sort((a, b) => (a.admin - b.admin) || (b.imp - a.imp));
     return out;
@@ -68,16 +92,31 @@ const OSMX = {
     } catch (e) { if (e && e.code === 'cancelled') throw e; return null; }
   },
   OV() { return (typeof Geo !== 'undefined' && Geo.OVERPASS) || ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']; },
-  async overpass(q, ms, signal) {
-    const urls = this.OV(), start = (this._try = (this._try || 0) + 1) % urls.length;
-    let lastErr = null;
-    for (let i = 0; i < urls.length; i++) {
-      try {
-        const j = await this.jfetch(urls[(start + i) % urls.length], { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, ms || 40000, signal);
-        if (j && Array.isArray(j.elements)) return j;
-      } catch (e) { if (e && e.code === 'cancelled') throw e; lastErr = e; }
-    }
-    throw lastErr || new Error('overpass');
+  /* 公開サーバーは混んでいたり止まっていたりするので、1つめが遅いとき(hedgeMs)は次のサーバーにも同時に聞き、先に答えたほうを使う。
+     前に成功したサーバーを先に使う。prefer: 同時に2つ聞くときに、違うサーバーから始めるための番号 */
+  hedgeMs: 15000,
+  async overpass(q, ms, signal, prefer) {
+    let urls = this.OV().slice();
+    if (this._good && urls.includes(this._good)) urls = [this._good, ...urls.filter(u => u !== this._good)];
+    if (prefer) urls = [...urls.slice(prefer % urls.length), ...urls.slice(0, prefer % urls.length)];
+    return new Promise((resolve, reject) => {
+      if (signal && signal.aborted) return reject({ code: 'cancelled' });
+      let next = 0, live = 0, done = false, lastErr = null, timer = null; const ctls = [];
+      const onSig = () => { if (!done) { stop(); reject({ code: 'cancelled' }); } };
+      const stop = () => { done = true; clearTimeout(timer); for (const c of ctls) { try { c.abort(); } catch (e) {} } if (signal) signal.removeEventListener('abort', onSig); };
+      if (signal) signal.addEventListener('abort', onSig, { once: true });
+      const launch = () => {
+        clearTimeout(timer);
+        if (done || next >= urls.length) return;
+        const u = urls[next++]; live++;
+        const ctl = new AbortController(); ctls.push(ctl);
+        this.jfetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, ms || 40000, ctl.signal)
+          .then(j => { if (done) return; if (j && Array.isArray(j.elements)) { this._good = u; stop(); resolve(j); } else throw new Error('overpass'); })
+          .catch(e => { if (done) return; lastErr = e; live--; if (next < urls.length) launch(); else if (!live) { stop(); reject(lastErr || new Error('overpass')); } });
+        if (next < urls.length) timer = setTimeout(launch, this.hedgeMs);
+      };
+      launch();
+    });
   },
   /* b = [南, 西, 北, 東]（まわり全体）, f = 細い道（歩道・園路）まで取る範囲 */
   ctxQuery(b, f) {

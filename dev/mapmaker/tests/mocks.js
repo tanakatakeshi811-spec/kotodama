@@ -18,6 +18,7 @@
     const SITE = rect(-150, -80, 150, 80);
     return { g, id: 'W424242', SITE, kw: /ららぽーと|モール/,
       NOM: [
+        { osm_type: 'node', osm_id: 778, lat: String(g.C.lat - 0.0015), lon: String(g.C.lon + 0.0002), display_name: 'ららぽーとTOKYO-BAY（テスト）, 浜町, 船橋市, 千葉県, 日本', category: 'shop', type: 'mall', name: 'ららぽーとTOKYO-BAY（テスト）', importance: 0.7, address: { state: '千葉県', city: '船橋市', road: '浜町', house_number: '1-1-1' }, extratags: {} },
         { osm_type: 'way', osm_id: 424242, lat: String(g.C.lat), lon: String(g.C.lon), boundingbox: [String(ll(0, -80).lat), String(ll(0, 80).lat), String(ll(-150, 0).lon), String(ll(150, 0).lon)],
           display_name: 'ららぽーとTOKYO-BAY（テスト）, 浜町, 船橋市, 千葉県, 日本', category: 'shop', type: 'mall', name: 'ららぽーとTOKYO-BAY（テスト）', importance: 0.62, address: { state: '千葉県', city: '船橋市', road: '浜町', house_number: '1-1-1' }, extratags: {} },
         { osm_type: 'node', osm_id: 777, lat: String(g.C.lat + 0.01), lon: String(g.C.lon + 0.01), display_name: 'ららぽーと別館, 習志野市, 千葉県, 日本', category: 'shop', type: 'mall', name: 'ららぽーと別館', importance: 0.3, address: { state: '千葉県', city: '習志野市' }, extratags: {} } ],
@@ -27,7 +28,8 @@
         way(5, { highway: 'primary' }, [ll(-400, -130), ll(0, -128), ll(400, -130)]), way(6, { highway: 'residential' }, [ll(-210, -300), ll(-212, 0), ll(-215, 300)]), way(7, { highway: 'footway' }, [ll(-150, 100), ll(0, 102), ll(150, 100)]),
         way(8, { natural: 'water' }, rect(220, 80, 300, 140)), way(9, { leisure: 'park' }, rect(-340, -250, -230, -150)), way(10, { amenity: 'parking' }, rect(-140, -200, 140, -150)) ],
       NAMED: [ node(101, -100, 20, { name: 'ユニクロ', shop: 'clothes', level: '0' }), node(102, 40, -30, { name: 'サイゼリヤ', amenity: 'restaurant', level: '1' }), node(103, -60, -40, { name: 'スターバックス', amenity: 'cafe', level: '0', opening_hours: 'Mo-Su 08:00-22:00' }),
-        node(104, 90, 40, { name: 'TOHOシネマズ', amenity: 'cinema', level: '2' }), node(105, 0, 0, { name: '無印良品', shop: 'variety_store', level: '0', website: 'https://www.muji.com/' }), way(106, { name: '第1駐車場', amenity: 'parking' }, rect(-120, -190, -30, -160)), node(107, 0, -75, { name: '正面入口', entrance: 'main', amenity: 'information' }) ],
+        node(104, 90, 40, { name: 'TOHOシネマズ', amenity: 'cinema', level: '2' }), node(105, 0, 0, { name: '無印良品', shop: 'variety_store', level: '0', website: 'https://www.muji.com/' }), way(106, { name: '第1駐車場', amenity: 'parking' }, rect(-120, -190, -30, -160)), node(107, 0, -75, { name: '正面入口', entrance: 'main', amenity: 'information' }),
+        way(108, { name: 'ららぽーとTOKYO-BAY（テスト）', shop: 'mall' }, rect(-140, -70, 140, 70)), way(109, { name: '北館（テスト）', shop: 'mall' }, rect(-130, 10, -20, 60)) ],
       D: { name: 'ららぽーとTOKYO-BAY', kind: 'mall', addr: '千葉県船橋市浜町2-1-1', sum: '船橋市にある大型ショッピングモール。ファッション・グルメ・映画館がそろう（テスト用データ）。', hours: '10:00〜21:00（店舗により異なる）', access: 'JR南船橋駅から徒歩5分', web: 'https://mitsui-shopping-park.com/lalaport/tokyo-bay/', lat: g.C.lat, lon: g.C.lon,
         buildings: [{ id: 'b1', n: '本館', fl: ['1F', '2F', '3F'] }], zones: [], tips: ['土日は駐車場が混みます'], notes: '' },
       list(label) {
@@ -114,11 +116,23 @@
     return /^\[/.test(txt.trim()) ? '```json\n' + txt + (/```\s*$/.test(txt) ? '' : '\n```') : txt;
   };
   const fetchMock = async (url, init) => {
-    url = String(url); calls.fetch.push(url.slice(0, 90));
+    url = String(url); calls.fetch.push(url.slice(0, 400));
     await new Promise(r => setTimeout(r, 10));
-    if (/nominatim\.openstreetmap\.org\/search/.test(url)) { const q = decodeURIComponent((url.match(/[?&]q=([^&]*)/) || [])[1] || ''); if (/nothing|zzz/.test(q)) return []; if (window.__mockNomFail) throw new Error('net'); return byName(q).NOM; }
+    if (/nominatim\.openstreetmap\.org\/search/.test(url)) {
+      const q = decodeURIComponent((url.match(/[?&]q=([^&]*)/) || [])[1] || ''); if (/nothing|zzz/.test(q)) return []; if (window.__mockNomFail) throw new Error('net');
+      if (window.__mockDecoy) {
+        /* 本物のNominatimの弱点の再現：「コストコ 海浜」だと別の県のコストコが出る。地名のまわり(bounded)で探せば近くのが出る */
+        if (/[?&]bounded=1/.test(url)) return store.NOM;
+        if (/^(海浜|幕張)$/.test(q)) return [{ osm_type: 'node', osm_id: 999, lat: String(store.g.C.lat), lon: String(store.g.C.lon), boundingbox: [String(store.g.C.lat - 0.002), String(store.g.C.lat + 0.002), String(store.g.C.lon - 0.002), String(store.g.C.lon + 0.002)], display_name: '海浜幕張, 美浜区, 千葉市, 千葉県, 日本', category: 'railway', type: 'station', name: '海浜幕張', importance: 0.4, address: { state: '千葉県', city: '千葉市' }, extratags: {} }];
+        if (/コストコ/.test(q)) return [{ osm_type: 'way', osm_id: 888, lat: '35.304', lon: '136.699', boundingbox: ['35.303', '35.305', '136.698', '136.700'], display_name: 'コストコ, 上中町長塚, 羽島市, 岐阜県, 日本', category: 'shop', type: 'wholesale', name: 'コストコ', importance: 0.5, address: { state: '岐阜県', city: '羽島市' }, extratags: {} }];
+      }
+      return byName(q).NOM;
+    }
     if (/nominatim\.openstreetmap\.org\/lookup/.test(url)) { if (window.__mockNoOutline) return [{}]; const id = (url.match(/osm_ids=([A-Z]\d+)/) || [])[1]; const sc = SC.find(x => x.id === id) || mall; return [{ geojson: { type: 'Polygon', coordinates: [sc.SITE.map(p => [p.lon, p.lat])] } }]; }
     if (init && init.method === 'POST') {
+      /* サーバーごとの不調の再現: { 'overpass-api.de': 'slow:2000' | 'fail' } */
+      const badKey = window.__mockOvBad && Object.keys(window.__mockOvBad).find(k => url.includes(k));
+      if (badKey) { const v = window.__mockOvBad[badKey]; if (v === 'fail') throw new Error('overpass down ' + badKey); if (/^slow:/.test(v)) await new Promise(r => setTimeout(r, +v.slice(5))); }
       if (window.__mockOvFail) throw new Error('overpass down');
       const q = decodeURIComponent(String(init.body || '').replace(/^data=/, ''));
       const bb = q.match(/\((-?\d+\.\d+),(-?\d+\.\d+),(-?\d+\.\d+),(-?\d+\.\d+)\)/); const sc = bb ? byLatLon((+bb[1] + +bb[3]) / 2, (+bb[2] + +bb[4]) / 2) : mall;
