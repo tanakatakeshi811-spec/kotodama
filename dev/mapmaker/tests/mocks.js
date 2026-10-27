@@ -133,7 +133,7 @@
     if (/nominatim\.openstreetmap\.org\/lookup/.test(url)) { if (window.__mockNoOutline) return [{}]; const id = (url.match(/osm_ids=([A-Z]\d+)/) || [])[1]; const sc = SC.find(x => x.id === id) || mall; return [{ geojson: { type: 'Polygon', coordinates: [sc.SITE.map(p => [p.lon, p.lat])] } }]; }
     if (init && init.method === 'POST') {
       /* 同時に何本聞かれているか（公開サーバーに同時に2本は聞かない、を確かめる用） */
-      window.__ovInflight = (window.__ovInflight || 0) + 1; window.__ovMax = Math.max(window.__ovMax || 0, window.__ovInflight);
+      window.__ovInflight = (window.__ovInflight || 0) + 1; window.__ovMax = Math.max(window.__ovMax || 0, window.__ovInflight); (window.__ovStarts = window.__ovStarts || []).push(Math.round(performance.now()));
       try {
         /* サーバーごとの不調の再現: { 'overpass-api.de': 'slow:2000' | 'fail' | 'failn:1'(最初のN回だけ失敗) } */
         const badKey = window.__mockOvBad && Object.keys(window.__mockOvBad).find(k => url.includes(k));

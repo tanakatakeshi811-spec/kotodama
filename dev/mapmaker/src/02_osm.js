@@ -95,14 +95,13 @@ const OSMX = {
   /* 公開サーバーは混んでいたり止まっていたりする。
      ・すぐ断られた（混んでいる・一時的なエラー）サーバーは、少し(retryMs)待ってもう一度だけ聞く
      ・1つめが遅いとき(hedge)は次のサーバーにも同時に聞き、先に答えたほうを使う（遅かったほうは中止）
-     o.kind = 問い合わせの種類（同じ種類で前に答えたサーバーから始める）/ o.first = 最初に聞くサーバー / o.hedge = 次のサーバーに聞くまでの待ち(ms) */
+     kind = 問い合わせの種類（同じ種類で前に答えたサーバーから始める）。同じサーバーに同時に聞くのは、建物・道路と名前のある場所の2本まで */
   hedgeMs: 15000, retryMs: 2500, _good: {},
-  async overpass(q, ms, signal, o) {
-    o = o || {};
+  async overpass(q, ms, signal, kind) {
     let urls = this.OV().slice();
-    const first = o.first || this._good[o.kind || ''];
+    const first = this._good[kind || ''];
     if (first && urls.includes(first)) urls = [first, ...urls.filter(u => u !== first)];
-    const hedge = o.hedge || this.hedgeMs;
+    const hedge = this.hedgeMs;
     return new Promise((resolve, reject) => {
       if (signal && signal.aborted) return reject({ code: 'cancelled' });
       let next = 0, live = 0, waiting = 0, done = false, lastErr = null, timer = null;
@@ -117,7 +116,7 @@ const OSMX = {
         const t0 = Date.now(), ctl = new AbortController(); ctls.push(ctl);
         this.jfetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, ms || 40000, ctl.signal)
           .then(j => { if (done) return; /* 処理が間に合わなかったとき、サーバーはエラーではなく「空っぽ・途中まで」の結果に remark(runtime error…) をつけて返す。成功にしない */
-            if (j && Array.isArray(j.elements) && !/runtime error/i.test(String(j.remark || ''))) { this._good[o.kind || ''] = u; stop(); resolve(j); } else throw new Error('overpass');
+            if (j && Array.isArray(j.elements) && !/runtime error/i.test(String(j.remark || ''))) { this._good[kind || ''] = u; stop(); resolve(j); } else throw new Error('overpass');
           })
           .catch(e => {
             if (done) return;

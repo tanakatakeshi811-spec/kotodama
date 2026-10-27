@@ -5,6 +5,11 @@ from util import *
 from playwright.async_api import async_playwright
 SH = SHOTS
 
+async def until(page, expr, timeout=5000):
+    """画面の操作のあと、状態がそうなるまで待つ（固定の待ち時間だと、描画が忙しいときに間に合わず、まれに落ちた）"""
+    try: await page.wait_for_function("(() => { const MM = window.__kd.MapMaker, M = MM._t.M; return !!(%s); })()" % expr, timeout=timeout)
+    except Exception: pass
+
 async def menu_click(page, text):
     await page.click('[data-m=more]'); await page.wait_for_timeout(250)
     await page.locator('.menu button', has_text=text).first.click()
@@ -44,14 +49,17 @@ async def main():
         await page.fill('.mm-fm input[name=n]', 'テスト雑貨店2')
         await page.fill('.mm-fm input[name=hrs]', '10:00-20:00')
         await page.locator('.dlg-f button', has_text='保存').click(); await page.wait_for_timeout(500)
+        await until(page, "M.map.pois.some(p => p.n === 'テスト雑貨店2')")
         p2 = await mm(page, "M.map.pois.find(p => p.n === 'テスト雑貨店2')")
         check('renamed + hours saved', p2 and p2.get('hrs') == '10:00-20:00', p2)
         # ---- move ----
         await page.click('[data-m=editp]'); await page.wait_for_selector('.mm-fm input[name=n]', timeout=3000)
         await page.locator('.dlg-f button', has_text='位置を動かす').click(); await page.wait_for_timeout(500)
+        await until(page, "M.place && M.place.id")
         check('move mode on', await mm(page, "!!M.place && !!M.place.id"))
         x0 = p2['x']
         await page.mouse.click(box[0] + box[2] * 0.30, box[1] + box[3] * 0.40); await page.wait_for_timeout(600)
+        await until(page, "M.map.pois.find(p => p.n === 'テスト雑貨店2').x !== %r" % x0)
         p3 = await mm(page, "M.map.pois.find(p => p.n === 'テスト雑貨店2')")
         check('moved', p3['x'] != x0, (x0, p3['x']))
         # Escape cancels placement
@@ -64,11 +72,14 @@ async def main():
         await page.click('[data-m=editp]'); await page.wait_for_selector('.mm-fm input[name=n]')
         await page.locator('.dlg-f button', has_text='削除').click(); await page.wait_for_timeout(300)
         await page.locator('.dlg-f button', has_text='削除する').click(); await page.wait_for_timeout(500)
+        await until(page, "M.map.pois.length === %d" % n0)
         check('spot deleted', await mm(page, "M.map.pois.length") == n0, await mm(page, "M.map.pois.length"))
         # ---- rename map ----
         await menu_click(page, '名前を変える'); await page.wait_for_timeout(300)
         inp = page.locator('.dlg input, .dlg textarea').first
         await inp.fill('マイ・ららぽーと'); await page.locator('.dlg-f button.primary').click(); await page.wait_for_timeout(400)
+        try: await page.wait_for_function("document.querySelector('.mm-ttl b') && document.querySelector('.mm-ttl b').textContent === 'マイ・ららぽーと'", timeout=5000)
+        except Exception: pass
         t = await page.evaluate("document.querySelector('.mm-ttl b').textContent")
         check('map renamed', t == 'マイ・ららぽーと', t)
         # ---- export ----
@@ -82,6 +93,7 @@ async def main():
         # ---- delete map ----
         await menu_click(page, 'このマップを削除'); await page.wait_for_timeout(300)
         await page.locator('.dlg-f button', has_text='削除する').click(); await page.wait_for_timeout(700)
+        await until(page, "M.screen === 'lib'")
         check('back to library after delete', await mm(page, "M.screen") == 'lib')
         n = await page.evaluate("document.querySelectorAll('.mm-lc').length")
         check('library has only 3 samples', n == 3, n)

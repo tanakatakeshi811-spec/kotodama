@@ -294,11 +294,9 @@ const Gen = {
       let ctx = { b: [], r: [], w: [], wl: [], g: [], k: [] }, named = [];
       say('osm', '周りの建物・道路・名前のある場所を取り込んでいます');
       const big = kind === 'park' || kind === 'campus', lim = big ? { b: 1500, r: 2600, g: 260, k: 260 } : undefined;
-      /* 公開サーバーに同時に2本は聞かない（混んでいると断られる）。重い問い合わせ(建物・道路)→軽い問い合わせ(名前のある場所)の順に。後のほうは、いま答えたサーバーから聞く */
-      const [c] = await Promise.allSettled([OSMX.overpass(OSMX.ctxQuery(llBox(geo.o, geo.ext), llBox(geo.o, geo.fine)), 45000, signal, { kind: 'ctx' })]);
+      /* 建物・道路 と 名前のある場所 は別々の問い合わせ。同時に聞く（本物の公開サーバーは混んでいて、1本ずつ聞くと待ちが2倍になる。同じサーバーへは2本までなので断られにくい）。それぞれ、前に答えたサーバーから */
+      const [c, n] = await Promise.allSettled([OSMX.overpass(OSMX.ctxQuery(llBox(geo.o, geo.ext), llBox(geo.o, geo.fine)), 50000, signal, 'ctx'), OSMX.overpass(OSMX.namedQuery(llBox(geo.o, geo.fine)), 50000, signal, 'named')]);
       if (c.status === 'fulfilled') ctx = parseCtx(c.value.elements, geo.o, lim); else if (c.reason && c.reason.code === 'cancelled') throw c.reason; else notes.push('周りの建物・道路のデータを取得できませんでした');
-      say('osm', '名前のある場所（お店・施設）を取り込んでいます');
-      const [n] = await Promise.allSettled([OSMX.overpass(OSMX.namedQuery(llBox(geo.o, geo.fine)), 40000, signal, { kind: 'named', first: c.status === 'fulfilled' ? OSMX._good.ctx : undefined, hedge: 8000 })]);
       if (n.status === 'fulfilled') named = parseNamed(n.value.elements, geo.o); else if (n.reason && n.reason.code === 'cancelled') throw n.reason;
       return { geo, ctx, named };
     })();

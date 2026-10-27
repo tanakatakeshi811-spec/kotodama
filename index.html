@@ -12391,14 +12391,13 @@ const OSMX = {
   /* 公開サーバーは混んでいたり止まっていたりする。
      ・すぐ断られた（混んでいる・一時的なエラー）サーバーは、少し(retryMs)待ってもう一度だけ聞く
      ・1つめが遅いとき(hedge)は次のサーバーにも同時に聞き、先に答えたほうを使う（遅かったほうは中止）
-     o.kind = 問い合わせの種類（同じ種類で前に答えたサーバーから始める）/ o.first = 最初に聞くサーバー / o.hedge = 次のサーバーに聞くまでの待ち(ms) */
+     kind = 問い合わせの種類（同じ種類で前に答えたサーバーから始める）。同じサーバーに同時に聞くのは、建物・道路と名前のある場所の2本まで */
   hedgeMs: 15000, retryMs: 2500, _good: {},
-  async overpass(q, ms, signal, o) {
-    o = o || {};
+  async overpass(q, ms, signal, kind) {
     let urls = this.OV().slice();
-    const first = o.first || this._good[o.kind || ''];
+    const first = this._good[kind || ''];
     if (first && urls.includes(first)) urls = [first, ...urls.filter(u => u !== first)];
-    const hedge = o.hedge || this.hedgeMs;
+    const hedge = this.hedgeMs;
     return new Promise((resolve, reject) => {
       if (signal && signal.aborted) return reject({ code: 'cancelled' });
       let next = 0, live = 0, waiting = 0, done = false, lastErr = null, timer = null;
@@ -12413,7 +12412,7 @@ const OSMX = {
         const t0 = Date.now(), ctl = new AbortController(); ctls.push(ctl);
         this.jfetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, ms || 40000, ctl.signal)
           .then(j => { if (done) return; /* 処理が間に合わなかったとき、サーバーはエラーではなく「空っぽ・途中まで」の結果に remark(runtime error…) をつけて返す。成功にしない */
-            if (j && Array.isArray(j.elements) && !/runtime error/i.test(String(j.remark || ''))) { this._good[o.kind || ''] = u; stop(); resolve(j); } else throw new Error('overpass');
+            if (j && Array.isArray(j.elements) && !/runtime error/i.test(String(j.remark || ''))) { this._good[kind || ''] = u; stop(); resolve(j); } else throw new Error('overpass');
           })
           .catch(e => {
             if (done) return;
@@ -14011,11 +14010,9 @@ const Gen = {
       let ctx = { b: [], r: [], w: [], wl: [], g: [], k: [] }, named = [];
       say('osm', '周りの建物・道路・名前のある場所を取り込んでいます');
       const big = kind === 'park' || kind === 'campus', lim = big ? { b: 1500, r: 2600, g: 260, k: 260 } : undefined;
-      /* 公開サーバーに同時に2本は聞かない（混んでいると断られる）。重い問い合わせ(建物・道路)→軽い問い合わせ(名前のある場所)の順に。後のほうは、いま答えたサーバーから聞く */
-      const [c] = await Promise.allSettled([OSMX.overpass(OSMX.ctxQuery(llBox(geo.o, geo.ext), llBox(geo.o, geo.fine)), 45000, signal, { kind: 'ctx' })]);
+      /* 建物・道路 と 名前のある場所 は別々の問い合わせ。同時に聞く（本物の公開サーバーは混んでいて、1本ずつ聞くと待ちが2倍になる。同じサーバーへは2本までなので断られにくい）。それぞれ、前に答えたサーバーから */
+      const [c, n] = await Promise.allSettled([OSMX.overpass(OSMX.ctxQuery(llBox(geo.o, geo.ext), llBox(geo.o, geo.fine)), 50000, signal, 'ctx'), OSMX.overpass(OSMX.namedQuery(llBox(geo.o, geo.fine)), 50000, signal, 'named')]);
       if (c.status === 'fulfilled') ctx = parseCtx(c.value.elements, geo.o, lim); else if (c.reason && c.reason.code === 'cancelled') throw c.reason; else notes.push('周りの建物・道路のデータを取得できませんでした');
-      say('osm', '名前のある場所（お店・施設）を取り込んでいます');
-      const [n] = await Promise.allSettled([OSMX.overpass(OSMX.namedQuery(llBox(geo.o, geo.fine)), 40000, signal, { kind: 'named', first: c.status === 'fulfilled' ? OSMX._good.ctx : undefined, hedge: 8000 })]);
       if (n.status === 'fulfilled') named = parseNamed(n.value.elements, geo.o); else if (n.reason && n.reason.code === 'cancelled') throw n.reason;
       return { geo, ctx, named };
     })();
