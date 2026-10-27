@@ -29,7 +29,9 @@
         way(8, { natural: 'water' }, rect(220, 80, 300, 140)), way(9, { leisure: 'park' }, rect(-340, -250, -230, -150)), way(10, { amenity: 'parking' }, rect(-140, -200, 140, -150)) ],
       NAMED: [ node(101, -100, 20, { name: 'ユニクロ', shop: 'clothes', level: '0' }), node(102, 40, -30, { name: 'サイゼリヤ', amenity: 'restaurant', level: '1' }), node(103, -60, -40, { name: 'スターバックス', amenity: 'cafe', level: '0', opening_hours: 'Mo-Su 08:00-22:00' }),
         node(104, 90, 40, { name: 'TOHOシネマズ', amenity: 'cinema', level: '2' }), node(105, 0, 0, { name: '無印良品', shop: 'variety_store', level: '0', website: 'https://www.muji.com/' }), way(106, { name: '第1駐車場', amenity: 'parking' }, rect(-120, -190, -30, -160)), node(107, 0, -75, { name: '正面入口', entrance: 'main', amenity: 'information' }),
-        way(108, { name: 'ららぽーとTOKYO-BAY（テスト）', shop: 'mall' }, rect(-140, -70, 140, 70)), way(109, { name: '北館（テスト）', shop: 'mall' }, rect(-130, 10, -20, 60)) ],
+        way(108, { name: 'ららぽーとTOKYO-BAY（テスト）', shop: 'mall' }, rect(-140, -70, 140, 70)), way(109, { name: '北館（テスト）', shop: 'mall' }, rect(-130, 10, -20, 60)),
+        /* 本物のOSMにある形: 棟は building=retail と名前だけ(shopなし)。ビルは building=commercial。小さな建物のお店は残す */
+        way(110, { name: '南館（テスト）', building: 'retail', 'building:levels': '4' }, rect(20, 10, 120, 60)), way(111, { name: '小さな売店ビル', building: 'retail' }, rect(150, -60, 165, -45)), way(112, { name: 'テストオフィスビル', building: 'commercial' }, rect(-130, -62, -90, -40)) ],
       D: { name: 'ららぽーとTOKYO-BAY', kind: 'mall', addr: '千葉県船橋市浜町2-1-1', sum: '船橋市にある大型ショッピングモール。ファッション・グルメ・映画館がそろう（テスト用データ）。', hours: '10:00〜21:00（店舗により異なる）', access: 'JR南船橋駅から徒歩5分', web: 'https://mitsui-shopping-park.com/lalaport/tokyo-bay/', lat: g.C.lat, lon: g.C.lon,
         buildings: [{ id: 'b1', n: '本館', fl: ['1F', '2F', '3F'] }], zones: [], tips: ['土日は駐車場が混みます'], notes: '' },
       list(label) {
@@ -130,14 +132,24 @@
     }
     if (/nominatim\.openstreetmap\.org\/lookup/.test(url)) { if (window.__mockNoOutline) return [{}]; const id = (url.match(/osm_ids=([A-Z]\d+)/) || [])[1]; const sc = SC.find(x => x.id === id) || mall; return [{ geojson: { type: 'Polygon', coordinates: [sc.SITE.map(p => [p.lon, p.lat])] } }]; }
     if (init && init.method === 'POST') {
-      /* サーバーごとの不調の再現: { 'overpass-api.de': 'slow:2000' | 'fail' } */
-      const badKey = window.__mockOvBad && Object.keys(window.__mockOvBad).find(k => url.includes(k));
-      if (badKey) { const v = window.__mockOvBad[badKey]; if (v === 'fail') throw new Error('overpass down ' + badKey); if (/^slow:/.test(v)) await new Promise(r => setTimeout(r, +v.slice(5))); }
-      if (window.__mockOvFail) throw new Error('overpass down');
-      const q = decodeURIComponent(String(init.body || '').replace(/^data=/, ''));
-      const bb = q.match(/\((-?\d+\.\d+),(-?\d+\.\d+),(-?\d+\.\d+),(-?\d+\.\d+)\)/); const sc = bb ? byLatLon((+bb[1] + +bb[3]) / 2, (+bb[2] + +bb[4]) / 2) : mall;
-      if (/out geom tags/.test(q)) return { elements: window.__mockNoNamed ? [] : sc.NAMED };
-      return { elements: sc.CTX };
+      /* 同時に何本聞かれているか（公開サーバーに同時に2本は聞かない、を確かめる用） */
+      window.__ovInflight = (window.__ovInflight || 0) + 1; window.__ovMax = Math.max(window.__ovMax || 0, window.__ovInflight);
+      try {
+        /* サーバーごとの不調の再現: { 'overpass-api.de': 'slow:2000' | 'fail' | 'failn:1'(最初のN回だけ失敗) } */
+        const badKey = window.__mockOvBad && Object.keys(window.__mockOvBad).find(k => url.includes(k));
+        if (badKey) {
+          const v = window.__mockOvBad[badKey];
+          if (v === 'fail') throw new Error('overpass down ' + badKey);
+          if (/^failn:/.test(v)) { const c = (window.__mockOvCnt = window.__mockOvCnt || {}); c[badKey] = (c[badKey] || 0) + 1; if (c[badKey] <= +v.slice(6)) throw new Error('overpass busy ' + badKey); }
+          if (/^slow:/.test(v)) await new Promise(r => setTimeout(r, +v.slice(5)));
+        }
+        if (badKey && window.__mockOvBad[badKey] === 'remark') return { elements: [], remark: 'runtime error: Query timed out in "query" at line 3 after 25 seconds.' };   /* 本物: 間に合わないと空っぽの結果+remark を返す */
+        if (window.__mockOvFail) throw new Error('overpass down');
+        const q = decodeURIComponent(String(init.body || '').replace(/^data=/, ''));
+        const bb = q.match(/\((-?\d+\.\d+),(-?\d+\.\d+),(-?\d+\.\d+),(-?\d+\.\d+)\)/); const sc = bb ? byLatLon((+bb[1] + +bb[3]) / 2, (+bb[2] + +bb[4]) / 2) : mall;
+        if (/out geom tags/.test(q)) return { elements: window.__mockNoNamed ? [] : sc.NAMED };
+        return { elements: sc.CTX };
+      } finally { window.__ovInflight--; }
     }
     throw new Error('unmocked ' + url);
   };
@@ -148,6 +160,7 @@
     return { at: Date.now(), lat, lon, t: 21.4, feel: 20.3, hum: 62, wind: 3.2, rain: 0, code: 2, day: true, time: '2026-10-28T10:00', tmax: 24.1, tmin: 15.2, pop: 20, sunrise: '2026-10-28T05:51', sunset: '2026-10-28T17:02', hours: hrs };
   };
   MM.test.fetch = fetchMock; MM.test.ai = ai; MM.test.wx = wx;
+  if (MM._t && MM._t.OSMX) { MM._t.OSMX.retryMs = 50; MM._t.OSMX._good = {}; }   /* すぐ断られたあとの「もう一度」の待ちを、テストでは短く */
   void rnd;
   return true;
 }

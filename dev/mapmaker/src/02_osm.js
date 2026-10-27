@@ -92,30 +92,42 @@ const OSMX = {
     } catch (e) { if (e && e.code === 'cancelled') throw e; return null; }
   },
   OV() { return (typeof Geo !== 'undefined' && Geo.OVERPASS) || ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']; },
-  /* 公開サーバーは混んでいたり止まっていたりするので、1つめが遅いとき(hedgeMs)は次のサーバーにも同時に聞き、先に答えたほうを使う。
-     前に成功したサーバーを先に使う。prefer: 同時に2つ聞くときに、違うサーバーから始めるための番号 */
-  hedgeMs: 15000,
-  async overpass(q, ms, signal, prefer) {
+  /* 公開サーバーは混んでいたり止まっていたりする。
+     ・すぐ断られた（混んでいる・一時的なエラー）サーバーは、少し(retryMs)待ってもう一度だけ聞く
+     ・1つめが遅いとき(hedge)は次のサーバーにも同時に聞き、先に答えたほうを使う（遅かったほうは中止）
+     o.kind = 問い合わせの種類（同じ種類で前に答えたサーバーから始める）/ o.first = 最初に聞くサーバー / o.hedge = 次のサーバーに聞くまでの待ち(ms) */
+  hedgeMs: 15000, retryMs: 2500, _good: {},
+  async overpass(q, ms, signal, o) {
+    o = o || {};
     let urls = this.OV().slice();
-    if (this._good && urls.includes(this._good)) urls = [this._good, ...urls.filter(u => u !== this._good)];
-    if (prefer) urls = [...urls.slice(prefer % urls.length), ...urls.slice(0, prefer % urls.length)];
+    const first = o.first || this._good[o.kind || ''];
+    if (first && urls.includes(first)) urls = [first, ...urls.filter(u => u !== first)];
+    const hedge = o.hedge || this.hedgeMs;
     return new Promise((resolve, reject) => {
       if (signal && signal.aborted) return reject({ code: 'cancelled' });
-      let next = 0, live = 0, done = false, lastErr = null, timer = null; const ctls = [];
+      let next = 0, live = 0, waiting = 0, done = false, lastErr = null, timer = null;
+      const ctls = [], tries = {};
       const onSig = () => { if (!done) { stop(); reject({ code: 'cancelled' }); } };
       const stop = () => { done = true; clearTimeout(timer); for (const c of ctls) { try { c.abort(); } catch (e) {} } if (signal) signal.removeEventListener('abort', onSig); };
       if (signal) signal.addEventListener('abort', onSig, { once: true });
-      const launch = () => {
-        clearTimeout(timer);
-        if (done || next >= urls.length) return;
-        const u = urls[next++]; live++;
-        const ctl = new AbortController(); ctls.push(ctl);
+      const giveUp = () => { if (!done && !live && !waiting && next >= urls.length) { stop(); reject(lastErr || new Error('overpass')); } };
+      const attempt = u => {
+        if (done) return;
+        tries[u] = (tries[u] || 0) + 1; live++;
+        const t0 = Date.now(), ctl = new AbortController(); ctls.push(ctl);
         this.jfetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded' } }, ms || 40000, ctl.signal)
-          .then(j => { if (done) return; if (j && Array.isArray(j.elements)) { this._good = u; stop(); resolve(j); } else throw new Error('overpass'); })
-          .catch(e => { if (done) return; lastErr = e; live--; if (next < urls.length) launch(); else if (!live) { stop(); reject(lastErr || new Error('overpass')); } });
-        if (next < urls.length) timer = setTimeout(launch, this.hedgeMs);
+          .then(j => { if (done) return; /* 処理が間に合わなかったとき、サーバーはエラーではなく「空っぽ・途中まで」の結果に remark(runtime error…) をつけて返す。成功にしない */
+            if (j && Array.isArray(j.elements) && !/runtime error/i.test(String(j.remark || ''))) { this._good[o.kind || ''] = u; stop(); resolve(j); } else throw new Error('overpass');
+          })
+          .catch(e => {
+            if (done) return;
+            lastErr = e; live--;
+            if (Date.now() - t0 < 8000 && tries[u] < 2) { waiting++; setTimeout(() => { waiting--; attempt(u); }, this.retryMs); }
+            if (next < urls.length) launchNext(); else giveUp();
+          });
       };
-      launch();
+      const launchNext = () => { clearTimeout(timer); if (done || next >= urls.length) return; attempt(urls[next++]); if (next < urls.length) timer = setTimeout(launchNext, hedge); };
+      launchNext();
     });
   },
   /* b = [南, 西, 北, 東]（まわり全体）, f = 細い道（歩道・園路）まで取る範囲 */
@@ -261,7 +273,7 @@ function catFromTags(t) {
   if (t.aeroway) return 'gate';
   if (t.historic || t.man_made) return 'facility';
   if (t.office) return 'service';
-  if (t.building) { if (/commercial|retail|supermarket|kiosk/.test(t.building)) return 'shop'; if (/hotel/.test(t.building)) return 'service'; if (/train_station|transportation/.test(t.building)) return 'parking'; return 'facility'; }
+  if (t.building) { if (/retail|supermarket|kiosk/.test(t.building)) return 'shop'; if (/hotel/.test(t.building)) return 'service'; if (/train_station|transportation/.test(t.building)) return 'parking'; return 'facility'; }
   return 'other';
 }
 function parseLevel(t) {

@@ -235,6 +235,7 @@ function composePlan(I) {
     if (used.has(i) || nOsm >= cap) return;
     if (f.cat === 'other' || !f.n) return;
     if ((kind === 'mall' && f.ty === 'mall') || ((kind === 'mall' || kind === 'store') && selfKeys.some(k => nameSim(nameKey(f.n), k) >= 0.9))) return; /* 館そのもの・棟は、お店ではない */
+    if (kind === 'mall' && f.bldg && f.ty === 'retail' && f.area >= 300) return; /* 「北館」「南館」のように、お店の印(shop・amenity等)がなく建物の名前だけの大きなもの(棟)は、お店ではない */
     if (f.bldg && f.cat === 'facility' && (!KEEP_BLD || f.area < 200)) return;
     if (f.cat === 'parking' && f.area && f.area < 60) return;
     const b = inBuilding(f); const p = { n: f.n, c: f.cat, src: 'osm' };
@@ -293,8 +294,11 @@ const Gen = {
       let ctx = { b: [], r: [], w: [], wl: [], g: [], k: [] }, named = [];
       say('osm', '周りの建物・道路・名前のある場所を取り込んでいます');
       const big = kind === 'park' || kind === 'campus', lim = big ? { b: 1500, r: 2600, g: 260, k: 260 } : undefined;
-      const [c, n] = await Promise.allSettled([OSMX.overpass(OSMX.ctxQuery(llBox(geo.o, geo.ext), llBox(geo.o, geo.fine)), 45000, signal, 0), OSMX.overpass(OSMX.namedQuery(llBox(geo.o, geo.fine)), 45000, signal, 1)]);
+      /* 公開サーバーに同時に2本は聞かない（混んでいると断られる）。重い問い合わせ(建物・道路)→軽い問い合わせ(名前のある場所)の順に。後のほうは、いま答えたサーバーから聞く */
+      const [c] = await Promise.allSettled([OSMX.overpass(OSMX.ctxQuery(llBox(geo.o, geo.ext), llBox(geo.o, geo.fine)), 45000, signal, { kind: 'ctx' })]);
       if (c.status === 'fulfilled') ctx = parseCtx(c.value.elements, geo.o, lim); else if (c.reason && c.reason.code === 'cancelled') throw c.reason; else notes.push('周りの建物・道路のデータを取得できませんでした');
+      say('osm', '名前のある場所（お店・施設）を取り込んでいます');
+      const [n] = await Promise.allSettled([OSMX.overpass(OSMX.namedQuery(llBox(geo.o, geo.fine)), 40000, signal, { kind: 'named', first: c.status === 'fulfilled' ? OSMX._good.ctx : undefined, hedge: 8000 })]);
       if (n.status === 'fulfilled') named = parseNamed(n.value.elements, geo.o); else if (n.reason && n.reason.code === 'cancelled') throw n.reason;
       return { geo, ctx, named };
     })();
