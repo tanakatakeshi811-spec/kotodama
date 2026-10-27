@@ -91,12 +91,17 @@ async def main():
         check('export file valid', j.get('app') == 'kotodama-map' and j['map']['name'] == 'マイ・ららぽーと' and len(j['map']['pois']) == n0, list(j.keys()))
         print('export size KB', os.path.getsize(path) // 1024, 'name', d.suggested_filename)
         # ---- delete map ----
+        # このマップ用に端末へ置いた目印（注意書きを出した回数・AIとの会話）。消したあとに残らないこと
+        did = await mm(page, "M.map.id")
+        await page.evaluate("id => { localStorage.setItem('kd:mmnote:' + id, '1'); localStorage.setItem('kd:mmchat:' + id, '[]'); }", did)
         await menu_click(page, 'このマップを削除'); await page.wait_for_timeout(300)
         await page.locator('.dlg-f button', has_text='削除する').click(); await page.wait_for_timeout(700)
         await until(page, "M.screen === 'lib'")
         check('back to library after delete', await mm(page, "M.screen") == 'lib')
         n = await page.evaluate("document.querySelectorAll('.mm-lc').length")
         check('library has only 3 samples', n == 3, n)
+        left = await page.evaluate("id => [localStorage.getItem('kd:mmnote:' + id), localStorage.getItem('kd:mmchat:' + id)]", did)
+        check('delete (viewer menu) leaves no per-map keys behind', left == [None, None], left)
         # ---- import ----
         async with page.expect_file_chooser(timeout=5000) as fc:
             await page.click('[data-m=import]')
@@ -119,6 +124,20 @@ async def main():
         check('remake keeps single map (same id)', cnt == 1, cnt)
         same = await mm(page, "M.map.id") == id2
         check('remake kept id', same)
+        # ---- ライブラリのカードのメニューから削除 ----
+        await page.evaluate("id => { localStorage.setItem('kd:mmnote:' + id, '1'); localStorage.setItem('kd:mmchat:' + id, '[]'); }", id2)
+        await page.click('.mm-view:not([hidden]) [data-m=back]'); await until(page, "M.screen === 'lib'")
+        btn = page.locator('button.mm-lm[data-m=libmenu][data-id="%s"]' % id2)
+        check('library card has a menu button', await btn.count() == 1, await btn.count())
+        await btn.click(); await page.wait_for_timeout(250)
+        await page.locator('.menu button', has_text='削除').first.click(); await page.wait_for_timeout(300)
+        await page.locator('.dlg-f button', has_text='削除する').click()
+        try: await page.wait_for_function("document.querySelectorAll('.mm-lc').length === 3", timeout=5000)
+        except Exception: pass
+        n = await page.evaluate("document.querySelectorAll('.mm-lc').length")
+        left = await page.evaluate("id => [localStorage.getItem('kd:mmnote:' + id), localStorage.getItem('kd:mmchat:' + id)]", id2)
+        listed = await page.evaluate("window.__kd.MapMaker._t.Store.list().then(l => l.filter(e => !e.sample).length)")
+        check('library card menu delete: card gone, store empty, no per-map keys left', n == 3 and listed == 0 and left == [None, None], (n, listed, left))
         sys.exit(summary(logs))
 
 asyncio.run(main())

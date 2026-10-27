@@ -215,6 +215,7 @@ const Store = {
     await this.list();
     const e = this.idx.maps[id]; delete this.idx.maps[id]; this.cache.delete(id); this.thumbs.delete(id);
     KV.del('kd_mm_' + id); KV.del('kd_mm_th_' + id); for (let k = 0; k < ((e && e.parts) || 0); k++) KV.del(`kd_mm_${id}_p${k}`);
+    try { LS.del('mmnote:' + id); LS.del('mmchat:' + id); } catch (e2) {}   // このマップ用の端末内の目印（注意書きを出した回数・AIとの会話）も消す
     this.saveIdx();
   },
   touch(id) { const e = this.idx && this.idx.maps[id]; if (!e) return; e.o = Date.now(); this.saveIdx(); },
