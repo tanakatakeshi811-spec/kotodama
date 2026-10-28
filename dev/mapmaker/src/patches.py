@@ -1,5 +1,5 @@
 # (anchor, replacement, label)  --  コトダマ本体への接続（すべて、1か所だけに一致するアンカーで差し替える）
-patches.append(("if (win.__KD_TEST) win.__kd = { Meeting,", "if (win.__KD_TEST) win.__kd = { MapMaker, Meeting,", "kd test export"))
+patches.append(("if (win.__KD_TEST) win.__kd = { Meeting,", "if (win.__KD_TEST) win.__kd = { MapMaker, errText, Meeting,", "kd test export"))
 
 # ---- サイドバー：AIカメラの下に「マップ制作」----
 patches.append((
@@ -115,3 +115,9 @@ patches.append((
     r"| **AIカメラ** | 左の一覧の「AIカメラ」。顔を自動で追いかけ、真ん中の四角に写ったものをリアルタイムで判定 |\n",
     r"| **AIカメラ** | 左の一覧の「AIカメラ」。顔を自動で追いかけ、真ん中の四角に写ったものをリアルタイムで判定 |\n| **マップ制作** | 左の一覧の「マップ制作」。行きたい場所（ららぽーと・ディズニー・コストコなど）を伝えると、お店やアトラクションを1つずつ載せた2D・3Dのマップを作ります。気温・検索・現在地・AIとの会話つき |\n",
     'guide table'))
+
+# ---- 中継サーバーのエラー：PCのClaude Codeのログイン切れは、英語のまま出さず、直し方を日本語で ----
+patches.append((
+    "if (c === 'relay_error') return '中継サーバーのエラー：' + String(e.message || '').slice(0, 200);",
+    "if (c === 'relay_error') return /oauth|authenticat|log ?in|session.{0,24}expired|unauthori[sz]ed/i.test(String(e.message || '')) ? 'PCのClaude Codeのログインが切れています。PCのターミナルで claude を開いて /login でログインし直してください（中継サーバー自体は動いています）。' : '中継サーバーのエラー：' + String(e.message || '').slice(0, 200);",
+    'errText relay login'))

@@ -64,8 +64,9 @@ function firstNote() {
   let n = 0; try { n = LS.get('mmnote:' + m.id, 0); } catch (e) {}
   if (n === true || n >= 2 || m.sample) { b.hidden = true; return; }
   try { LS.set('mmnote:' + m.id, (+n || 0) + 1); } catch (e) {}
-  const acc = m.info && m.info.acc;
-  b.innerHTML = `<span>${ic('info', 'sm')}</span><span>建物の外の位置は<b>OpenStreetMap</b>の実際の位置です。建物の中の店の並びは、AIが調べた情報から作った<b>見取り図の目安</b>です${acc === 'osm' ? '（AIにつながっていなかったため、お店の情報は少なめです）' : ''}。</span><button data-m="notex" aria-label="閉じる">${ic('x', 'sm')}</button>`;
+  const acc = m.info && m.info.acc, dn = m.info && m.info.aiDown;
+  const lack = acc !== 'osm' ? '' : dn === 'relay' ? '（PCのClaudeのログインが切れていたため、お店の情報は少なめです。ログインし直して「作り直す」と増やせます）' : dn === 'key' ? '（APIキーが正しくなかったため、お店の情報は少なめです。設定で確かめて「作り直す」と増やせます）' : dn === 'session' ? '（Claudeのログインの期限が切れていたため、お店の情報は少なめです。ログインし直して「作り直す」と増やせます）' : '（AIにつながっていなかったため、お店の情報は少なめです）';
+  b.innerHTML =`<span>${ic('info', 'sm')}</span><span>建物の外の位置は<b>OpenStreetMap</b>の実際の位置です。建物の中の店の並びは、AIが調べた情報から作った<b>見取り図の目安</b>です${lack}。</span><button data-m="notex" aria-label="閉じる">${ic('x', 'sm')}</button>`;
   b.className = 'mm-banner note'; b.hidden = false; clearTimeout(M.bannerT); M.bannerT = setTimeout(() => { b.hidden = true; layout(); }, 10000);
 }
 

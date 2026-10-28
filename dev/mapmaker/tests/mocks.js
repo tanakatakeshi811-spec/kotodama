@@ -108,6 +108,11 @@
     calls.ai.push({ user: String(user).slice(0, 140), search: !!(o && o.search) });
     await new Promise(r => setTimeout(r, window.__mockAiMs || 20));
     if (o && o.signal && o.signal.aborted) throw { code: 'cancelled' };
+    /* 本物の中継で起きたこと：PCのClaude Codeのログインが切れていると、中継サーバーは毎回「Failed to authenticate: OAuth session expired…」を返す。'all'=全部／'dossier'=下調べだけ／'chunks'=店のリストだけ */
+    if (window.__mockAiLogin) { const isDos = /この場所について、次のJSON/.test(user), m = window.__mockAiLogin; if (m === 'all' || (m === 'dossier' && isDos) || (m === 'chunks' && !isDos)) throw { code: 'relay_error', message: 'Failed to authenticate: OAuth session expired and could not be refreshed' }; }
+    if (window.__mockAiCode) throw { code: window.__mockAiCode };   /* 'api_key'(APIキーまちがい)・'session_expired'(Claudeのログイン期限切れ) など、コードだけのエラー */
+    /* ふつうの一時的な中継エラー（ログインとは関係ない）を、最初のN回だけ */
+    if (window.__mockAiRelayErr > 0) { window.__mockAiRelayErr--; throw { code: 'relay_error', message: 'Claude Code exited with code 1' }; }
     const sc = byName(String(user).slice(0, 220));
     if (window.__mockAiFail && /この場所について、次のJSON/.test(user)) throw { code: 'upstream_error' };
     if (/この場所について、次のJSON/.test(user)) return '調べました。\n```json\n' + JSON.stringify(sc.D, null, 1) + '\n```';
